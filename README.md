@@ -113,20 +113,9 @@ EC numbers on CARE task 2. Download `CARE_datasets.zip` from the Zenodo record o
     uv run python -m benchmarks.chemistry.care prepare <CARE_datasets>
     uv run python -m benchmarks.chemistry.care train --model npf --seed 0
 
-Tables and the paper.
-
-    uv run python -m benchmarks.report > results/REPORT.md
-    uv run python -m benchmarks.paper_tables
-    cd paper && latexmk -pdf main.tex
-
-The annotated copy of the paper, which explains every formula in plain words and prints the code that implements it.
-
-    uv run python paper/annotated/extract_code.py
-    uv run python paper/annotated/annotate.py
-    cd paper && latexmk -pdf main_annotated.tex
 
 ## Conventions
 
 Results are JSON under `results/`, one file per run, and every table of the paper is generated from them. No number
 in the paper is typed by hand. Side outputs go in their own folder, because `benchmarks/report.py` globs the result
-folders. Comments are ASCII and sit on the line above the code they explain.
+folders.
