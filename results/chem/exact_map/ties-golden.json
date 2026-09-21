@@ -1,0 +1,15 @@
+{
+ "data": "golden",
+ "reactions": 1760,
+ "enumerated": 0.7852272727272728,
+ "complete": 0.992040520984081,
+ "mappings_per_reaction": 18.412445730824892,
+ "classes_per_reaction": 1.1808972503617945,
+ "true_tie": 0.1512301013024602,
+ "curated_among_optima": 0.9413892908827786,
+ "uniform_choice": 0.8679932465026531,
+ "first_optimum": 0.8581765557163531,
+ "curated_among_optima_when_tied": 0.9186602870813397,
+ "uniform_choice_when_tied": 0.4333333333333333,
+ "uniform_choice_held_out": 0.8679685381068619
+}

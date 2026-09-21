@@ -1,0 +1,20 @@
+{
+ "model": "molecular-transformer",
+ "subset_lines": 4090,
+ "validation_top1": {
+  "model_step_17500.pt": 0.0013333333333333333,
+  "model_step_20000.pt": 0.0006666666666666666,
+  "model_step_22500.pt": 0.0006666666666666666,
+  "model_step_25000.pt": 0.0006666666666666666,
+  "model_step_27500.pt": 0.0006666666666666666,
+  "model_step_30000.pt": 0.0006666666666666666,
+  "model_average.pt": 0.0006666666666666666
+ },
+ "selected": "model_step_17500.pt",
+ "n_test": 40000,
+ "product_top1": 0.000975,
+ "product_top2": 0.0013,
+ "product_top3": 0.001575,
+ "product_top4": 0.001825,
+ "product_top5": 0.002025
+}

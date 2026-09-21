@@ -1,0 +1,94 @@
+{
+ "rows": "results/chem/exact_map/golden-0-0-0.pkl",
+ "all": {
+  "reactions": 1760,
+  "exact_net_mapper": 0.7318181818181818,
+  "exact_net_mapper_ci95": [
+   0.7113636363636363,
+   0.7522727272727273
+  ],
+  "rxnmapper": 0.8539772727272728,
+  "rxnmapper_ci95": [
+   0.8374857954545455,
+   0.8704545454545455
+  ],
+  "either": 0.9073863636363636,
+  "only_ours": 94,
+  "only_rxnmapper": 309,
+  "sign_test_p": 7.5873253565427195e-28,
+  "proved": 0.9335227272727272,
+  "exact_net_mapper_when_proved": 0.7516737674984784
+ },
+ "held_out": {
+  "reactions": 1560,
+  "exact_net_mapper": 0.7307692307692307,
+  "exact_net_mapper_ci95": [
+   0.7083333333333334,
+   0.7525641025641026
+  ],
+  "rxnmapper": 0.8538461538461538,
+  "rxnmapper_ci95": [
+   0.8358974358974359,
+   0.8711538461538462
+  ],
+  "either": 0.9064102564102564,
+  "only_ours": 82,
+  "only_rxnmapper": 274,
+  "sign_test_p": 2.6736742750553454e-25,
+  "proved": 0.9346153846153846,
+  "exact_net_mapper_when_proved": 0.7510288065843621
+ },
+ "dev": {
+  "reactions": 200,
+  "exact_net_mapper": 0.74,
+  "exact_net_mapper_ci95": [
+   0.68,
+   0.8
+  ],
+  "rxnmapper": 0.855,
+  "rxnmapper_ci95": [
+   0.805,
+   0.9
+  ],
+  "either": 0.915,
+  "only_ours": 12,
+  "only_rxnmapper": 35,
+  "sign_test_p": 0.0010885382064742541,
+  "proved": 0.925,
+  "exact_net_mapper_when_proved": 0.7567567567567568
+ },
+ "by_places": [
+  {
+   "places": "1 to 2",
+   "reactions": 966,
+   "exact_net_mapper": 0.7691511387163561,
+   "rxnmapper": 0.9182194616977226,
+   "curated_not_minimal": 0.008281573498964804,
+   "proved": 0.9596273291925466
+  },
+  {
+   "places": "3 to 4",
+   "reactions": 568,
+   "exact_net_mapper": 0.6971830985915493,
+   "rxnmapper": 0.795774647887324,
+   "curated_not_minimal": 0.0528169014084507,
+   "proved": 0.9137323943661971
+  },
+  {
+   "places": "5 to 6",
+   "reactions": 140,
+   "exact_net_mapper": 0.5714285714285714,
+   "rxnmapper": 0.6928571428571428,
+   "curated_not_minimal": 0.10714285714285714,
+   "proved": 0.8428571428571429
+  },
+  {
+   "places": "7 or more",
+   "reactions": 31,
+   "exact_net_mapper": 0.45161290322580644,
+   "rxnmapper": 0.41935483870967744,
+   "curated_not_minimal": 0.22580645161290322,
+   "proved": 0.7741935483870968
+  }
+ ]
+}

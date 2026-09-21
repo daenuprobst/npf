@@ -1,0 +1,16 @@
+{
+ "data": "dev",
+ "secondary": [
+  1,
+  0,
+  0
+ ],
+ "seconds": 10.0,
+ "reactions": 400,
+ "correct": 0.7325,
+ "proved": 0.465,
+ "correct_when_proved": 0.7096774193548387,
+ "correct_when_not_proved": 0.7523364485981309,
+ "median_seconds": 10.025076508522034,
+ "mean_seconds": 6.094486198425293
+}

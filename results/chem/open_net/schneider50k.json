@@ -1,0 +1,11 @@
+{
+ "data": "schneider50k",
+ "reactions": 49994,
+ "lack_atoms": 426,
+ "solved": 426,
+ "proved": 0.38497652582159625,
+ "atoms only": 0.7136150234741784,
+ "copies only": 0.25586854460093894,
+ "copies and atoms": 0.03051643192488263,
+ "median_seconds": 20.07046937942505
+}

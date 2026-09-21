@@ -1,0 +1,14 @@
+{
+ "task": "classify",
+ "model": "drfp",
+ "seed": 1,
+ "params": 2149426,
+ "n_train": 1000,
+ "n_test": 39994,
+ "train_seconds": 3.4428062438964844,
+ "curve": [],
+ "metrics": {
+  "accuracy": 0.8668800592422485,
+  "macro_f1": 0.8654156281825707
+ }
+}

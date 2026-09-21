@@ -1,0 +1,11 @@
+{
+ "data": "golden",
+ "reactions": 1851,
+ "lack_atoms": 88,
+ "solved": 88,
+ "proved": 0.7045454545454546,
+ "atoms only": 0.8522727272727273,
+ "copies only": 0.11363636363636363,
+ "copies and atoms": 0.03409090909090909,
+ "median_seconds": 1.4145550727844238
+}

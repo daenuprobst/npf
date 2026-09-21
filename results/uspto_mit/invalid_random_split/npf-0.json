@@ -1,0 +1,16 @@
+{
+ "task": "forward",
+ "model": "npf",
+ "seed": 0,
+ "params": 1608326,
+ "n_train": 374846,
+ "n_test": 46963,
+ "train_seconds": 70.43937110900879,
+ "curve": [],
+ "metrics": {
+  "product_top1": 0.8184528245640185,
+  "edits_exact_up_to_symmetry": 0.753401614036582,
+  "edits_exact": 0.7217383897962225,
+  "valence_valid": 1.0
+ }
+}

@@ -1,0 +1,33 @@
+{
+ "n": 39994,
+ "kinds": {
+  "correct": 34594,
+  "stopped late": 172,
+  "overlaps the recorded places": 1533,
+  "recorded firings do not decode to the recorded product": 515,
+  "recorded places, other bond types": 138,
+  "stopped early": 937,
+  "other places, shares an atom": 853,
+  "other site": 1147,
+  "no recorded firings": 103,
+  "recorded firings, other product after decoding": 1,
+  "nothing fired": 1
+ },
+ "by_firings": {
+  "2": 0.9143382352941176,
+  "3": 0.8235849056603773,
+  "4": 0.6351829988193625,
+  "1": 0.8787703853369895,
+  "5": 0.3724696356275304,
+  "6": 0.14545454545454545,
+  "0": 0.8704402515723271
+ },
+ "by_size": {
+  "0": 0.7841369986480397,
+  "1": 0.8655578655578655,
+  "2": 0.8818121029755934,
+  "3": 0.8615891614793116,
+  "4": 0.8142857142857143,
+  "5": 0.8732919254658386
+ }
+}

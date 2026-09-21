@@ -1,0 +1,21 @@
+{
+ "benchmark": "CARE task 2, easy split",
+ "model": "npf",
+ "seed": 0,
+ "params": 4656481,
+ "n_train": 60765,
+ "n_test": 380,
+ "n_test_official": 393,
+ "n_classes": 4960,
+ "train_seconds": 493.77471351623535,
+ "metrics": {
+  "level4": 0.6289473684210526,
+  "level4_official": 0.6081424936386769,
+  "level3": 0.8078947368421052,
+  "level3_official": 0.7811704834605598,
+  "level2": 0.8868421052631579,
+  "level2_official": 0.8575063613231552,
+  "level1": 0.9526315789473684,
+  "level1_official": 0.9211195928753181
+ }
+}

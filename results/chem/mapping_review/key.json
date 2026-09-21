@@ -1,0 +1,2762 @@
+{
+ "1A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 21237,
+  "tokens_moved": 4.0
+ },
+ "1B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 21237,
+  "tokens_moved": 4.0
+ },
+ "2A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 204,
+  "tokens_moved": 7.0
+ },
+ "2B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 204,
+  "tokens_moved": 3.0
+ },
+ "3A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 47106,
+  "tokens_moved": 4.0
+ },
+ "3B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 47106,
+  "tokens_moved": 4.0
+ },
+ "4A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 12182,
+  "tokens_moved": 7.0
+ },
+ "4B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 12182,
+  "tokens_moved": 5.0
+ },
+ "5A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 8493,
+  "tokens_moved": 3.0
+ },
+ "5B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 8493,
+  "tokens_moved": 11.0
+ },
+ "6A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 40666,
+  "tokens_moved": 3.0
+ },
+ "6B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 40666,
+  "tokens_moved": 3.0
+ },
+ "7A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 37681,
+  "tokens_moved": 4.0
+ },
+ "7B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 37681,
+  "tokens_moved": 4.0
+ },
+ "8A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 44978,
+  "tokens_moved": 4.0
+ },
+ "8B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 44978,
+  "tokens_moved": 4.0
+ },
+ "9A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 29097,
+  "tokens_moved": 5.0
+ },
+ "9B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 29097,
+  "tokens_moved": 7.0
+ },
+ "10A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 43424,
+  "tokens_moved": 4.0
+ },
+ "10B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 43424,
+  "tokens_moved": 4.0
+ },
+ "11A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23811,
+  "tokens_moved": 5.0
+ },
+ "11B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23811,
+  "tokens_moved": 3.0
+ },
+ "12A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 29499,
+  "tokens_moved": 5.0
+ },
+ "12B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 29499,
+  "tokens_moved": 3.0
+ },
+ "13A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 46488,
+  "tokens_moved": 4.0
+ },
+ "13B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 46488,
+  "tokens_moved": 4.0
+ },
+ "14A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 48799,
+  "tokens_moved": 3.0
+ },
+ "14B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 48799,
+  "tokens_moved": 3.0
+ },
+ "15A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 14496,
+  "tokens_moved": 3.0
+ },
+ "15B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 14496,
+  "tokens_moved": 7.0
+ },
+ "16A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 24557,
+  "tokens_moved": 4.0
+ },
+ "16B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 24557,
+  "tokens_moved": 4.0
+ },
+ "17A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 31524,
+  "tokens_moved": 3.0
+ },
+ "17B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 31524,
+  "tokens_moved": 3.0
+ },
+ "18A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 34593,
+  "tokens_moved": 3.0
+ },
+ "18B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 34593,
+  "tokens_moved": 6.0
+ },
+ "19A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 32833,
+  "tokens_moved": 3.0
+ },
+ "19B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 32833,
+  "tokens_moved": 3.0
+ },
+ "20A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 41684,
+  "tokens_moved": 3.0
+ },
+ "20B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 41684,
+  "tokens_moved": 3.0
+ },
+ "21A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23527,
+  "tokens_moved": 4.0
+ },
+ "21B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23527,
+  "tokens_moved": 4.0
+ },
+ "22A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 49116,
+  "tokens_moved": 4.0
+ },
+ "22B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 49116,
+  "tokens_moved": 4.0
+ },
+ "23A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 21273,
+  "tokens_moved": 3.0
+ },
+ "23B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 21273,
+  "tokens_moved": 11.0
+ },
+ "24A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 34468,
+  "tokens_moved": 6.0
+ },
+ "24B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 34468,
+  "tokens_moved": 3.0
+ },
+ "25A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 35212,
+  "tokens_moved": 4.0
+ },
+ "25B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 35212,
+  "tokens_moved": 4.0
+ },
+ "26A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 38440,
+  "tokens_moved": 5.0
+ },
+ "26B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 38440,
+  "tokens_moved": 8.0
+ },
+ "27A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 16827,
+  "tokens_moved": 3.0
+ },
+ "27B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 16827,
+  "tokens_moved": 3.0
+ },
+ "28A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 45976,
+  "tokens_moved": 4.0
+ },
+ "28B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 45976,
+  "tokens_moved": 4.0
+ },
+ "29A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 40378,
+  "tokens_moved": 3.0
+ },
+ "29B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 40378,
+  "tokens_moved": 3.0
+ },
+ "30A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 44402,
+  "tokens_moved": 5.0
+ },
+ "30B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 44402,
+  "tokens_moved": 3.0
+ },
+ "31A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 47455,
+  "tokens_moved": 3.0
+ },
+ "31B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 47455,
+  "tokens_moved": 9.0
+ },
+ "32A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 43811,
+  "tokens_moved": 4.0
+ },
+ "32B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 43811,
+  "tokens_moved": 20.0
+ },
+ "33A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 33536,
+  "tokens_moved": 6.0
+ },
+ "33B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 33536,
+  "tokens_moved": 22.0
+ },
+ "34A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 36209,
+  "tokens_moved": 9.0
+ },
+ "34B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 36209,
+  "tokens_moved": 6.0
+ },
+ "35A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 815,
+  "tokens_moved": 3.0
+ },
+ "35B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 815,
+  "tokens_moved": 9.0
+ },
+ "36A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 14847,
+  "tokens_moved": 3.0
+ },
+ "36B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 14847,
+  "tokens_moved": 5.0
+ },
+ "37A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 41754,
+  "tokens_moved": 4.0
+ },
+ "37B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 41754,
+  "tokens_moved": 4.0
+ },
+ "38A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23383,
+  "tokens_moved": 3.0
+ },
+ "38B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 23383,
+  "tokens_moved": 5.0
+ },
+ "39A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 27483,
+  "tokens_moved": 4.0
+ },
+ "39B": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 27483,
+  "tokens_moved": 4.0
+ },
+ "40A": {
+  "sources": [
+   "recorded",
+   "RXNMapper"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 49731,
+  "tokens_moved": 4.0
+ },
+ "40B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "NPF differs, RXNMapper = record",
+  "reaction_id": 49731,
+  "tokens_moved": 4.0
+ },
+ "41A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 5460,
+  "tokens_moved": 3.0
+ },
+ "41B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 5460,
+  "tokens_moved": 6.0
+ },
+ "42A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 23264,
+  "tokens_moved": 5.0
+ },
+ "42B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 23264,
+  "tokens_moved": 19.0
+ },
+ "43A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 27752,
+  "tokens_moved": 3.0
+ },
+ "43B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 27752,
+  "tokens_moved": 3.0
+ },
+ "44A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31223,
+  "tokens_moved": 3.0
+ },
+ "44B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31223,
+  "tokens_moved": 3.0
+ },
+ "45A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 43609,
+  "tokens_moved": 3.0
+ },
+ "45B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 43609,
+  "tokens_moved": 5.0
+ },
+ "46A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 26444,
+  "tokens_moved": 3.0
+ },
+ "46B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 26444,
+  "tokens_moved": 7.0
+ },
+ "47A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 16651,
+  "tokens_moved": 3.0
+ },
+ "47B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 16651,
+  "tokens_moved": 3.0
+ },
+ "48A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 30549,
+  "tokens_moved": 3.0
+ },
+ "48B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 30549,
+  "tokens_moved": 3.0
+ },
+ "49A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 17821,
+  "tokens_moved": 4.0
+ },
+ "49B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 17821,
+  "tokens_moved": 4.0
+ },
+ "50A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 24391,
+  "tokens_moved": 3.0
+ },
+ "50B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 24391,
+  "tokens_moved": 3.0
+ },
+ "51A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 7328,
+  "tokens_moved": 29.0
+ },
+ "51B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 7328,
+  "tokens_moved": 3.0
+ },
+ "52A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 470,
+  "tokens_moved": 3.0
+ },
+ "52B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 470,
+  "tokens_moved": 19.0
+ },
+ "53A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 14577,
+  "tokens_moved": 3.0
+ },
+ "53B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 14577,
+  "tokens_moved": 3.0
+ },
+ "54A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 43526,
+  "tokens_moved": 2.0
+ },
+ "54B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 43526,
+  "tokens_moved": 3.0
+ },
+ "55A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25250,
+  "tokens_moved": 4.0
+ },
+ "55B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25250,
+  "tokens_moved": 4.0
+ },
+ "56A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 49786,
+  "tokens_moved": 4.0
+ },
+ "56B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 49786,
+  "tokens_moved": 4.0
+ },
+ "57A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 40898,
+  "tokens_moved": 3.0
+ },
+ "57B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 40898,
+  "tokens_moved": 19.0
+ },
+ "58A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 1295,
+  "tokens_moved": 3.0
+ },
+ "58B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 1295,
+  "tokens_moved": 6.0
+ },
+ "59A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 18049,
+  "tokens_moved": 3.0
+ },
+ "59B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 18049,
+  "tokens_moved": 3.0
+ },
+ "60A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31234,
+  "tokens_moved": 3.0
+ },
+ "60B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31234,
+  "tokens_moved": 9.0
+ },
+ "61A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 13962,
+  "tokens_moved": 3.0
+ },
+ "61B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 13962,
+  "tokens_moved": 12.0
+ },
+ "62A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 4288,
+  "tokens_moved": 3.0
+ },
+ "62B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 4288,
+  "tokens_moved": 5.0
+ },
+ "63A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 38655,
+  "tokens_moved": 3.0
+ },
+ "63B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 38655,
+  "tokens_moved": 11.0
+ },
+ "64A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 36859,
+  "tokens_moved": 5.0
+ },
+ "64B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 36859,
+  "tokens_moved": 10.0
+ },
+ "65A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 39091,
+  "tokens_moved": 4.0
+ },
+ "65B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 39091,
+  "tokens_moved": 4.0
+ },
+ "66A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 38583,
+  "tokens_moved": 3.0
+ },
+ "66B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 38583,
+  "tokens_moved": 5.0
+ },
+ "67A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25222,
+  "tokens_moved": 4.0
+ },
+ "67B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25222,
+  "tokens_moved": 3.0
+ },
+ "68A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25484,
+  "tokens_moved": 3.0
+ },
+ "68B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 25484,
+  "tokens_moved": 5.0
+ },
+ "69A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 11634,
+  "tokens_moved": 3.0
+ },
+ "69B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 11634,
+  "tokens_moved": 3.0
+ },
+ "70A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 16684,
+  "tokens_moved": 3.0
+ },
+ "70B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 16684,
+  "tokens_moved": 11.0
+ },
+ "71A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31727,
+  "tokens_moved": 6.0
+ },
+ "71B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 31727,
+  "tokens_moved": 15.0
+ },
+ "72A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 6968,
+  "tokens_moved": 3.0
+ },
+ "72B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 6968,
+  "tokens_moved": 3.0
+ },
+ "73A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 18096,
+  "tokens_moved": 4.0
+ },
+ "73B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 18096,
+  "tokens_moved": 4.0
+ },
+ "74A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 20771,
+  "tokens_moved": 3.0
+ },
+ "74B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 20771,
+  "tokens_moved": 3.0
+ },
+ "75A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 4039,
+  "tokens_moved": 3.0
+ },
+ "75B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 4039,
+  "tokens_moved": 8.0
+ },
+ "76A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 1808,
+  "tokens_moved": 3.0
+ },
+ "76B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 1808,
+  "tokens_moved": 3.0
+ },
+ "77A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 327,
+  "tokens_moved": 3.0
+ },
+ "77B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 327,
+  "tokens_moved": 9.0
+ },
+ "78A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 20279,
+  "tokens_moved": 3.0
+ },
+ "78B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 20279,
+  "tokens_moved": 5.0
+ },
+ "79A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 34382,
+  "tokens_moved": 12.5
+ },
+ "79B": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 34382,
+  "tokens_moved": 3.0
+ },
+ "80A": {
+  "sources": [
+   "NPF",
+   "RXNMapper"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 26774,
+  "tokens_moved": 3.0
+ },
+ "80B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "NPF = RXNMapper, both differ from record",
+  "reaction_id": 26774,
+  "tokens_moved": 5.0
+ },
+ "81A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 11874,
+  "tokens_moved": 9.0
+ },
+ "81B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 11874,
+  "tokens_moved": 3.0
+ },
+ "82A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 27425,
+  "tokens_moved": 3.0
+ },
+ "82B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 27425,
+  "tokens_moved": 3.0
+ },
+ "83A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 25791,
+  "tokens_moved": 9.0
+ },
+ "83B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 25791,
+  "tokens_moved": 3.0
+ },
+ "84A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 25865,
+  "tokens_moved": 3.0
+ },
+ "84B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 25865,
+  "tokens_moved": 3.0
+ },
+ "85A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20374,
+  "tokens_moved": 9.0
+ },
+ "85B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20374,
+  "tokens_moved": 3.0
+ },
+ "86A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 3440,
+  "tokens_moved": 5.0
+ },
+ "86B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 3440,
+  "tokens_moved": 7.0
+ },
+ "87A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 38245,
+  "tokens_moved": 5.0
+ },
+ "87B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 38245,
+  "tokens_moved": 3.0
+ },
+ "88A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 15879,
+  "tokens_moved": 5.0
+ },
+ "88B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 15879,
+  "tokens_moved": 3.0
+ },
+ "89A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 33946,
+  "tokens_moved": 4.0
+ },
+ "89B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 33946,
+  "tokens_moved": 4.0
+ },
+ "90A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 47303,
+  "tokens_moved": 3.0
+ },
+ "90B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 47303,
+  "tokens_moved": 3.0
+ },
+ "91A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 39839,
+  "tokens_moved": 3.0
+ },
+ "91B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 39839,
+  "tokens_moved": 3.0
+ },
+ "92A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 1366,
+  "tokens_moved": 3.0
+ },
+ "92B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 1366,
+  "tokens_moved": 9.0
+ },
+ "93A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 45464,
+  "tokens_moved": 4.0
+ },
+ "93B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 45464,
+  "tokens_moved": 4.0
+ },
+ "94A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 36816,
+  "tokens_moved": 5.0
+ },
+ "94B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 36816,
+  "tokens_moved": 3.0
+ },
+ "95A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 23617,
+  "tokens_moved": 9.0
+ },
+ "95B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 23617,
+  "tokens_moved": 3.0
+ },
+ "96A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20253,
+  "tokens_moved": 9.0
+ },
+ "96B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20253,
+  "tokens_moved": 3.0
+ },
+ "97A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 19354,
+  "tokens_moved": 4.0
+ },
+ "97B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 19354,
+  "tokens_moved": 4.0
+ },
+ "98A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 14294,
+  "tokens_moved": 3.0
+ },
+ "98B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 14294,
+  "tokens_moved": 9.0
+ },
+ "99A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 4909,
+  "tokens_moved": 9.0
+ },
+ "99B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 4909,
+  "tokens_moved": 3.0
+ },
+ "100A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 12435,
+  "tokens_moved": 3.0
+ },
+ "100B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 12435,
+  "tokens_moved": 9.0
+ },
+ "101A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 1639,
+  "tokens_moved": 3.0
+ },
+ "101B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 1639,
+  "tokens_moved": 3.0
+ },
+ "102A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 49152,
+  "tokens_moved": 5.0
+ },
+ "102B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 49152,
+  "tokens_moved": 3.0
+ },
+ "103A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 28975,
+  "tokens_moved": 3.0
+ },
+ "103B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 28975,
+  "tokens_moved": 7.0
+ },
+ "104A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 13547,
+  "tokens_moved": 2.0
+ },
+ "104B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 13547,
+  "tokens_moved": 2.0
+ },
+ "105A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 48456,
+  "tokens_moved": 2.0
+ },
+ "105B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 48456,
+  "tokens_moved": 4.0
+ },
+ "106A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 34489,
+  "tokens_moved": 11.0
+ },
+ "106B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 34489,
+  "tokens_moved": 3.0
+ },
+ "107A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 40414,
+  "tokens_moved": 3.0
+ },
+ "107B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 40414,
+  "tokens_moved": 5.0
+ },
+ "108A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20781,
+  "tokens_moved": 4.0
+ },
+ "108B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 20781,
+  "tokens_moved": 3.0
+ },
+ "109A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 39033,
+  "tokens_moved": 3.0
+ },
+ "109B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 39033,
+  "tokens_moved": 7.0
+ },
+ "110A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 5225,
+  "tokens_moved": 3.0
+ },
+ "110B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 5225,
+  "tokens_moved": 9.0
+ },
+ "111A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 31741,
+  "tokens_moved": 3.0
+ },
+ "111B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 31741,
+  "tokens_moved": 3.0
+ },
+ "112A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 6846,
+  "tokens_moved": 9.0
+ },
+ "112B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 6846,
+  "tokens_moved": 3.0
+ },
+ "113A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 22796,
+  "tokens_moved": 3.0
+ },
+ "113B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 22796,
+  "tokens_moved": 5.0
+ },
+ "114A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 33012,
+  "tokens_moved": 11.0
+ },
+ "114B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 33012,
+  "tokens_moved": 3.0
+ },
+ "115A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 31263,
+  "tokens_moved": 9.0
+ },
+ "115B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 31263,
+  "tokens_moved": 5.0
+ },
+ "116A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 26805,
+  "tokens_moved": 3.0
+ },
+ "116B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 26805,
+  "tokens_moved": 3.0
+ },
+ "117A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 41603,
+  "tokens_moved": 9.0
+ },
+ "117B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 41603,
+  "tokens_moved": 3.0
+ },
+ "118A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 49067,
+  "tokens_moved": 3.0
+ },
+ "118B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 49067,
+  "tokens_moved": 3.0
+ },
+ "119A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 47016,
+  "tokens_moved": 3.0
+ },
+ "119B": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 47016,
+  "tokens_moved": 5.0
+ },
+ "120A": {
+  "sources": [
+   "recorded",
+   "NPF"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 32290,
+  "tokens_moved": 5.0
+ },
+ "120B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "NPF = record, RXNMapper differs",
+  "reaction_id": 32290,
+  "tokens_moved": 3.0
+ },
+ "121A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 8553,
+  "tokens_moved": 3.0
+ },
+ "121B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 8553,
+  "tokens_moved": 3.0
+ },
+ "121C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 8553,
+  "tokens_moved": 3.0
+ },
+ "122A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37246,
+  "tokens_moved": 3.0
+ },
+ "122B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37246,
+  "tokens_moved": 3.0
+ },
+ "122C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37246,
+  "tokens_moved": 5.0
+ },
+ "123A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26797,
+  "tokens_moved": 9.0
+ },
+ "123B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26797,
+  "tokens_moved": 3.0
+ },
+ "123C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26797,
+  "tokens_moved": 5.0
+ },
+ "124A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5008,
+  "tokens_moved": 3.0
+ },
+ "124B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5008,
+  "tokens_moved": 3.0
+ },
+ "124C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5008,
+  "tokens_moved": 5.0
+ },
+ "125A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41145,
+  "tokens_moved": 3.0
+ },
+ "125B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41145,
+  "tokens_moved": 3.0
+ },
+ "125C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41145,
+  "tokens_moved": 3.0
+ },
+ "126A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 12548,
+  "tokens_moved": 12.5
+ },
+ "126B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 12548,
+  "tokens_moved": 3.0
+ },
+ "126C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 12548,
+  "tokens_moved": 3.0
+ },
+ "127A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 43123,
+  "tokens_moved": 3.0
+ },
+ "127B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 43123,
+  "tokens_moved": 6.0
+ },
+ "127C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 43123,
+  "tokens_moved": 3.0
+ },
+ "128A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 47908,
+  "tokens_moved": 9.0
+ },
+ "128B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 47908,
+  "tokens_moved": 3.0
+ },
+ "128C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 47908,
+  "tokens_moved": 3.0
+ },
+ "129A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 18990,
+  "tokens_moved": 3.0
+ },
+ "129B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 18990,
+  "tokens_moved": 11.0
+ },
+ "129C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 18990,
+  "tokens_moved": 5.0
+ },
+ "130A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 39666,
+  "tokens_moved": 4.0
+ },
+ "130B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 39666,
+  "tokens_moved": 4.0
+ },
+ "130C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 39666,
+  "tokens_moved": 4.0
+ },
+ "131A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 16938,
+  "tokens_moved": 3.0
+ },
+ "131B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 16938,
+  "tokens_moved": 5.0
+ },
+ "131C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 16938,
+  "tokens_moved": 9.0
+ },
+ "132A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 10732,
+  "tokens_moved": 9.0
+ },
+ "132B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 10732,
+  "tokens_moved": 3.0
+ },
+ "132C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 10732,
+  "tokens_moved": 3.0
+ },
+ "133A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 950,
+  "tokens_moved": 3.0
+ },
+ "133B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 950,
+  "tokens_moved": 9.0
+ },
+ "133C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 950,
+  "tokens_moved": 3.0
+ },
+ "134A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5543,
+  "tokens_moved": 5.0
+ },
+ "134B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5543,
+  "tokens_moved": 3.0
+ },
+ "134C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 5543,
+  "tokens_moved": 3.0
+ },
+ "135A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28477,
+  "tokens_moved": 16.0
+ },
+ "135B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28477,
+  "tokens_moved": 8.0
+ },
+ "135C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28477,
+  "tokens_moved": 3.0
+ },
+ "136A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 49803,
+  "tokens_moved": 3.0
+ },
+ "136B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 49803,
+  "tokens_moved": 3.0
+ },
+ "136C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 49803,
+  "tokens_moved": 6.0
+ },
+ "137A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 32665,
+  "tokens_moved": 9.0
+ },
+ "137B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 32665,
+  "tokens_moved": 3.0
+ },
+ "137C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 32665,
+  "tokens_moved": 3.0
+ },
+ "138A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38571,
+  "tokens_moved": 3.0
+ },
+ "138B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38571,
+  "tokens_moved": 3.0
+ },
+ "138C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38571,
+  "tokens_moved": 3.0
+ },
+ "139A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 1399,
+  "tokens_moved": 3.0
+ },
+ "139B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 1399,
+  "tokens_moved": 3.0
+ },
+ "139C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 1399,
+  "tokens_moved": 5.0
+ },
+ "140A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37400,
+  "tokens_moved": 3.0
+ },
+ "140B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37400,
+  "tokens_moved": 7.0
+ },
+ "140C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37400,
+  "tokens_moved": 3.0
+ },
+ "141A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38140,
+  "tokens_moved": 9.0
+ },
+ "141B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38140,
+  "tokens_moved": 9.0
+ },
+ "141C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38140,
+  "tokens_moved": 5.0
+ },
+ "142A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38849,
+  "tokens_moved": 3.0
+ },
+ "142B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38849,
+  "tokens_moved": 9.0
+ },
+ "142C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 38849,
+  "tokens_moved": 8.0
+ },
+ "143A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 6401,
+  "tokens_moved": 11.0
+ },
+ "143B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 6401,
+  "tokens_moved": 3.0
+ },
+ "143C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 6401,
+  "tokens_moved": 5.0
+ },
+ "144A": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37460,
+  "tokens_moved": 3.0
+ },
+ "144B": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37460,
+  "tokens_moved": 9.0
+ },
+ "144C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 37460,
+  "tokens_moved": 9.0
+ },
+ "145A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 44625,
+  "tokens_moved": 5.0
+ },
+ "145B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 44625,
+  "tokens_moved": 7.0
+ },
+ "145C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 44625,
+  "tokens_moved": 18.0
+ },
+ "146A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28507,
+  "tokens_moved": 7.0
+ },
+ "146B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28507,
+  "tokens_moved": 3.0
+ },
+ "146C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 28507,
+  "tokens_moved": 3.0
+ },
+ "147A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26867,
+  "tokens_moved": 4.0
+ },
+ "147B": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26867,
+  "tokens_moved": 4.0
+ },
+ "147C": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 26867,
+  "tokens_moved": 4.0
+ },
+ "148A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 27475,
+  "tokens_moved": 3.0
+ },
+ "148B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 27475,
+  "tokens_moved": 3.0
+ },
+ "148C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 27475,
+  "tokens_moved": 9.0
+ },
+ "149A": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 34888,
+  "tokens_moved": 9.0
+ },
+ "149B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 34888,
+  "tokens_moved": 5.0
+ },
+ "149C": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 34888,
+  "tokens_moved": 3.0
+ },
+ "150A": {
+  "sources": [
+   "NPF"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41392,
+  "tokens_moved": 10.0
+ },
+ "150B": {
+  "sources": [
+   "RXNMapper"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41392,
+  "tokens_moved": 3.0
+ },
+ "150C": {
+  "sources": [
+   "recorded"
+  ],
+  "stratum": "all three differ",
+  "reaction_id": 41392,
+  "tokens_moved": 9.0
+ }
+}

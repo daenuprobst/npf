@@ -1,0 +1,41 @@
+{
+ "schneider50k": {
+  "reactions": 49994,
+  "precursor_atoms_leave": 0.9938392607112854,
+  "product_atoms_lack_a_precursor": 0.008521022522702724,
+  "lacking": 426
+ },
+ "golden": {
+  "reactions": 1851,
+  "precursor_atoms_leave": 0.42571582928146945,
+  "product_atoms_lack_a_precursor": 0.04754186925985954,
+  "lacking": 88,
+  "with_a_complete_curated_map": 1760
+ },
+ "schneider50k_usable": {
+  "reactions": 46672,
+  "mean_recorded_firings": 2.1460833047651695,
+  "product_atoms_with_conserved_valence": 0.9984549214777949
+ },
+ "schneider50k_training_sample": {
+  "reactions": 5000,
+  "recorded_firings_decode_to_the_product": 0.9914,
+  "states": 4999,
+  "negative_slack": 0.06861372274454891,
+  "below_half_token": 0.06841368273654731
+ },
+ "candidates": {
+  "reactions": 36876,
+  "cheapest_firing_vector_unique": 0.5009220088946741,
+  "search_exhaustive": 0.971797374986441
+ },
+ "mapper_row_sums": {
+  "reactions": 640,
+  "product_atoms": 14615,
+  "mean": 0.9665296673774719,
+  "sd": 0.019870763644576073,
+  "min": 0.8178304433822632,
+  "max": 1.1518433094024658,
+  "share_within_0.1_of_one": 0.9985631200821075
+ }
+}

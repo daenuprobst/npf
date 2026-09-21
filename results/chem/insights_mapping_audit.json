@@ -1,0 +1,99 @@
+{
+ "recorded_mapping_moves_more_tokens_than_ours": 0.022498392971930577,
+ "by_class": [
+  [
+   "1.7.6",
+   11
+  ],
+  [
+   "10.4.2",
+   11
+  ],
+  [
+   "1.2.4",
+   7
+  ],
+  [
+   "1.7.7",
+   7
+  ],
+  [
+   "3.1.5",
+   6
+  ],
+  [
+   "9.3.1",
+   6
+  ],
+  [
+   "2.6.3",
+   6
+  ],
+  [
+   "1.6.8",
+   5
+  ]
+ ],
+ "examples": [
+  {
+   "reaction": "CCCCCCN.Nc1cccc(Br)c1>>CCCCCCNc1cccc(N)c1",
+   "class": "1.3.6",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 29.0
+  },
+  {
+   "reaction": "CC(=O)C(=NO)C(=O)c1ccccc1.CC(=O)C(=NOC(=O)Cl)C(=O)c1ccccc1.CC(C)(C)O.O.O=C(Cl)Cl.c1ccccc1.c1ccncc1>>CC(=O)C(=NOC(=O)OC(C)(C)C)C(=O)c1ccccc1",
+   "class": "2.6.1",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 21.0
+  },
+  {
+   "reaction": "CCC(Br)CC.CCOc1cc(C=O)ccc1C.CCOc1cc(C=O)ccc1O.CN(C)C=O.O=C([O-])[O-].[K+].[K+]>>CCOc1cc(C=O)ccc1OC(CC)CC",
+   "class": "1.7.9",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 19.0
+  },
+  {
+   "reaction": "CC(C)=O.CC(C)N.CCC1CCc2ncnc(N3CC4(CCN(Cc5ccccc5)CC4)c4c(CN)cccc43)c21.O=C(O)C(F)(F)F.O=C(O)C(F)(F)F.O=C(O)C(F)(F)F>>CCC1CCc2ncnc(N3CC4(CCN(Cc5ccccc5)CC4)c4c(CNC(C)C)cccc43)c21",
+   "class": "1.2.5",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 19.0
+  },
+  {
+   "reaction": "C#CCNC(=O)c1ncn2c1CN(C)C(=O)c1cc(F)ccc1-2.C1CCNCC1.C1CCOC1.CN1Cc2c(-c3ncc(CI)o3)ncn2-c2ccc(F)cc2C1=O.O=C1CCC(=O)N1I>>CN1Cc2c(-c3ncc(CN4CCCCC4)o3)ncn2-c2ccc(F)cc2C1=O",
+   "class": "1.6.8",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 19.0
+  },
+  {
+   "reaction": "CC(=O)O.CCOc1cc(C=O)ccc1Oc1cc(Cl)ccc1C#N.CN.CO.O=C(O)/C=C/C(=O)O.[BH3-]C#N.[Na+]>>CCOc1cc(CNC)ccc1Oc1cc(Cl)ccc1C#N.O=C(O)/C=C/C(=O)O",
+   "class": "1.2.1",
+   "tokens_ours": 5.0,
+   "tokens_recorded": 19.0
+  },
+  {
+   "reaction": "CCCC[NH-].CC[C@H](C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C)[C@H](CC[C@@H]3C[C@@H](O)CC(=O)O3)[C@H]21.CI.[Li+].[Li+].[c-]1ccc[n-]1>>CCC(C)(C)C(=O)O[C@H]1C[C@@H](C)C=C2C=C[C@H](C)[C@H](CC[C@@H]3C[C@@H](O)CC(=O)O3)[C@H]21.CCCC[NH-]",
+   "class": "10.4.2",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 16.5
+  },
+  {
+   "reaction": "C1COCCO1.CCCCc1nc2cccnc2n1-c1cccc2cc([Sn](CCCC)(CCCC)CCCC)ccc12.N#Cc1ccccc1Br>>CCCCc1nc2cccnc2n1-c1cccc2cc(-c3ccccc3C#N)ccc12",
+   "class": "3.4.1",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 15.5
+  },
+  {
+   "reaction": "CCc1cnc(CC)c(NC2c3ccsc3CCC2C)n1.CCc1nc(N[C@@H]2c3ccccc3C[C@@H]2O)c(CC)nc1Br>>CCc1nc(NC2c3ccsc3CCC2C)c(CC)nc1Br",
+   "class": "10.1.1",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 14.5
+  },
+  {
+   "reaction": "O=C(Cl)C(=O)Cl.O=C(O)c1ccccc1O.c1ccccc1>>O=C(Cl)c1ccccc1O",
+   "class": "9.3.1",
+   "tokens_ours": 3.0,
+   "tokens_recorded": 12.5
+  }
+ ]
+}

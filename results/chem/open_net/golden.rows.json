@@ -1,0 +1,882 @@
+[
+ {
+  "id": 713,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "OCCc1ccc2c(c1)CCO2.[Br]>>BrCCc1ccc2c(c1)CCO2.O",
+  "seconds": 0.19118762016296387
+ },
+ {
+  "id": 1142,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C[CH2][Mg][Cl].N#Cc1ccccc1N.[O]>>CCC(=O)c1ccccc1N.N.[MgH][Cl]",
+  "seconds": 0.13483977317810059
+ },
+ {
+  "id": 1144,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C[CH](C)[Mg+].N#Cc1ccc(Br)cc1.[O]>>CC(C)C(=O)c1ccc(Br)cc1.N.[MgH+]",
+  "seconds": 0.16227483749389648
+ },
+ {
+  "id": 1146,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "[Mg+][CH2]c1ccccc1.CC(C)(C)OC(=O)NC1(c2ccc(C#N)cc2)CCC1.CC(C)(C)OC(=O)NC1(c2ccc(C#N)cc2)CCC1>>CC(C)(C)OC(=O)NC1(c2ccc(C(=O)Cc3ccccc3)cc2)CCC1.CC(C)(C)OCNC1(c2ccc(C#N)cc2)CCC1.N.[MgH+]",
+  "seconds": 20.22252058982849
+ },
+ {
+  "id": 1151,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "Clc1ccccc1CBr.N#CC1CC1.[O]>>O=C(Cc1ccccc1Cl)C1CC1.Br.N",
+  "seconds": 0.6415653228759766
+ },
+ {
+  "id": 1152,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "N#Cc1nccc2ccccc12.CCCCc1ccc(Br)cc1.[O]>>CCCCc1ccc(C(=O)c2nccc3ccccc23)cc1.Br.N",
+  "seconds": 20.068930625915527
+ },
+ {
+  "id": 1153,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(C)P(Cl)C(C)C.C=[CH][Mg+].[O]>>C=CP(=O)(C(C)C)C(C)C.Cl.[MgH+]",
+  "seconds": 0.05637693405151367
+ },
+ {
+  "id": 1155,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "N#CC1CN2CCC1CC2.Brc1ccc(-c2ccccc2)cc1.[O]>>O=C(c1ccc(-c2ccccc2)cc1)C1CN2CCC1CC2.Br.N",
+  "seconds": 20.082998752593994
+ },
+ {
+  "id": 1157,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "N#Cc1ccccc1.Fc1ccc(CBr)cc1.[O]>>O=C(Cc1ccc(F)cc1)c1ccccc1.Br.N",
+  "seconds": 0.6838011741638184
+ },
+ {
+  "id": 1159,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "Ic1ncnc2[nH]ccc12.Cc1cnc(C#N)c(NS(=O)(=O)c2ccc(Cl)c(Cl)c2)c1.Cc1cnc(C#N)c(NS(=O)(=O)c2ccc(Cl)c(Cl)c2)c1>>Cc1cnc(C(=O)c2ncnc3[nH]ccc23)c(NS(=O)(=O)c2ccc(Cl)c(Cl)c2)c1.Cc1cnc(C#N)c(N[SH2](=O)c2ccc(Cl)c(Cl)c2)c1.I.N",
+  "seconds": 20.15545105934143
+ },
+ {
+  "id": 1160,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "N#Cc1cccnc1.Brc1cc(Br)cc(Br)c1.[O]>>O=C(c1cccnc1)c1cc(Br)cc(Br)c1.Br.N",
+  "seconds": 0.9110682010650635
+ },
+ {
+  "id": 1161,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "COc1ccccc1OC.[O].[O]>>COC(=O)/C=C/C=C/C(=O)OC",
+  "seconds": 0.3865237236022949
+ },
+ {
+  "id": 1162,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "O=C(Cl)N(CCl)c1cccc(C(F)(F)F)c1.[C].[O]>>COCN(C(=O)Cl)c1cccc(C(F)(F)F)c1.Cl",
+  "seconds": 0.7473902702331543
+ },
+ {
+  "id": 1166,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(C)C=C1C=CC=C1.[O]>>CC(C)C1OC12C=CC=C2",
+  "seconds": 0.13895559310913086
+ },
+ {
+  "id": 1167,
+  "solved": true,
+  "proved": true,
+  "cost": 11,
+  "copies": 0,
+  "atoms": 6,
+  "balanced": "CCc1cccc(N)c1.[K].[N].[O].[O].[O].[S]>>CCc1cccc(N(N)S(=O)(=O)[O-])c1.[K+]",
+  "seconds": 0.19041109085083008
+ },
+ {
+  "id": 1169,
+  "solved": true,
+  "proved": false,
+  "cost": 2,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCSCCOC(=O)N(C)C(=O)Oc1cccc2c1OC(C)(C)C2.[O]>>CCS(=O)CCOC(=O)N(C)C(=O)Oc1cccc2c1OC(C)(C)C2",
+  "seconds": 20.124796867370605
+ },
+ {
+  "id": 1170,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C=C1CC(=O)O1.CC(=O)OCC1=C(C(=O)O)N2C(=O)C(N)C2SC1.[Br]>>CC(=O)OCC1=C(C(=O)O)N2C(=O)C(NC(=O)CC(=O)CBr)C2SC1",
+  "seconds": 1.3569376468658447
+ },
+ {
+  "id": 1171,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C=CC(=O)O.CC(C)(Oc1ccc(N)cc1)C(=O)c1ccccc1.[Cl]>>CC(C)(Oc1ccc(CC(Cl)C(=O)O)cc1)C(=O)c1ccccc1.N",
+  "seconds": 11.693092346191406
+ },
+ {
+  "id": 1173,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCOC(=O)C(=NOCC(=O)OCC(Cl)(Cl)Cl)C(C)=O.[Cl]>>CCOC(=O)/C(=N/OCC(=O)OCC(Cl)(Cl)Cl)C(=O)CCl",
+  "seconds": 6.300247430801392
+ },
+ {
+  "id": 1174,
+  "solved": true,
+  "proved": true,
+  "cost": 14,
+  "copies": 0,
+  "atoms": 7,
+  "balanced": "CC(C)(C)c1nc(=O)cc(O)[nH]1.[C].[C].[O].[S].[O].[C].[P]>>C=C(S)P(=O)(OC)Oc1cc(=O)nc(C(C)(C)C)[nH]1",
+  "seconds": 5.773766994476318
+ },
+ {
+  "id": 1175,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "Cn1nccc1C(=O)c1ccc(O)c(Cl)c1Cl.[C]>>C=C(c1ccc(O)c(Cl)c1Cl)c1ccnn1C.O",
+  "seconds": 14.038820266723633
+ },
+ {
+  "id": 1177,
+  "solved": true,
+  "proved": false,
+  "cost": 16,
+  "copies": 2,
+  "atoms": 3,
+  "balanced": "NCCSCc1cc(CN2CCCC2)cs1.NCCSCc1cc(CN2CCCC2)cs1.NCCSCc1cc(CN2CCCC2)cs1.[O].[N].[C]>>Cn1nc(CO)nc1NCCSCc1cc(CN2CCCC2)cs1.CSCc1cc(CN2CCCC2)cs1.SCc1cc(CN2CCCC2)cs1",
+  "seconds": 20.206573009490967
+ },
+ {
+  "id": 1178,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "Cc1ccc(F)cc1F.[O].[O].[C]>>Cc1ccc(F)c(C(=O)O)c1F",
+  "seconds": 0.5664427280426025
+ },
+ {
+  "id": 1182,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "CC1CCc2c(O)cc(=O)[nH]c2C1.[O].[O].[N]>>CC1CCc2c([nH]c(=O)c([N+](=O)[O-])c2O)C1",
+  "seconds": 17.51386022567749
+ },
+ {
+  "id": 1183,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=C(O)Cc1ccc2c(c1)sc1ccc(Cl)cc12.[N]>>NC(=O)Cc1ccc2c(c1)sc1ccc(Cl)cc12.O",
+  "seconds": 3.036064386367798
+ },
+ {
+  "id": 1184,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=C1CCc2ccccc2O1.[Cl]>>O=C1CCc2cc(Cl)ccc2O1",
+  "seconds": 0.22781753540039062
+ },
+ {
+  "id": 1188,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "CCNC(=O)OCc1ccccc1.CCNC(=O)OCc1ccccc1>>CCN(CO)C(=O)OCc1ccccc1.CCNC=O.c1ccccc1",
+  "seconds": 1.3720805644989014
+ },
+ {
+  "id": 1191,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "N#Cc1cccc(F)c1.[O].[O].[N]>>N#Cc1cc(F)ccc1[N+](=O)[O-]",
+  "seconds": 0.19171619415283203
+ },
+ {
+  "id": 1192,
+  "solved": true,
+  "proved": true,
+  "cost": 16,
+  "copies": 0,
+  "atoms": 8,
+  "balanced": "CCCC(C)(CO)CO.[N].[N].[O].[O].[O].[O].[S].[S]>>CCCC(C)(COS(N)(=O)=O)COS(N)(=O)=O",
+  "seconds": 0.37322092056274414
+ },
+ {
+  "id": 1195,
+  "solved": true,
+  "proved": false,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "CC1(C)SC2C(NC(=O)C(NC(=O)OCc3ccccc3)c3ccccc3)C(=O)N2C1C(=O)[O-].[Cl].[C]>>CC1(C)SC2C(NC(=O)C(NC(=O)OCc3ccccc3)c3ccccc3)C(=O)N2C1C(=O)OCCl",
+  "seconds": 20.228224277496338
+ },
+ {
+  "id": 1197,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "CC(=O)CCC#CCCCC#N.[O].[O]>>CC(=O)CCC#CCCCC(=O)O.N",
+  "seconds": 7.15177321434021
+ },
+ {
+  "id": 1198,
+  "solved": true,
+  "proved": true,
+  "cost": 6,
+  "copies": 1,
+  "atoms": 1,
+  "balanced": "CCOC(=O)C(=NO)C(C)=O.CCOC(=O)C(=NO)C(C)=O.[Br]>>CCOC(=O)/C(=N/OCCBr)C(C)=O.CC(=O)C(=NO)C(=O)O",
+  "seconds": 0.39777040481567383
+ },
+ {
+  "id": 1199,
+  "solved": true,
+  "proved": true,
+  "cost": 6,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "C1COCCN1.O=Cc1cccs1.[N].[C]>>N#CC(c1cccs1)N1CCOCC1.O",
+  "seconds": 2.5543744564056396
+ },
+ {
+  "id": 1200,
+  "solved": true,
+  "proved": false,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "Cc1cccc(-c2cccc(COC(Cl)C(=O)c3ccccc3)c2)c1.[Br]>>Cc1cccc(-c2cccc(COC(Br)C(=O)c3ccccc3)c2)c1.Cl",
+  "seconds": 20.19175148010254
+ },
+ {
+  "id": 1201,
+  "solved": true,
+  "proved": false,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCN1CCCC1CCOc1cc(Cl)cc(Cl)c1OC.[O]>>CCN1CCC(=O)C1CCOc1cc(Cl)cc(Cl)c1OC",
+  "seconds": 20.066324710845947
+ },
+ {
+  "id": 1202,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "Cc1ccc(C(=O)O)s1.[O]>>O=Cc1ccc(C(=O)O)s1",
+  "seconds": 0.15993618965148926
+ },
+ {
+  "id": 1203,
+  "solved": true,
+  "proved": false,
+  "cost": 16,
+  "copies": 0,
+  "atoms": 7,
+  "balanced": "O=C(O)c1cccc2cccnc12.[C].[N].[N].[N].[N].[C].[N]>>CN1NN=C(NC(=O)c2cccc3cccnc23)N1.O",
+  "seconds": 20.106077671051025
+ },
+ {
+  "id": 1204,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC1C=CCC1O.[O]>>CC1C(O)CC2OC21",
+  "seconds": 0.1567838191986084
+ },
+ {
+  "id": 1205,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "CCOP(=O)([O-])C(N)=O.[Na].[Na].[O]>>CCOP(=O)([O-])C(=O)[O-].[Na+].[Na+].N",
+  "seconds": 0.05486941337585449
+ },
+ {
+  "id": 1209,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "CCOP(=S)([S-])OCC.[Cl].[C]>>CCOP(=S)(OCC)SCCl",
+  "seconds": 0.05711507797241211
+ },
+ {
+  "id": 1214,
+  "solved": true,
+  "proved": false,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "NC1C(=O)N2C(C(=O)O)=C(CSc3nnnn3CC(=O)O)CSC12.O=C(Cl)Cc1ccsc1C(=O)Oc1ccccc1.[Na].[Na]>>O=C([O-])Cn1nnnc1SCC1=C(C(=O)[O-])N2C(=O)C(NC(=O)Cc3ccsc3C(=O)Oc3ccccc3)C2SC1.[Na+].[Na+].Cl",
+  "seconds": 20.206758499145508
+ },
+ {
+  "id": 1216,
+  "solved": true,
+  "proved": true,
+  "cost": 8,
+  "copies": 0,
+  "atoms": 4,
+  "balanced": "Brc1ccc2c(C3CCNCC3)[nH]nc2c1.[C].[O].[O].[C]>>COC(=O)N1CCC(c2[nH]nc3cc(Br)ccc23)CC1",
+  "seconds": 5.5178608894348145
+ },
+ {
+  "id": 1217,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "c1cc2c3c(c1)CCCN3CCC2.[Br]>>Brc1cc2c3c(c1)CCCN3CCC2",
+  "seconds": 0.5366201400756836
+ },
+ {
+  "id": 1219,
+  "solved": true,
+  "proved": true,
+  "cost": 9,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "CCOC(=O)c1nc(N)sc1C(=O)CBr.CCOC(=O)c1nc(N)sc1C(=O)CBr>>CCOC(=O)c1nc(N)sc1-c1csc(C)n1.COC=O.N.O=CCBr.O=CCBr",
+  "seconds": 3.5800983905792236
+ },
+ {
+  "id": 1220,
+  "solved": true,
+  "proved": false,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "Cc1cc(C)nc(NC(=O)NS(=O)(=O)c2c(C)nn(C)c2Cl)n1.[C].[C].[S]>>CCSc1c(S(=O)(=O)NC(=O)Nc2nc(C)cc(C)n2)c(C)nn1C.Cl",
+  "seconds": 20.08661127090454
+ },
+ {
+  "id": 1223,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "Cc1cc(C#N)nc(-c2ccc([N+](=O)[O-])cc2)c1.[O].[O]>>Cc1cc(C(=O)O)nc(-c2ccc([N+](=O)[O-])cc2)c1.N",
+  "seconds": 20.13105821609497
+ },
+ {
+  "id": 1225,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "[C-]#[N+]C1=C2C(CC(Cl)C1(C)C=C)C(C)(C)C1=Nc3ccccc3C12Cl.[O]>>[C-]#[N+]C1=C2C(CC(Cl)C1(C)C=C)C(C)(C)C21C(=O)Nc2ccccc21.Cl",
+  "seconds": 20.110496759414673
+ },
+ {
+  "id": 1237,
+  "solved": true,
+  "proved": false,
+  "cost": 2,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C=CCN1CCC23c4ccccc4NC(=O)C2CC(C=C)(CC[Se]c2ccccc2)C13.[O]>>C=CCN1CCC23c4ccccc4NC(=O)C2CC(C=C)(CC[Se](=O)c2ccccc2)C13",
+  "seconds": 20.33366584777832
+ },
+ {
+  "id": 1242,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "CC(C)(C)C=O.[N].[N].[C]>>CC(C)(C)C(N)C#N.O",
+  "seconds": 0.02929973602294922
+ },
+ {
+  "id": 1243,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "CC(C)(C)C(N)C#N.[O].[O]>>CC(C)(C)C(N)C(=O)O.N",
+  "seconds": 0.03191661834716797
+ },
+ {
+  "id": 1245,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "O=C(O)CCCC(=O)Nc1cc([N+](=O)[O-])ccc1F.[C].[N]>>CNc1ccc([N+](=O)[O-])cc1NC(=O)CCCC(=O)O.F",
+  "seconds": 13.67060136795044
+ },
+ {
+  "id": 1247,
+  "solved": true,
+  "proved": false,
+  "cost": 9,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "Cn1c(CCCC(=O)O)nc2cc(N)ccc21.Cn1c(CCCC(=O)O)nc2cc(N)ccc21>>Cn1c(CCCC(=O)O)nc2cc(N(CCO)CCO)ccc21.Cn1cnc2cc(N)ccc21",
+  "seconds": 20.1221444606781
+ },
+ {
+  "id": 1248,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "Cc1ccccc1N.[O].[O].[N]>>Cc1ccc([N+](=O)[O-])cc1N",
+  "seconds": 0.13419032096862793
+ },
+ {
+  "id": 1249,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "Cc1ccc([N+](=O)[O-])cc1N.[O]>>Cc1ccc([N+](=O)[O-])cc1O.N",
+  "seconds": 0.3928263187408447
+ },
+ {
+  "id": 1250,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "COc1cc([N+](=O)[O-])ccc1C.[O].[O]>>COc1cc([N+](=O)[O-])ccc1C(=O)O",
+  "seconds": 1.3901269435882568
+ },
+ {
+  "id": 1251,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "COc1cc([N+](=O)[O-])ccc1C(=O)O.[Cl]>>COc1cc([N+](=O)[O-])ccc1C(=O)Cl.O",
+  "seconds": 0.07482409477233887
+ },
+ {
+  "id": 1254,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCN(CC)CCNC(=O)c1ccc(N)cc1OC.[Br]>>CCN(CC)CCNC(=O)c1cc(Br)c(N)cc1OC",
+  "seconds": 0.23186993598937988
+ },
+ {
+  "id": 1255,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "Clc1ccccc1Cl.[O].[C]>>O=Cc1cccc(Cl)c1Cl",
+  "seconds": 0.0599062442779541
+ },
+ {
+  "id": 1256,
+  "solved": true,
+  "proved": false,
+  "cost": 12,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "COC(=O)CC(C)=O.CCCC(=O)OCOC(=O)CC(C)=O.O=Cc1cccc(Cl)c1Cl.[N]>>CCCC(=O)OCOC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1cccc(Cl)c1Cl.O.O.O",
+  "seconds": 20.048080682754517
+ },
+ {
+  "id": 1257,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "COC(=O)CC(C)=O.[N]>>COC(=O)/C=C(/C)N.O",
+  "seconds": 0.03084707260131836
+ },
+ {
+  "id": 1259,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(=O)c1ccc(Br)cc1.[Br]>>O=C(CBr)c1ccc(Br)cc1",
+  "seconds": 0.2506895065307617
+ },
+ {
+  "id": 1261,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=C(CNC(=O)C1CCCN1)c1ccc(Br)cc1.[N]>>Brc1ccc(-c2c[nH]c(C3CCCN3)n2)cc1.O.O",
+  "seconds": 20.073187589645386
+ },
+ {
+  "id": 1264,
+  "solved": true,
+  "proved": false,
+  "cost": 15,
+  "copies": 2,
+  "atoms": 0,
+  "balanced": "CCC(N)C(=O)N1CCCC1c1nc(-c2ccc(-c3ccc(-c4c[nH]c(C5CCCN5C(=O)C(N)C(C)C)n4)cc3)cc2)c[nH]1.CCC(N)C(=O)N1CCCC1c1nc(-c2ccc(-c3ccc(-c4c[nH]c(C5CCCN5C(=O)C(N)C(C)C)n4)cc3)cc2)c[nH]1.COC(=O)Cl.COC(=O)Cl>>COC(=O)NC(C(=O)N1CCCC1c1nc(-c2ccc(-c3ccc(-c4c[nH]c(C5CCCN5C(=O)C(NC(=O)OC)C(C)C)n4)cc3)cc2)c[nH]1)C(C)C.C1CCNC1.CCC(N)C(=O)N1CCCC1c1nc(-c2ccc(-c3ccc(-c4c[nH]cn4)cc3)cc2)c[nH]1.CCC(N)C=O.Cl.Cl",
+  "seconds": 20.44756245613098
+ },
+ {
+  "id": 1265,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "c1ccc2c(c1)CCO2.[C].[O].[C]>>CC(=O)c1ccc2c(c1)CCO2",
+  "seconds": 1.4389832019805908
+ },
+ {
+  "id": 1270,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(=O)Nc1ccc([N+]#N)c(N2CCNCC2)n1.[F]>>CC(=O)Nc1ccc(F)c(N2CCNCC2)n1.N#N",
+  "seconds": 0.3844466209411621
+ },
+ {
+  "id": 1276,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCCCCCCCc1ccc(C(C)=O)cc1.[Br]>>CCCCCCCCc1ccc(C(=O)CBr)cc1",
+  "seconds": 5.748233079910278
+ },
+ {
+  "id": 1280,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "C=CCCCC1CC1C(C)=O.[Br].[Br]>>CC(=O)C1CC1CCCC(Br)CBr",
+  "seconds": 0.20869183540344238
+ },
+ {
+  "id": 1281,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(=O)C1CC1CCCC(Br)CBr.[O]>>CC(=O)OC1CC1CCCC(Br)CBr",
+  "seconds": 0.9705798625946045
+ },
+ {
+  "id": 1284,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "CC(C)(C)C(N)C(=O)O.CC(C)(C)C(N)C(=O)O.C#CCCCC1CC1O>>C#CCCCC1CC1OC(=O)NC(C(=O)O)C(C)(C)C.CC(C)(C)CN.O",
+  "seconds": 20.094949960708618
+ },
+ {
+  "id": 1286,
+  "solved": true,
+  "proved": true,
+  "cost": 6,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "COc1ccc2[nH]c(=O)c(O)nc2c1.[Cl].[Cl]>>COc1ccc2nc(Cl)c(Cl)nc2c1.O.O",
+  "seconds": 0.08836913108825684
+ },
+ {
+  "id": 1291,
+  "solved": true,
+  "proved": true,
+  "cost": 2,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(C)Cn1cnc2cnc3ccccc3c21.[O]>>CC(C)Cn1cnc2c[n+]([O-])c3ccccc3c21",
+  "seconds": 0.28168272972106934
+ },
+ {
+  "id": 1292,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "CC(C)Cn1cnc2c[n+]([O-])c3ccccc3c21.[N].[C]>>CC(C)Cn1cnc2c(C#N)nc3ccccc3c21.[OH-]",
+  "seconds": 20.037124395370483
+ },
+ {
+  "id": 1295,
+  "solved": true,
+  "proved": true,
+  "cost": 7,
+  "copies": 0,
+  "atoms": 3,
+  "balanced": "c1ccc2c(C3CC3)cccc2c1.[O].[O].[N]>>O=[N+]([O-])c1ccc(C2CC2)c2ccccc12",
+  "seconds": 2.3829658031463623
+ },
+ {
+  "id": 1297,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "Nc1ccc(C2CC2)c2ccccc12.[S].[C]>>S=C=Nc1ccc(C2CC2)c2ccccc12",
+  "seconds": 19.925862073898315
+ },
+ {
+  "id": 1300,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=C(O)CSc1nncn1-c1ccc(C2CC2)c2ccccc12.[Br]>>O=C(O)CSc1nnc(Br)n1-c1ccc(C2CC2)c2ccccc12",
+  "seconds": 3.9887282848358154
+ },
+ {
+  "id": 1301,
+  "solved": true,
+  "proved": true,
+  "cost": 5,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "COc1ccc2[nH]ccc2c1.[O].[C]>>COc1ccc2[nH]cc(C=O)c2c1",
+  "seconds": 0.6013584136962891
+ },
+ {
+  "id": 1303,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "COc1ccc2[nH]cc(CCN)c2c1.COc1ccc2[nH]cc(CCN)c2c1>>COc1ccc2[nH]cc(CCNC(C)=O)c2c1.c-c1=c(-cc)-[nH]-c=c-1CCN",
+  "seconds": 20.130619525909424
+ },
+ {
+  "id": 1309,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC(=O)C=Cc1cccc([N+](=O)[O-])c1.[O]>>CC(=O)O/C=C/c1cccc([N+](=O)[O-])c1",
+  "seconds": 1.6115527153015137
+ },
+ {
+  "id": 1313,
+  "solved": true,
+  "proved": false,
+  "cost": 6,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=Cc1ccccc1.COc1ccc(C(C)=NNS(=O)(=O)c2ccc(C)cc2)cc1.[O]>>C=C(c1ccc(OC)cc1)C(O)c1ccccc1.Cc1ccc(S(=O)(=O)[O-])cc1.N#N",
+  "seconds": 20.20959758758545
+ },
+ {
+  "id": 1324,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "O=C1C2CC3CC(C2)CC1C3.[O]>>O=C1OC2CC3CC(C2)CC1C3",
+  "seconds": 0.9792475700378418
+ },
+ {
+  "id": 1329,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "C=Cc1ccccc1.[O]>>c1ccc(C2CO2)cc1",
+  "seconds": 0.08994293212890625
+ },
+ {
+  "id": 1332,
+  "solved": true,
+  "proved": true,
+  "cost": 3,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CC=Cc1ccccc1.[O]>>CC1OC1c1ccccc1",
+  "seconds": 0.10774946212768555
+ },
+ {
+  "id": 1334,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 1,
+  "balanced": "CCC(=O)NBr.CC(C)OC(=O)C=Cc1ccccc1.[O]>>CCC(=O)NC(c1ccccc1)C(O)C(=O)OC(C)C.Br",
+  "seconds": 19.56921100616455
+ },
+ {
+  "id": 1346,
+  "solved": true,
+  "proved": true,
+  "cost": 4,
+  "copies": 0,
+  "atoms": 2,
+  "balanced": "C(=Cc1ccccc1)c1ccccc1.[O].[O]>>OC(c1ccccc1)C(O)c1ccccc1",
+  "seconds": 1.0169146060943604
+ },
+ {
+  "id": 1350,
+  "solved": true,
+  "proved": false,
+  "cost": 5,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "C1CCC(NC2CCCCC2)CC1.CCOC(=O)CNS(=O)(=O)c1cnc(N)s1.CCOC(=O)CNS(=O)(=O)c1cnc(N)s1>>CCOC(=O)CNS(=O)(=O)c1cnc(NC(=O)N(C2CCCCC2)C2CCCCC2)s1.CCO.CNS(=O)(=O)c1cnc(N)s1",
+  "seconds": 20.16435408592224
+ },
+ {
+  "id": 1354,
+  "solved": true,
+  "proved": true,
+  "cost": 11,
+  "copies": 0,
+  "atoms": 5,
+  "balanced": "O=CNc1ccccc1.[O].[O].[Cl].[O].[S]>>O=CNc1ccc(OS(=O)(=O)Cl)cc1",
+  "seconds": 0.37998008728027344
+ },
+ {
+  "id": 1374,
+  "solved": true,
+  "proved": false,
+  "cost": 10,
+  "copies": 1,
+  "atoms": 1,
+  "balanced": "O=C(Cl)CN1C(=O)c2ccccc2C1=O.COc1ccc(CN)c(OC)c1.COc1ccc(CN)c(OC)c1.[O]>>COC(=O)C1C(N2C(=O)c3ccccc3C2=O)C(=O)N1Cc1ccc(OC)cc1OC.Cl.COcc(cc)CN",
+  "seconds": 20.185566902160645
+ },
+ {
+  "id": 1475,
+  "solved": true,
+  "proved": false,
+  "cost": 9,
+  "copies": 1,
+  "atoms": 0,
+  "balanced": "BrC1CC1.BrC1CC1.[O]=[Mg].N#Cc1ccc(OC(F)(F)F)cc1>>O=C(c1ccc(OC(F)(F)F)cc1)C1CC1.[Br][Mg][CH]1CC1.Br.N",
+  "seconds": 20.094897031784058
+ }
+]

@@ -1,0 +1,22 @@
+{
+ "data": "golden-dev",
+ "secondary": [
+  1,
+  1,
+  1
+ ],
+ "all_orders": false,
+ "labile_h": false,
+ "ch_places": false,
+ "seconds": 20.0,
+ "deterministic": null,
+ "reactions": 200,
+ "seated": 1.0,
+ "scored": 200,
+ "correct": 0.875,
+ "proved": 0.89,
+ "correct_when_proved": 0.8820224719101124,
+ "correct_when_not_proved": 0.8181818181818182,
+ "median_seconds": 0.3743441104888916,
+ "mean_seconds": 4.142505736351013
+}

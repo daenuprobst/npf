@@ -1,0 +1,110 @@
+{
+ "pgnn+": [
+  {
+   "test": {
+    "mass_nrmse@1": 0.05174902081489563,
+    "colour_rmse@1": 0.028286222368478775,
+    "colour_change_without_inflow": 0.011612772941589355,
+    "mass_nrmse@8": 0.04868883267045021,
+    "colour_rmse@8": 0.06449408829212189
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.05044213682413101,
+    "colour_rmse@1": 0.02929062210023403,
+    "colour_change_without_inflow": 0.01590171456336975,
+    "mass_nrmse@8": 0.051074229180812836,
+    "colour_rmse@8": 0.06808198243379593
+   },
+   "params": 368259
+  },
+  {
+   "test": {
+    "mass_nrmse@1": 0.06451527774333954,
+    "colour_rmse@1": 0.03485967591404915,
+    "colour_change_without_inflow": 0.012752890586853027,
+    "mass_nrmse@8": 0.06258048862218857,
+    "colour_rmse@8": 0.07988523691892624
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.06342022866010666,
+    "colour_rmse@1": 0.03338000923395157,
+    "colour_change_without_inflow": 0.014146625995635986,
+    "mass_nrmse@8": 0.06081286817789078,
+    "colour_rmse@8": 0.07845429331064224
+   },
+   "params": 368259
+  }
+ ],
+ "npf-free": [
+  {
+   "test": {
+    "mass_nrmse@1": 0.06236167997121811,
+    "colour_rmse@1": 0.11615525186061859,
+    "colour_change_without_inflow": 0.02082926034927368,
+    "mass_nrmse@8": 0.09998223930597305,
+    "colour_rmse@8": 0.20559069514274597
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.06047280132770538,
+    "colour_rmse@1": 0.10827098786830902,
+    "colour_change_without_inflow": 0.026844680309295654,
+    "mass_nrmse@8": 0.10034526139497757,
+    "colour_rmse@8": 0.204893097281456
+   },
+   "params": 23495
+  },
+  {
+   "test": {
+    "mass_nrmse@1": 0.07517742365598679,
+    "colour_rmse@1": 0.1165507510304451,
+    "colour_change_without_inflow": 0.026924192905426025,
+    "mass_nrmse@8": 0.10622920840978622,
+    "colour_rmse@8": 0.20783093571662903
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.07229664921760559,
+    "colour_rmse@1": 0.10874713957309723,
+    "colour_change_without_inflow": 0.02832430601119995,
+    "mass_nrmse@8": 0.10815378278493881,
+    "colour_rmse@8": 0.2045305073261261
+   },
+   "params": 23495
+  }
+ ],
+ "npf-coloured": [
+  {
+   "test": {
+    "mass_nrmse@1": 0.05331849679350853,
+    "colour_rmse@1": 0.012474624440073967,
+    "colour_change_without_inflow": 1.7881393432617188e-07,
+    "mass_nrmse@8": 0.047287460416555405,
+    "colour_rmse@8": 0.03570007532835007
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.05298851802945137,
+    "colour_rmse@1": 0.012179420329630375,
+    "colour_change_without_inflow": 2.384185791015625e-07,
+    "mass_nrmse@8": 0.05153509974479675,
+    "colour_rmse@8": 0.03830912336707115
+   },
+   "params": 23495
+  },
+  {
+   "test": {
+    "mass_nrmse@1": 0.06578289717435837,
+    "colour_rmse@1": 0.014661205932497978,
+    "colour_change_without_inflow": 1.7881393432617188e-07,
+    "mass_nrmse@8": 0.05775504559278488,
+    "colour_rmse@8": 0.04077257961034775
+   },
+   "test-large": {
+    "mass_nrmse@1": 0.06460332870483398,
+    "colour_rmse@1": 0.014548476785421371,
+    "colour_change_without_inflow": 1.7881393432617188e-07,
+    "mass_nrmse@8": 0.06190416216850281,
+    "colour_rmse@8": 0.04417373612523079
+   },
+   "params": 23495
+  }
+ ]
+}
