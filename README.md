@@ -76,8 +76,6 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/report.py` | `results/*.json` to `results/REPORT.md` |
 | `benchmarks/paper_tables.py` | `results/REPORT.md` to `paper/tables/appendix_tables.tex` |
 | `tests/` | unit tests, and equivalence tests against the code that produced earlier results |
-| `tests/blank_lines.py`, `tests/style_audit.py` | code style, run as scripts |
-| `paper/` | the draft, and `annotated/` which rebuilds a second copy with plain-words explanations and code listings |
 
 ## Reproduce
 
