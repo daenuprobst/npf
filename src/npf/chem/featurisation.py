@@ -112,12 +112,17 @@ def dense_bonds(g):
     return b
 
 
-def featurise(row):
+def featurise(row, max_atoms=(200, 130)):
     """Both graphs for every parseable reaction. target and edits are set only if the recorded atom mapping is a
-    clean injection of product atoms into precursor atoms. Classification does not need them."""
+    clean injection of product atoms into precursor atoms. Classification does not need them.
+
+    max_atoms bounds the precursor and the product side, since atom pairs are held densely. The default keeps the
+    published USPTO and Schneider results unchanged, None keeps every reaction.
+    """
     reactants, reagents, product = row["original_rxn"].split(">")
     a, b = graph(".".join(s for s in (reactants, reagents) if s)), graph(product)
-    if a is None or b is None or len(a["x"]) > 200 or len(b["x"]) > 130:
+    too_big = max_atoms is not None and (len(a["x"]) > max_atoms[0] or len(b["x"]) > max_atoms[1]) if a and b else False
+    if a is None or b is None or too_big:
         return None
 
     out = {"a": a, "b": b, "target": None, "edits": None, "label": row["label"], "split": row["split"], "id": row["id"], "smiles": row["rxn"]}

@@ -17,21 +17,27 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 from npf import chem
 
-from .experiment import batch_indices, batches
+from .experiment import batches, epoch_loader
 
 DATA = Path("data/care_easy.pkl")
 EPOCHS = 40
+
+# prefix owners of the classes at levels 1 to 3, for the marginal rule on a model without coarse heads
+OWNERS = None
 
 # the published numbers are over every test reaction of the split, so the ones RDKit cannot read count as wrong
 CARE_EASY_TEST = 393
 
 
 def prepare(root, out=DATA):
-    """Featurise both splits and index the EC numbers. Reactions RDKit cannot read are dropped and counted."""
+    """Featurise both splits and index the EC numbers. Every reaction is kept. The size bound that suits USPTO would
+    drop the peptides and oligosaccharides of this set, up to 323 atoms, and 1.4 GB of GPU memory holds a batch of the
+    sixteen largest."""
     import csv
 
     base = Path(root) / "splits" / "task2"
@@ -48,7 +54,7 @@ def prepare(root, out=DATA):
 
             smiles = r["Reaction"]
             g = chem.featurise({"original_rxn": smiles, "rxn": smiles, "label": index[r["EC number"]], "split": split,
-                                "id": len(reactions)})
+                                "id": len(reactions)}, max_atoms=None)
             if g is None:
                 dropped[split] += 1
                 continue
@@ -58,7 +64,7 @@ def prepare(root, out=DATA):
     out.write_bytes(pickle.dumps({"reactions": reactions, "classes": classes}))
     kept = Counter(r["split"] for r in reactions)
     print(f"{len(classes)} EC numbers; kept {kept['train']} train and {kept['test']} test reactions, "
-          f"dropped {dropped['train']} and {dropped['test']} that RDKit could not read, {unseen} with an unseen EC; wrote {out}")
+          f"dropped {dropped['train']} and {dropped['test']} that could not be featurised, {unseen} with an unseen EC; wrote {out}")
 
 
 def levels(predicted, true, classes, denominator=None):
@@ -75,14 +81,84 @@ def levels(predicted, true, classes, denominator=None):
     return out
 
 
+def prefixes(classes, depth):
+    """Index of the EC prefix of every class at this depth, and the number of distinct prefixes."""
+    names = sorted({".".join(c.split(".")[:depth]) for c in classes})
+    index = {name: k for k, name in enumerate(names)}
+
+    return np.array([index[".".join(c.split(".")[:depth])] for c in classes]), len(names)
+
+
+class Hierarchy(nn.Module):
+    """The classifier with one auxiliary head per coarser EC level on the same readout.
+
+    A flat loss over 4960 classes treats a sibling EC exactly like an unrelated one, so the coarse levels get no
+    gradient of their own. The extra heads give them one, and at test time they vote on the prefix.
+    """
+
+    def __init__(self, classes, **kwargs):
+        super().__init__()
+        self.body = chem.Classifier(len(classes), **kwargs)
+        width = self.body.out[0].in_features
+        self.levels = nn.ModuleList()
+
+        for depth in (1, 2, 3):
+            owner, n = prefixes(classes, depth)
+            self.levels.append(nn.Sequential(nn.Linear(width, 256), nn.SiLU(), nn.Linear(256, n)))
+            self.register_buffer(f"owner{depth}", torch.as_tensor(owner, dtype=torch.long))
+
+        # the readout is the input of the body's last block, a hook keeps it for the coarse heads
+        self._readout = None
+        self.body.out.register_forward_pre_hook(lambda _, inputs: setattr(self, "_readout", inputs[0]))
+
+    def forward(self, b):
+        fine = self.body(b)
+
+        return fine, [level(self._readout) for level in self.levels]
+
+    def owners(self):
+        return [self.owner1, self.owner2, self.owner3]
+
+
+def decode(fine, coarse, owners, rule):
+    """One predicted EC per reaction, so the benchmark's metric applies unchanged.
+
+    flat takes the most probable class. marginal adds, for every class, the log of the total probability of its prefix
+    at each level, so a class whose siblings are also likely wins over an isolated one. hierarchy adds the log
+    probability that the coarse heads give its prefixes.
+    """
+    log_p = torch.log_softmax(fine, 1)
+
+    if rule == "flat":
+        return log_p.argmax(1)
+
+    score = log_p.clone()
+    for depth, owner in enumerate(owners):
+        if rule == "marginal":
+            n = int(owner.max()) + 1
+            mass = torch.zeros(len(fine), n, device=fine.device).index_add_(1, owner, log_p.exp())
+            score = score + torch.log(mass.clamp(min=1e-30))[:, owner]
+        else:
+            score = score + torch.log_softmax(coarse[depth], 1)[:, owner]
+
+    return score.argmax(1)
+
+
 @torch.no_grad()
-def predict(model, reactions, device, batch=16):
+def predict(model, reactions, device, batch=16, rule="flat"):
     model.eval()
     out, truth = [], []
 
     for rs in batches(reactions, batch):
         b = chem.collate(rs, device)
-        out += model(b).argmax(1).cpu().tolist()
+
+        if isinstance(model, Hierarchy):
+            fine, coarse = model(b)
+            owners = model.owners()
+        else:
+            fine, coarse, owners = model(b), None, OWNERS
+
+        out += decode(fine, coarse, owners, rule).cpu().tolist()
         truth += [r["label"] for r in rs]
 
     return out, truth
@@ -96,6 +172,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int, default=EPOCHS)
     ap.add_argument("--batch", type=int, default=16)
+    ap.add_argument("--hierarchy", type=float, default=0.0, help="weight of the auxiliary losses at EC levels 1 to 3")
     args = ap.parse_args()
 
     if args.phase == "prepare":
@@ -110,8 +187,13 @@ def main():
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
 
+    global OWNERS
+    OWNERS = [torch.as_tensor(prefixes(classes, depth)[0], dtype=torch.long, device=device) for depth in (1, 2, 3)]
+
     # the gate is left unsupervised, no atom map of any kind is read
-    model = chem.Classifier(len(classes), petri=args.model.startswith("npf"), gate=args.model == "npf").to(device)
+    kwargs = dict(petri=args.model.startswith("npf"), gate=args.model == "npf")
+    model = (Hierarchy(classes, **kwargs) if args.hierarchy else chem.Classifier(len(classes), **kwargs)).to(device)
+    tag = f"-hier{args.hierarchy:g}" if args.hierarchy else ""
     params = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     steps = args.epochs * (len(train) // args.batch + 1)
@@ -122,9 +204,16 @@ def main():
         model.train()
         losses = []
 
-        for idx in batch_indices(train, args.batch, rng):
-            b = chem.collate([train[i] for i in idx], device)
-            loss = F.cross_entropy(model(b), b["label"])
+        # collation runs in worker processes, the batches and their order are the same as before
+        for b in epoch_loader(train, args.batch, rng, device):
+            if args.hierarchy:
+                fine, coarse = model(b)
+                loss = F.cross_entropy(fine, b["label"])
+                for owner, logits in zip(model.owners(), coarse):
+                    loss = loss + args.hierarchy * F.cross_entropy(logits, owner[b["label"]])
+            else:
+                loss = F.cross_entropy(model(b), b["label"])
+
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -138,12 +227,19 @@ def main():
                   f"level1 {accuracy['level1']:.4f}  ({time.time() - start:.0f}s)", flush=True)
 
     metrics = levels(*predict(model, test, device), classes, CARE_EASY_TEST)
+    rules = ["marginal"] + (["hierarchy"] if args.hierarchy else [])
+
+    # the same model read with a decoding rule that respects the EC hierarchy
+    for rule in rules:
+        metrics.update({f"{k}_{rule}": v for k, v in levels(*predict(model, test, device, rule=rule), classes, CARE_EASY_TEST).items()})
+
     result = {"benchmark": "CARE task 2, easy split", "model": args.model, "seed": args.seed, "params": params,
               "n_train": len(train), "n_test": len(test), "n_test_official": CARE_EASY_TEST, "n_classes": len(classes),
               "train_seconds": time.time() - start, "metrics": metrics}
     out = Path("results/care/easy")
     out.mkdir(parents=True, exist_ok=True)
-    (out / f"{args.model}-{args.seed}.json").write_text(json.dumps(result, indent=1))
+    (out / f"{args.model}{tag}-{args.seed}.json").write_text(json.dumps(result, indent=1))
+    torch.save(model.state_dict(), out / f"{args.model}{tag}-{args.seed}.pt")
     print(json.dumps(result, indent=1))
 
 

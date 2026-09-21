@@ -90,6 +90,7 @@ def main(root="results"):
 
 CHEM_LABEL = {"npf": "**NPF (Petri semantics)**", "npf-large": "**NPF (Petri semantics), width 256**", "npf-nogate": "NPF without participation gate (ablation)",
               "pgnn": "PGNN-style: same message passing, generic readout", "drfp": "DRFP + MLP (reproduced)",
+              "pgnn-matched": "PGNN-style with the encoder of the token game (equal capacity)",
               "npf-sigma": "**NPF, explicit firing vector from our own mapper**",
               "pgnn-sigma": "generic head on the same maps, one term per seated atom, same width",
               "npf-sigma-exact-netmaps-firing": "**NPF, explicit firing vector from the exact net mapper, no recorded map**",
@@ -119,7 +120,7 @@ def chemistry(root="results"):
             print("| model | params | seeds | " + " | ".join(h for _, h in columns) + " |")
             print("|---|---:|---:|" + "---:|" * len(columns))
 
-            for model in ("drfp", "pgnn", "npf-nogate", "npf", "npf-exact-netmaps", "npf-large", "pgnn-sigma", "npf-sigma", "npf-sigma-exact-netmaps-firing"):
+            for model in ("drfp", "pgnn", "pgnn-matched", "npf-nogate", "npf", "npf-exact-netmaps", "npf-large", "pgnn-sigma", "npf-sigma", "npf-sigma-exact-netmaps-firing"):
                 if model in runs:
                     rs = runs[model]
                     print(f"| {CHEM_LABEL[model]} | {rs[0]['params']:,} | {len(rs)} | " + " | ".join(cell([r["metrics"].get(k) for r in rs], 4) for k, _ in columns) + " |")
@@ -161,10 +162,11 @@ def insights(root="results"):
     print("\n### Schneider 50k / what the Petri formulation gives beyond accuracy\n")
     fwd, reach, attr, audit, comb = (read(f"insights_{n}.json") for n in ("forward", "reachability", "attribution", "mapping_audit", "combined_mapping"))
     if fwd:
-        one_shot = folder / "forward" / "pgnn-0.json"
-        violations = 1 - json.loads(one_shot.read_text())["metrics"]["valence_valid"] if one_shot.exists() else float("nan")
+        violations = lambda pattern: [1 - json.loads(q.read_text())["metrics"]["valence_valid"] for q in sorted((folder / "forward").glob(pattern))]
+        matched, small = violations("pgnn-matched-[0-9].json"), violations("pgnn-[0-9].json")
         print(f"* **validity**: {fwd['beam_candidates_that_are_valid_molecules']:.2%} of all top-5 beam candidates are valid molecules; valence violations of the "
-              f"one-shot counterpart: {violations:.2%} (token game: 0 by construction)")
+              f"one-shot counterpart: {np.mean(matched) if matched else float('nan'):.2%} at equal capacity ({len(matched)} seeds), "
+              f"{np.mean(small) if small else float('nan'):.2%} for the smaller published one ({len(small)} seed) (token game: 0 by construction)")
         print(f"* **calibration**: expected calibration error {fwd['expected_calibration_error']:.3f} once the probabilities of all traces reaching the same product are added")
         print(f"* **firing order**: in sequences that both break and form bonds, a bond is broken first in {fwd['firing_order'].get('break first', 0)} "
               f"and formed first in {fwd['firing_order'].get('form first', 0)} cases (enabling: a saturated atom has no free valence token)")
@@ -203,7 +205,9 @@ def load_bearing(root="results"):
     print("\n## Is every Petri component load-bearing?\n")
 
     rows = [("token game (full)", "npf-[0-9].json"), ("token game without enabling (no valence capacities)", "npf-noenabling-[0-9].json"),
-            ("one-shot labelling with enabling masks and valence repair", "npf-oneshot-[0-9].json"), ("one-shot labelling, generic", "pgnn-[0-9].json")]
+            ("one-shot labelling with enabling masks and valence repair", "npf-oneshot-[0-9].json"), ("one-shot labelling, generic", "pgnn-[0-9].json"),
+            ("one-shot labelling with enabling masks and valence repair, encoder of the token game", "npf-oneshot-matched-[0-9].json"),
+            ("one-shot labelling, generic, encoder of the token game", "pgnn-matched-[0-9].json")]
     if any(runs("chem/forward", pat) for _, pat in rows[1:3]):
         print("### forward prediction (Schneider 50k): which part of the token game matters\n\n| model | product top-1 (greedy) | valence-valid |\n|---|---:|---:|")
 

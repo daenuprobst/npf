@@ -478,6 +478,8 @@ def main():
     ap.add_argument("--composites", type=int, default=0, help="token game: also offer substitutions, one firing for a break and a "
                     "formation at the shared atom, built from this many of the most probable breaks")
     ap.add_argument("--hops", type=int, default=0, help="token game: pair feature 'distance in the current marking', up to this many bonds")
+    ap.add_argument("--matched", action="store_true", help="forward, pgnn or npf-oneshot: give the one-shot counterpart the encoder "
+                    "of the token game, so that the two have equal capacity (the default keeps the smaller published one)")
     ap.add_argument("--batch", type=int, default=0, help="batch size (default: per task)")
     ap.add_argument("--amp", action="store_true", help="bfloat16 autocast")
     ap.add_argument("--tag", default="", help="suffix of the result files, e.g. -large")
@@ -542,6 +544,9 @@ def main():
     if args.composites:
         args.tag += f"-comp{args.composites}"
 
+    if args.matched:
+        args.tag += "-matched"
+
     if args.size_split:
         size = lambda r: len(r["a"]["x"])
         small, large = np.median([size(r) for r in train]), np.quantile([size(r) for r in test], 0.75)
@@ -558,14 +563,14 @@ def main():
         torch.manual_seed(args.seed)
         rng = np.random.default_rng(args.seed)
         petri = args.model.startswith("npf")
+        size = dict(d=args.width, rounds=args.rounds, attention=args.attention or (6 if args.width > 128 else 4))
         model = {"classify": lambda: chem.Classifier(len(data["classes"]), petri=petri, gate=args.model not in ("npf-nogate", "npf-sigma", "npf-sigma-recorded"),
                                                             n_firing_types=n_types, explicit_firing=args.model.startswith("npf-sigma"),
                                                             mapped_atoms=args.model == "pgnn-sigma"),
                  "map": lambda: chem.Mapper(petri=petri, equilibrium=args.model != "npf-noequilibrium", kept_bonds=args.model != "npf-nokept",
                                                    morphism=args.model != "npf-nomorphism", token_cost=args.model != "npf-nocost"),
-                 "forward": lambda: chem.Forward(petri=petri) if args.model in ("pgnn", "npf-oneshot") else chem.TokenGame(
-                     d=args.width, rounds=args.rounds, attention=args.attention or (6 if args.width > 128 else 4),
-                     enabling=args.model != "npf-noenabling", hops=args.hops, composites=args.composites)}[args.task]().to(device)
+                 "forward": lambda: chem.Forward(petri=petri, **(size if args.matched else {})) if args.model in ("pgnn", "npf-oneshot") else chem.TokenGame(
+                     **size, enabling=args.model != "npf-noenabling", hops=args.hops, composites=args.composites)}[args.task]().to(device)
         n_params = sum(p.numel() for p in model.parameters())
         epochs = args.epochs or EPOCHS[args.task]
         opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-5)

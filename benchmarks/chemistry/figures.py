@@ -30,6 +30,9 @@ from .experiment import splits
 
 OUT = Path("paper/figures")
 BLUE, ORANGE, AQUA, INK, MUTED, GRID = "#2a78d6", "#eb6834", "#1baf7a", "#0b0b0b", "#52514e", "#d9d8d2"
+
+# a bond that loses tokens is red, not orange, because orange marks the learned parts in the overview figure
+RED = "#d1342b"
 rgb = lambda h: tuple(int(h[k:k + 2], 16) / 255 for k in (1, 3, 5))
 SYMBOL = {5: "B", 6: "C", 7: "N", 8: "O", 9: "F", 16: "S", 17: "Cl", 35: "Br", 53: "I"}
 DETACH = 1.45
@@ -165,7 +168,7 @@ def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400)):
 
     if next_firing is not None:
         bond = mol.GetBondBetweenAtoms(index[i], index[j])
-        highlight_bonds, colours = [bond.GetIdx()], {bond.GetIdx(): rgb(BLUE if forming else ORANGE)}
+        highlight_bonds, colours = [bond.GetIdx()], {bond.GetIdx(): rgb(BLUE if forming else RED)}
 
     rdMolDraw2D.PrepareMolForDrawing(mol, kekulize=False, addChiralHs=False, wedgeBonds=False)
     drawer.DrawMolecule(mol, highlightAtoms=[], highlightBonds=highlight_bonds, highlightBondColors=colours)

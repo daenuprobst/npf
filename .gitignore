@@ -235,3 +235,4 @@ results/**/*.log
  *.pdf
 
 paper/
+superseded/

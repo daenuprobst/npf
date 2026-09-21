@@ -114,3 +114,12 @@ EC numbers on CARE task 2. Download `CARE_datasets.zip` from the Zenodo record o
 Results are JSON under `results/`, one file per run, and every table of the paper is generated from them. No number
 in the paper is typed by hand. Side outputs go in their own folder, because `benchmarks/report.py` globs the result
 folders.
+
+## Changelog
+
+Since commit 6fb91ef.
+
+- CARE task 2 keeps every reaction and scores all 393 test reactions of the easy split. `featurise` takes
+  `max_atoms`, whose default leaves the USPTO and Schneider results unchanged.
+- `care.py --hierarchy` adds heads for EC levels 1 to 3, and every run is also decoded with the marginal and
+  hierarchy rules.
