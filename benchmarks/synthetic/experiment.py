@@ -1,7 +1,8 @@
 """Train one model on one setting and write its test metrics to results/<task>/<regime>/<model>-<seed>.json
 
-    uv run python -m benchmarks.synthetic.experiment --task transitions --regime petri --model npf --seed 0
+uv run python -m benchmarks.synthetic.experiment --task transitions --regime petri --model npf --seed 0
 """
+
 import argparse
 import copy
 import json
@@ -16,9 +17,13 @@ import torch.nn.functional as F
 from npf import batching, datasets, models
 
 REGIMES = {
-    # main task, which transitions fired, and how often, between two sampled states of a stochastic token game
-    # (petri-ode, same task on deterministic continuous token flow, so there is no irreducible noise)
-    "transitions": {"graph": dict(max_arity=1), "petri": dict(max_arity=2), "petri-ode": dict(max_arity=2, ode=True)},
+    # main task, which transitions fired and how often between two sampled states of a stochastic token game,
+    # petri-ode is the same task on deterministic token flow without irreducible noise
+    "transitions": {
+        "graph": dict(max_arity=1),
+        "petri": dict(max_arity=2),
+        "petri-ode": dict(max_arity=2, ode=True),
+    },
     # secondary task, continuous token flow, predict the next state
     "next": {
         "graph-sat": dict(max_arity=1, kind="sat"),
@@ -36,10 +41,18 @@ def make_splits(task, regime):
 
     if task == "transitions":
         make = datasets.make_flow_pairs if cfg.get("ode") else datasets.make_pairs
-        more_tokens, longer_gap = (dict(scale=12.0), dict(gap=(5, 8))) if cfg.get("ode") else (dict(tokens=24), dict(gap=(1.0, 2.0)))
-        mk = lambda seed, n, places, **kw: make(seed, n, places, cfg["max_arity"], 64, **kw)
+        more_tokens, longer_gap = (
+            (dict(scale=12.0), dict(gap=(5, 8)))
+            if cfg.get("ode")
+            else (dict(tokens=24), dict(gap=(1.0, 2.0)))
+        )
+        mk = lambda seed, n, places, **kw: make(
+            seed, n, places, cfg["max_arity"], 64, **kw
+        )
         return {
-            "train": mk(1, 300, SMALL), "val": mk(2, 40, SMALL), "test": mk(3, 100, SMALL),
+            "train": mk(1, 300, SMALL),
+            "val": mk(2, 40, SMALL),
+            "test": mk(3, 100, SMALL),
             # 2-3x bigger nets
             "test-large": mk(4, 100, LARGE),
             # 3x more tokens
@@ -49,11 +62,15 @@ def make_splits(task, regime):
         }
 
     mk = lambda seed, n, places, n_traj, n_steps, **kw: datasets.make_flows(
-        seed, n, places, cfg["max_arity"], n_traj, cfg["kind"], n_steps, **kw)
+        seed, n, places, cfg["max_arity"], n_traj, cfg["kind"], n_steps, **kw
+    )
 
     return {
-        "train": mk(1, 300, SMALL, 8, 8), "val": mk(2, 40, SMALL, 8, 8), "test": mk(3, 100, SMALL, 4, 40),
-        "test-large": mk(4, 100, LARGE, 4, 40), "test-tokens": mk(5, 100, SMALL, 4, 40, scale=12.0),
+        "train": mk(1, 300, SMALL, 8, 8),
+        "val": mk(2, 40, SMALL, 8, 8),
+        "test": mk(3, 100, SMALL, 4, 40),
+        "test-large": mk(4, 100, LARGE, 4, 40),
+        "test-tokens": mk(5, 100, SMALL, 4, 40, scale=12.0),
     }
 
 
@@ -69,16 +86,28 @@ def load_splits(task, regime, root):
 
 # ------------------------------------------------------------------ evaluation
 
+
 @torch.no_grad()
 def predict(model, groups, device, chunk=20):
     """Model output for every sample of every group, split back per group."""
     out = []
 
     for i in range(0, len(groups), chunk):
-        gs = groups[i:i + chunk]
-        flat = model(batching.collate(gs, [np.arange(len(g.m)) for g in gs], device)).double().cpu().numpy()
-        sizes = [len(g.m) * (g.net.n_trans if g.sigma is not None else g.net.n_places) for g in gs]
-        out += [x.reshape(len(g.m), -1) for g, x in zip(gs, np.split(flat, np.cumsum(sizes)[:-1]))]
+        gs = groups[i : i + chunk]
+        flat = (
+            model(batching.collate(gs, [np.arange(len(g.m)) for g in gs], device))
+            .double()
+            .cpu()
+            .numpy()
+        )
+        sizes = [
+            len(g.m) * (g.net.n_trans if g.sigma is not None else g.net.n_places)
+            for g in gs
+        ]
+        out += [
+            x.reshape(len(g.m), -1)
+            for g, x in zip(gs, np.split(flat, np.cumsum(sizes)[:-1]))
+        ]
 
     return out
 
@@ -104,19 +133,24 @@ def transition_metrics(groups, preds):
 
     err, row, ker, tgt = map(np.concatenate, (err, row, ker, tgt))
     n_samples = sum(len(g.m) for g in groups)
-    rms = lambda x: float(np.sqrt(np.mean(x ** 2)))
+    rms = lambda x: float(np.sqrt(np.mean(x**2)))
 
     return {
-        "rmse": rms(err), "mae": float(np.abs(err).mean()), "r2": float(1 - (err ** 2).sum() / ((tgt - tgt.mean()) ** 2).sum()),
-        # error inside im C^T (fixed by the two states) vs inside ker C
-        "rmse_row": rms(row), "rmse_ker": rms(ker),
-        "acc_transition": float(hit_t / len(err)), "acc_sample": float(hit_s / n_samples),
+        "rmse": rms(err),
+        "mae": float(np.abs(err).mean()),
+        "r2": float(1 - (err**2).sum() / ((tgt - tgt.mean()) ** 2).sum()),
+        # error inside im C^T, which the two states fix, against inside ker C
+        "rmse_row": rms(row),
+        "rmse_ker": rms(ker),
+        "acc_transition": float(hit_t / len(err)),
+        "acc_sample": float(hit_s / n_samples),
         # rounded prediction really takes state A to state B
         "consistent": float(consistent / n_samples),
         # |M_A + C sigma_hat - M_B|_1 per sample
         "unexplained_tokens": float(np.concatenate(unexplained).mean()),
         "min_pred": float(min(p.min() for p in preds)),
-        "target_mean": float(tgt.mean()), "target_std": float(tgt.std()),
+        "target_mean": float(tgt.mean()),
+        "target_std": float(tgt.std()),
     }
 
 
@@ -126,7 +160,9 @@ def evaluate_transitions(model, groups, device):
     # no T-invariants, sigma is a function of the two states
     acyclic = [g for g in groups if g.net.n_tinv == 0]
     if acyclic:
-        out["rmse_no_tinv"] = transition_metrics(acyclic, predict(model, acyclic, device))["rmse"]
+        out["rmse_no_tinv"] = transition_metrics(
+            acyclic, predict(model, acyclic, device)
+        )["rmse"]
 
     return out
 
@@ -140,7 +176,10 @@ def evaluate_next(model, groups, device, horizons=(1, 8, 40), chunk=25):
     most_negative = 0.0
     firing = []
     for i in range(0, len(groups), chunk):
-        gs = [datasets.Group(g.net, g.states[:, 0], states=g.states, fired=g.fired) for g in groups[i:i + chunk]]
+        gs = [
+            datasets.Group(g.net, g.states[:, 0], states=g.states, fired=g.fired)
+            for g in groups[i : i + chunk]
+        ]
         b = batching.collate(gs, [np.arange(len(g.m)) for g in gs], device)
         sizes = np.cumsum([g.m.size for g in gs])[:-1]
         m = b.m
@@ -148,7 +187,9 @@ def evaluate_next(model, groups, device, horizons=(1, 8, 40), chunk=25):
         # the hidden layer of NPF is a firing vector, compare it with the true one
         if hasattr(model, "step"):
             sigma = model(b, return_firing=True)[1].double().cpu().numpy()
-            for g, s in zip(gs, np.split(sigma, np.cumsum([g.fired[:, 0].size for g in gs])[:-1])):
+            for g, s in zip(
+                gs, np.split(sigma, np.cumsum([g.fired[:, 0].size for g in gs])[:-1])
+            ):
                 firing.append((s.reshape(g.fired[:, 0].shape), g.fired[:, 0], g.net))
 
         for h in range(1, max(horizons) + 1):
@@ -167,7 +208,10 @@ def evaluate_next(model, groups, device, horizons=(1, 8, 40), chunk=25):
                     sq_change[h] += ((xh - x0) ** 2).sum()
 
                     if g.net.X.shape[1]:
-                        drift[h] += list(np.linalg.norm((x - x0) @ g.net.X, axis=1) / np.linalg.norm(x0 @ g.net.X, axis=1).clip(1e-9))
+                        drift[h] += list(
+                            np.linalg.norm((x - x0) @ g.net.X, axis=1)
+                            / np.linalg.norm(x0 @ g.net.X, axis=1).clip(1e-9)
+                        )
 
     # 1.0 = "nothing changes"
     out = {f"nrmse@{h}": float(np.sqrt(sq_err[h] / sq_change[h])) for h in horizons}
@@ -178,30 +222,60 @@ def evaluate_next(model, groups, device, horizons=(1, 8, 40), chunk=25):
 
     if firing:
         s, t = (np.concatenate([f[k].ravel() for f in firing]) for k in (0, 1))
-        ker = np.concatenate([((p - q) - (p - q) @ (n.C_pinv @ n.C).T).ravel() for p, q, n in firing])
-        out |= {"firing_corr": float(np.corrcoef(s, t)[0, 1]), "firing_nrmse": float(np.sqrt(np.mean((s - t) ** 2)) / t.std()),
-                "firing_nrmse_ker": float(np.sqrt(np.mean(ker ** 2)) / t.std())}
+        ker = np.concatenate(
+            [((p - q) - (p - q) @ (n.C_pinv @ n.C).T).ravel() for p, q, n in firing]
+        )
+        out |= {
+            "firing_corr": float(np.corrcoef(s, t)[0, 1]),
+            "firing_nrmse": float(np.sqrt(np.mean((s - t) ** 2)) / t.std()),
+            "firing_nrmse_ker": float(np.sqrt(np.mean(ker**2)) / t.std()),
+        }
 
     return out
 
 
 # ------------------------------------------------------------------ training
 
+
 def train(model, task, splits, device, iters, seed, log_every=250):
     rng = np.random.default_rng(seed)
     opt = torch.optim.Adam(model.parameters(), lr=2e-3)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, iters, eta_min=2e-5)
     key = "sigma" if task == "transitions" else "y"
-    validate = (lambda: evaluate_transitions(model, splits["val"], device)["rmse"]) if task == "transitions" else \
-        (lambda: float(np.sqrt(np.mean(np.concatenate([(p - g.y).ravel() for g, p in zip(splits["val"], predict(model, splits["val"], device))]) ** 2))))
+    validate = (
+        (lambda: evaluate_transitions(model, splits["val"], device)["rmse"])
+        if task == "transitions"
+        else (
+            lambda: float(
+                np.sqrt(
+                    np.mean(
+                        np.concatenate(
+                            [
+                                (p - g.y).ravel()
+                                for g, p in zip(
+                                    splits["val"], predict(model, splits["val"], device)
+                                )
+                            ]
+                        )
+                        ** 2
+                    )
+                )
+            )
+        )
+    )
     best, best_state, curve = np.inf, None, []
     for it in range(1, iters + 1):
-        gs = [splits["train"][i] for i in rng.choice(len(splits["train"]), 16, replace=False)]
+        gs = [
+            splits["train"][i]
+            for i in rng.choice(len(splits["train"]), 16, replace=False)
+        ]
         rows = [rng.choice(len(g.m), 32, replace=False) for g in gs]
-        batch, target = batching.collate(gs, rows, device), batching.flat_targets(gs, rows, key, device)
+        batch, target = batching.collate(gs, rows, device), batching.flat_targets(
+            gs, rows, key, device
+        )
         loss = F.mse_loss(model(batch), target)
 
-        # e.g. learned incidence, the learned net has to explain the recorded firings
+        # learned incidence, the learned net has to explain the recorded firings
         if hasattr(model, "auxiliary_loss"):
             loss = loss + model.auxiliary_loss(batch, target)
 
@@ -234,7 +308,9 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--iters", type=int, default=4000)
     ap.add_argument("--root", default="results")
-    ap.add_argument("--prepare", action="store_true", help="only generate and cache the dataset")
+    ap.add_argument(
+        "--prepare", action="store_true", help="only generate and cache the dataset"
+    )
     args = ap.parse_args()
 
     splits = load_splits(args.task, args.regime, args.root)
@@ -254,16 +330,28 @@ def main():
     model.eval()
     evaluate = evaluate_transitions if args.task == "transitions" else evaluate_next
     result = {
-        "task": args.task, "regime": args.regime, "model": args.model, "seed": args.seed, "params": n_params,
-        "train_seconds": time.time() - start, "curve": curve,
-        "metrics": {name: evaluate(model, groups, device) for name, groups in splits.items() if name.startswith("test")},
+        "task": args.task,
+        "regime": args.regime,
+        "model": args.model,
+        "seed": args.seed,
+        "params": n_params,
+        "train_seconds": time.time() - start,
+        "curve": curve,
+        "metrics": {
+            name: evaluate(model, groups, device)
+            for name, groups in splits.items()
+            if name.startswith("test")
+        },
     }
     out = Path(args.root) / args.task / args.regime / f"{args.model}-{args.seed}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=1))
     head = result["metrics"]["test"]
-    print(f"{args.task}/{args.regime} {args.model:>10} seed {args.seed}: " + "  ".join(f"{k}={v:.4g}" for k, v in list(head.items())[:6])
-          + f"  ({n_params} params, {result['train_seconds']:.0f}s)")
+    print(
+        f"{args.task}/{args.regime} {args.model:>10} seed {args.seed}: "
+        + "  ".join(f"{k}={v:.4g}" for k, v in list(head.items())[:6])
+        + f"  ({n_params} params, {result['train_seconds']:.0f}s)"
+    )
 
 
 if __name__ == "__main__":

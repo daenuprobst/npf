@@ -8,20 +8,12 @@ import re
 from pathlib import Path
 
 REPLACE = [
-    ("±", r"$\pm$"),
-    ("ᵀ", r"$^\top$"),
-    ("→", r"$\to$"),
-    ("·", r"$\cdot$"),
+    ("+-", r"$\pm$"),
+    ("^T", r"$^\top$"),
     ("%", r"\%"),
     ("_", r"\_"),
     ("&", r"\&"),
-    ("≥", r"$\ge$"),
-    ("≤", r"$\le$"),
-    ("×", r"$\times$"),
-    ("–", "--"),
     ("#", r"\#"),
-    ("σ", r"$\sigma$"),
-    ("²", r"$^2$"),
 ]
 
 # titles of the tables on synthetic nets, which go to their own appendix
@@ -37,6 +29,10 @@ SYNTHETIC = (
 
 
 def tex(text):
+    # an empty cell is written as a dash
+    if text.strip() == "-":
+        return "--"
+
     text = re.sub(r"\*\*(.+?)\*\*", r"\\textbf{\1}", text.strip())
     text = re.sub(r"`(.+?)`", r"\1", text)
     for old, new in REPLACE:

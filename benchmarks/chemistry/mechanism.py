@@ -1,11 +1,11 @@
 """Elementary step prediction on the FlowER mechanism benchmark (Joung et al., Nature 2025) with the arrow net.
 
 The benchmark imputes arrow-pushing pathways for USPTO-Full reactions with expert templates and adds the curated steps
-of PMechDB and RMechDB. Every line of the data is one elementary step, fully atom mapped with explicit hydrogens. A
-prediction is correct if the SMILES of its whole product side, without maps and stereochemistry and with every hydrogen
-written, equals that of the recorded one, which is the criterion of the FlowER code. The published results use the
-first release of the data (flower_dataset, 1,445,189 / 15,744 / 162,002 steps). Every test step counts, also the ones
-the arrow net cannot express (single electron steps), which are wrong by construction.
+of PMechDB and RMechDB. Every line is one elementary step, fully atom mapped with explicit hydrogens. A prediction is
+correct if the SMILES of its whole product side, without maps and stereochemistry and with every hydrogen written,
+equals the recorded one, the criterion of the FlowER code. The results use the first release of the data,
+flower_dataset with 1,445,189 / 15,744 / 162,002 steps. Every test step counts, also the single electron steps the
+arrow net cannot express, which are wrong by construction.
 
     uv run python -m benchmarks.chemistry.mechanism prepare               # data/flower/npf/{train,val,test}/
     uv run python -m benchmarks.chemistry.mechanism train --seed 0        # results/mechanism/npf-0.pt

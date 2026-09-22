@@ -6,14 +6,14 @@
 Models. npf uses the Petri semantics, pgnn is the same message passing with a generic readout, drfp is DRFP with an
 MLP for classification, and the npf-no... variants remove one Petri component each.
 
-Maps. No recorded atom map is read where it could be avoided. Classification reads the maps of the exact mapper
-(--maps), forward prediction trains on the firing vectors of the net (--net-targets, benchmarks.chemistry.net_targets).
+Maps. Classification reads the maps of the exact mapper with --maps, forward prediction trains on the firing vectors
+of the net with --net-targets from benchmarks.chemistry.net_targets, and no recorded map is read where avoidable.
 
-Splits. classify uses the published split of Schneider 50k with 200 training and 800 test reactions per class.
-On Schneider 50k, forward uses a fixed random 80/10/10 split of the reactions that come with a clean atom mapping,
-which is an internal protocol for ablations. With the dataset uspto_mit the official split of Jin et al. is used, and
-forward prediction is scored on the whole official test set. Training records whose firing vector moves more than
-MAX_TOKENS tokens are dropped as label noise. Validation and test sets are never filtered.
+Splits. classify uses the published split of Schneider 50k with 200 training and 800 test reactions per class. On
+Schneider 50k, forward uses a fixed random 80/10/10 split of the reactions with a clean atom mapping, an internal
+protocol for ablations. With uspto_mit the official split of Jin et al. is used and forward prediction is scored on
+the whole official test set. Training records whose firing vector moves more than MAX_TOKENS tokens are dropped as
+label noise, validation and test sets are never filtered.
 """
 
 import argparse
@@ -56,16 +56,16 @@ SCREEN = slice(3000, 10500)
 
 
 def subset_lines(n):
-    """The first n entries of one fixed random order of the lines of the official USPTO-MIT training file. Subsets
-    are nested and shared with the baselines, a reaction id of the training split is its line number.
+    """The first n lines of one fixed random order of the official USPTO-MIT training file, so subsets are nested and
+    shared with the baselines. A reaction id of the training split is its line number.
     """
     return np.random.default_rng(0).permutation(USPTO_MIT_TRAIN_LINES)[:n]
 
 
 def splits(data, task, clean_train=True, recorded=True):
-    """Training, validation and test reactions. recorded=False keeps or drops no training reaction because of a
-    recorded atom map, forward targets then come from the net (use_net_targets). On USPTO-MIT both kinds of runs share
-    the validation reactions, on Schneider 50k the benchmark itself is defined on reactions with a clean recorded map.
+    """Training, validation and test reactions. With recorded=False no training reaction is kept or dropped because of
+    a recorded map, the targets then come from the net. On USPTO-MIT both kinds of runs share the validation
+    reactions, on Schneider 50k the benchmark itself is defined on reactions with a clean recorded map.
     """
     reactions = data["reactions"]
 
@@ -89,8 +89,7 @@ def splits(data, task, clean_train=True, recorded=True):
                 and tokens_moved(r, r["target"]) <= MAX_TOKENS
             ]
 
-        # models trained here are also scored on the Golden atom mapping set, so no training reaction may share its
-        # main product with that set
+        # models trained here are scored on the Golden set too, so no training reaction may share a main product with it
         golden = Path("data/golden.pkl")
         if golden.exists():
             main = lambda r: chem.canonical_product(r["smiles"].split(">>")[1])
@@ -111,16 +110,14 @@ def splits(data, task, clean_train=True, recorded=True):
         rng.shuffle(train)
         return train[500:], train[:500], [r for r in reactions if r["split"] == "test"]
 
-    # the internal protocol of Schneider 50k is defined on the reactions with a clean recorded mapping, which fixes the
-    # benchmark and nothing else, since training targets can still come from the net
+    # the Schneider 50k protocol is defined on reactions with a clean recorded map, targets can still come from the net
     mapped = [r for r in reactions if r["target"] is not None]
     order = np.random.default_rng(0).permutation(len(mapped))
     n = len(order) // 10
     pick = lambda idx: [mapped[i] for i in idx]
     train = pick(order[2 * n :])
 
-    # minimum-firing prior against label noise, validation and test sets are left as they are. Without recorded maps
-    # the same cap applies to the targets of the net instead
+    # the minimum firing prior against label noise applies to training only, without recorded maps to the net targets
     if clean_train and recorded:
         train = [r for r in train if tokens_moved(r, r["target"]) <= MAX_TOKENS]
 
@@ -128,8 +125,8 @@ def splits(data, task, clean_train=True, recorded=True):
 
 
 def attach_firing_histograms(train, *others, n_types=300):
-    """Auxiliary target, counts of the fired transition types (atom type, atom type, old bond, new bond) with
-    atom type = (element, aromatic, degree), the vocabulary is the n_types most frequent types of the training set.
+    """Auxiliary target, counts of the fired transition types (atom type, atom type, old bond, new bond) with atom
+    type (element, aromatic, degree), over the n_types most frequent types of the training set.
     """
 
     def types(r):
@@ -162,8 +159,8 @@ def attach_firing_histograms(train, *others, n_types=300):
 def use_predicted_firing(
     *splits_, path="data/exact_maps_schneider50k.pkl", blank_missing=False
 ):
-    """Replace the recorded mapping and edits of every reaction by the ones in a file of maps, those of the exact
-    mapper (benchmarks.chemistry.exact_map --write)."""
+    """Replace the recorded mapping and edits of every reaction by those of the exact mapper in a file written by
+    benchmarks.chemistry.exact_map --write."""
     maps = pickle.loads(Path(path).read_bytes())
     for r in (r for rs in splits_ for r in rs):
         # a reaction the file does not cover keeps its record, or loses it when no recorded map may be used at all
@@ -177,7 +174,7 @@ def use_predicted_firing(
 
         mapping = maps[r["id"]].astype(np.int64)
 
-        # product atoms without a precursor (incomplete record), no firing vector
+        # product atoms without a precursor, an incomplete record with no firing vector
         if len(mapping) != len(r["b"]["x"]):
             r["target"], r["edits"] = np.full(len(r["b"]["x"]), -1, np.int16), np.zeros(
                 (0, 3), np.int16
@@ -188,9 +185,9 @@ def use_predicted_firing(
 
 
 def use_net_targets(train, path, single=False):
-    """Forward targets from the net alone. A reaction takes the firing vectors that benchmarks.chemistry.net_targets
-    found for it, its recorded mapping is dropped, and a reaction without such a vector is not trained on. single keeps
-    only the first vector, the ablation of the set."""
+    """Forward targets from the net alone, the firing vectors benchmarks.chemistry.net_targets found. The recorded
+    mapping is dropped, a reaction without a vector is not trained on, and single keeps only the first vector.
+    """
     vectors = pickle.loads(Path(path).read_bytes())["targets"]
     kept = []
     for r in train:
@@ -215,8 +212,8 @@ def use_net_targets(train, path, single=False):
 
 
 def within(rs, pairs=640_000):
-    """A batch sorted by size, split where its padded atom pairs would exceed pairs. The forward models hold every
-    pair densely, and batches below the limit stay as they are."""
+    """A batch sorted by size, split where its padded atom pairs would exceed pairs, since the forward models hold
+    every pair densely."""
     out, group = [], []
     for r in rs:
         n = len(r["a"]["x"])
@@ -230,7 +227,7 @@ def within(rs, pairs=640_000):
 
 
 class Collated(torch.utils.data.Dataset):
-    """One epoch of padded batches, collation (pure Python / numpy) runs in worker processes so the GPU is not starved."""
+    """One epoch of padded batches, collated in worker processes so the GPU is not starved."""
 
     def __init__(self, reactions, index_batches):
         self.reactions, self.index_batches = reactions, index_batches
@@ -347,8 +344,8 @@ def evaluate(model, task, reactions, device):
 
 def ranked_candidates(model, reactions, device, width, batch, pairs=400_000):
     """(reaction, ranked candidates) for every reaction. batch 1 searches one reaction at a time, larger batches share
-    the rate law evaluations of up to batch reactions of similar size, fewer when their hypotheses would hold more than
-    pairs atom pairs, since the rate law holds every pair densely."""
+    the rate law over up to batch reactions of similar size, fewer when their hypotheses would exceed pairs atom
+    pairs."""
     if batch <= 1:
         for r in reactions:
             yield r, model.beam_search(chem.collate([r], device), width)
@@ -373,8 +370,8 @@ def ranked_candidates(model, reactions, device, width, batch, pairs=400_000):
 
 @torch.no_grad()
 def evaluate_beam(model, reactions, device, width=5, dump=None, batch=16):
-    """Top-k product accuracy of the token game, the recorded product is among the k most probable markings.
-    With dump, the candidates of every reaction are written there, as (id, [(edits, log probability, correct)]).
+    """Top-k product accuracy of the token game, the recorded product among the k most probable markings. With dump
+    the candidates of every reaction are written there as (id, [(edits, log probability, correct)]).
     """
     model.eval()
     hits, major_hits, merged_hits, candidates = (
@@ -423,7 +420,7 @@ def evaluate_beam(model, reactions, device, width=5, dump=None, batch=16):
 MAIN_METRIC = {"classify": "accuracy", "forward": "product_top1"}
 
 
-# DRFP reference (classification only)
+# DRFP reference, classification only
 
 
 def drfp_baseline(train, val, test, device, seed, everything=None, select="best"):
@@ -513,21 +510,21 @@ def main():
     ap.add_argument(
         "--model",
         default="npf",
-        help="npf | pgnn | drfp | ablations: npf-nogate, npf-sigma, pgnn-sigma (classify), npf-oneshot, npf-noenabling "
-        "(forward)",
+        help="npf, pgnn, drfp, or an ablation, npf-nogate, npf-sigma and pgnn-sigma for classify, npf-oneshot and "
+        "npf-noenabling for forward",
     )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int)
     ap.add_argument(
         "--limit",
         type=int,
-        help="use only this many training reactions (smoke tests, data-efficiency)",
+        help="only this many training reactions, for smoke tests and data efficiency",
     )
     ap.add_argument(
         "--subset",
         type=int,
-        help="uspto_mit: train on the reactions among this many random lines of the official "
-        "training file (data efficiency, the baselines get the same lines)",
+        help="uspto_mit, train on the reactions among this many random lines of the official "
+        "training file, the baselines get the same lines",
     )
     ap.add_argument("--root", default="results")
     ap.add_argument(
@@ -539,13 +536,13 @@ def main():
         help="re-score the saved weights on the test set",
     )
     ap.add_argument(
-        "--no-beam", action="store_true", help="skip the beam search (top-k) evaluation"
+        "--no-beam", action="store_true", help="skip the beam search evaluation"
     )
     ap.add_argument(
         "--dump-validation-beams",
         action="store_true",
-        help="forward: also write the beam candidates of the validation "
-        "reactions that model selection did not use",
+        help="forward, also write the beam candidates of the validation "
+        "reactions not used for model selection",
     )
     ap.add_argument(
         "--width", type=int, default=128, help="hidden width of the token game"
@@ -557,23 +554,21 @@ def main():
         "--attention",
         type=int,
         default=0,
-        help="attention layers of the token game (default: 4, or 6 if width > 128)",
+        help="attention layers of the token game, default 4, or 6 if width > 128",
     )
     ap.add_argument(
         "--matched",
         action="store_true",
-        help="forward, pgnn or npf-oneshot: give the one-shot counterpart the encoder "
-        "of the token game, so that the two have equal capacity (the default keeps the smaller published one)",
+        help="forward, pgnn or npf-oneshot, give the one-shot counterpart the encoder "
+        "of the token game for equal capacity, the default keeps the smaller published one",
     )
-    ap.add_argument(
-        "--batch", type=int, default=0, help="batch size (default: per task)"
-    )
+    ap.add_argument("--batch", type=int, default=0, help="batch size, default per task")
     ap.add_argument("--amp", action="store_true", help="bfloat16 autocast")
     ap.add_argument(
         "--no-compile",
         action="store_true",
-        help="token game on CUDA: train with the eager rate law instead of the "
-        "compiled one (the same function, compiled it launches far fewer kernels)",
+        help="token game on CUDA, train with the eager rate law instead of the "
+        "compiled one, which launches far fewer kernels",
     )
     ap.add_argument(
         "--beam-batch",
@@ -591,13 +586,13 @@ def main():
     ap.add_argument(
         "--maps",
         default="data/exact_maps_schneider50k.pkl",
-        help="classify: the atom maps that the participation gate, "
-        "the firing histograms and the explicit firing vector read, those of the exact mapper (exact_map --write)",
+        help="classify, the atom maps of the exact mapper from exact_map --write that the gate, "
+        "the firing histograms and the explicit firing vector read",
     )
     ap.add_argument(
         "--net-targets",
-        help="forward: train on the sets of firing vectors that benchmarks.chemistry.net_targets wrote to "
-        "this file, no recorded atom map is read and no reaction is filtered by one",
+        help="forward, train on the sets of firing vectors that benchmarks.chemistry.net_targets wrote to "
+        "this file, no recorded atom map is read",
     )
     ap.add_argument(
         "--single-target",
@@ -607,7 +602,7 @@ def main():
     ap.add_argument(
         "--firing",
         action="store_true",
-        help="classify: auxiliary task 'which transition types fired' (from the maps)",
+        help="classify, auxiliary task on which transition types fired, from the maps",
     )
     ap.add_argument(
         "--select",
@@ -619,14 +614,14 @@ def main():
     ap.add_argument(
         "--labels",
         type=int,
-        help="classify: number of training reactions whose class label is used; the rest only "
-        "contribute their firing histograms (needs --firing to be of any use)",
+        help="classify, number of training reactions whose class label is used, the rest only "
+        "contribute their firing histograms with --firing",
     )
     ap.add_argument(
         "--size-split",
         action="store_true",
-        help="classify: train on the smaller half of the training reactions, "
-        "test on the largest quarter of the test reactions (extrapolation in molecule size)",
+        help="classify, train on the smaller half of the training reactions and "
+        "test on the largest quarter of the test reactions",
     )
     args = ap.parse_args()
 
@@ -660,8 +655,7 @@ def main():
         train = use_net_targets(train, args.net_targets, single=args.single_target)
         args.tag += "-nettargets" + ("-single" if args.single_target else "")
 
-    # every head of the classifier that reads atom maps reads those of the exact mapper, on test reactions as well,
-    # so no recorded map enters classification
+    # every head that reads atom maps reads those of the exact mapper, on test reactions too, so no recorded map enters
     if args.task == "classify":
         use_predicted_firing(train, val, test, path=args.maps, blank_missing=True)
 
@@ -735,8 +729,8 @@ def main():
         n_params = sum(p.numel() for p in model.parameters())
         epochs = args.epochs or EPOCHS[args.task]
 
-        # the token game is limited by kernel launches, not by arithmetic. compiling its rate law fuses them, and it is
-        # used for training only, evaluation keeps the eager rate law so that scores do not depend on compilation
+        # the token game is limited by kernel launches, the compiled rate law fuses them and serves training only, so
+        # scores never depend on compilation
         compiled = None
 
         if (

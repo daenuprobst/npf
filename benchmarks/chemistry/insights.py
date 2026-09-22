@@ -3,14 +3,12 @@ benchmarks.chemistry.experiment.
 
     uv run python -m benchmarks.chemistry.insights    # writes results/chem/insights_<section>.json and prints a summary
 
-1  validity      Products are valence-valid by construction because markings are non-negative. The one-shot
-                 counterpart has no such guarantee.
+1  validity      Products are valence-valid by construction, the one-shot counterpart has no such guarantee.
 2  by-products   The state equation conserves tokens, so the fragments that leave come with the prediction.
-3  calibration   The probability of a product is the probability of its trace with all firing orders merged.
-                 Is it calibrated?
-4  firing order  Enabling constrains the order in which transitions fire. What has to break before what forms?
-5  attribution   The classifier reads sigma through the state equation, so untouched places contribute exactly
-                 zero. Attribution against the distance from the reaction centre, without any saliency method.
+3  calibration   The probability of a product is that of its trace with all firing orders merged.
+4  firing order  Enabling constrains the order of firings, what breaks before what forms.
+5  attribution   Untouched places contribute exactly zero to the readout, attribution against the distance from
+                 the reaction centre without a saliency method.
 6  data audit    Recorded atom mappings that make and break more bonds than the minimum firing vector.
 """
 
@@ -157,7 +155,7 @@ def forward_insights(data, n=2000):
 @torch.no_grad()
 def attribution_insights(data, n=3000):
     """Per-atom contribution to the state-equation readout, phi(atom in B) - phi(its partner in A), against the
-    graph distance of the atom from the nearest re-typed bond. Beyond `rounds` bonds it must be exactly zero.
+    graph distance of the atom from the nearest re-typed bond. Beyond rounds bonds it must be exactly zero.
     """
     _, _, test = splits(data, "classify")
     test = [r for r in test if r["target"] is not None and len(r["edits"])][:n]

@@ -1,10 +1,10 @@
-"""Atom mapping on the five held-out sets of SynRXN (Phan et al., Sci. Data 2026) with the learning-free exact mapper.
+"""Atom mapping on the five held-out sets of SynRXN, Phan et al., Sci. Data 2026, with the learning-free exact mapper.
 
-SynRXN scores RXNMapper, GraphormerMapper, LocalMapper and RDTool with the validator of SynKit on three sets of
-organic reactions (the Golden set, the set of Jaworski et al. in Nat. Commun., 3,000 reactions of USPTO-50k) and two of
-metabolic reactions (Recon3D, E. coli). We map the same unmapped reactions with the minimum firing vector of the
-valence net, write atom-mapped SMILES and score them with the same validator, next to the outputs of the four mappers
-that the files carry, so that every number comes from one scorer.
+SynRXN scores RXNMapper, GraphormerMapper, LocalMapper and RDTool with the validator of SynKit on three sets of organic
+reactions, the Golden set, the set of Jaworski et al. in Nat. Commun. and 3,000 reactions of USPTO-50k, and two of
+metabolic reactions, Recon3D and E. coli. We map the same unmapped reactions with the minimum firing vector, write
+atom-mapped SMILES and score them with the same validator next to the outputs of the four mappers the files carry, so
+every number comes from one scorer.
 
     git clone https://github.com/TieuLongPhan/synrxn <root>
     uv run python -m benchmarks.chemistry.synrxn_map prepare <root>                     # data/synrxn_aam.pkl

@@ -1,13 +1,14 @@
 """EC number classification on the CARE benchmark, Task 2, from the reaction alone.
 
-CARE \\citep{yang2024care} asks for the enzyme commission number of a reaction. The easy split holds out reactions,
-not EC numbers, so every test label is seen in training and the task is classification into 4\\,960 classes with a
-median of four training reactions each. We report k=1 accuracy at EC level 4, 3, 2 and 1 as the benchmark does, by
+CARE, Yang et al. 2024, asks for the enzyme commission number of a reaction. The easy split holds out reactions, not
+EC numbers, so every test label is seen in training and the task is classification into 4960 classes with a median
+of four training reactions each. We report k=1 accuracy at EC level 4, 3, 2 and 1 as the benchmark does, by
 truncating the predicted EC number.
 
     uv run python -m benchmarks.chemistry.care prepare <path to CARE_datasets>   # data/care_easy.pkl
     uv run python -m benchmarks.chemistry.care train --seed 0                    # results/care/easy/<model>-<seed>.json
 """
+
 import argparse
 import json
 import pickle
@@ -35,13 +36,16 @@ CARE_EASY_TEST = 393
 
 
 def prepare(root, out=DATA):
-    """Featurise both splits and index the EC numbers. Every reaction is kept. The size bound that suits USPTO would
-    drop the peptides and oligosaccharides of this set, up to 323 atoms, and 1.4 GB of GPU memory holds a batch of the
-    sixteen largest."""
+    """Featurise both splits and index the EC numbers. Every reaction is kept, the size bound of USPTO would drop the
+    peptides and oligosaccharides of up to 323 atoms, and 1.4 GB of GPU memory holds a batch of the sixteen largest.
+    """
     import csv
 
     base = Path(root) / "splits" / "task2"
-    rows = {name: list(csv.DictReader(open(base / f"easy_reaction_{name}.csv"))) for name in ("train", "test")}
+    rows = {
+        name: list(csv.DictReader(open(base / f"easy_reaction_{name}.csv")))
+        for name in ("train", "test")
+    }
     classes = sorted({r["EC number"] for r in rows["train"]})
     index = {ec: k for k, ec in enumerate(classes)}
     reactions, dropped, unseen = [], Counter(), 0
@@ -53,8 +57,16 @@ def prepare(root, out=DATA):
                 continue
 
             smiles = r["Reaction"]
-            g = chem.featurise({"original_rxn": smiles, "rxn": smiles, "label": index[r["EC number"]], "split": split,
-                                "id": len(reactions)}, max_atoms=None)
+            g = chem.featurise(
+                {
+                    "original_rxn": smiles,
+                    "rxn": smiles,
+                    "label": index[r["EC number"]],
+                    "split": split,
+                    "id": len(reactions),
+                },
+                max_atoms=None,
+            )
             if g is None:
                 dropped[split] += 1
                 continue
@@ -63,8 +75,10 @@ def prepare(root, out=DATA):
 
     out.write_bytes(pickle.dumps({"reactions": reactions, "classes": classes}))
     kept = Counter(r["split"] for r in reactions)
-    print(f"{len(classes)} EC numbers; kept {kept['train']} train and {kept['test']} test reactions, "
-          f"dropped {dropped['train']} and {dropped['test']} that could not be featurised, {unseen} with an unseen EC; wrote {out}")
+    print(
+        f"{len(classes)} EC numbers, kept {kept['train']} train and {kept['test']} test reactions, "
+        f"dropped {dropped['train']} and {dropped['test']} that could not be featurised, {unseen} with an unseen EC, wrote {out}"
+    )
 
 
 def levels(predicted, true, classes, denominator=None):
@@ -86,15 +100,15 @@ def prefixes(classes, depth):
     names = sorted({".".join(c.split(".")[:depth]) for c in classes})
     index = {name: k for k, name in enumerate(names)}
 
-    return np.array([index[".".join(c.split(".")[:depth])] for c in classes]), len(names)
+    return np.array([index[".".join(c.split(".")[:depth])] for c in classes]), len(
+        names
+    )
 
 
 class Hierarchy(nn.Module):
-    """The classifier with one auxiliary head per coarser EC level on the same readout.
-
-    A flat loss over 4960 classes treats a sibling EC exactly like an unrelated one, so the coarse levels get no
-    gradient of their own. The extra heads give them one, and at test time they vote on the prefix.
-    """
+    """The classifier with one auxiliary head per coarser EC level on the same readout. A flat loss over 4960 classes
+    treats a sibling EC like an unrelated one, so the coarse levels get no gradient of their own, the extra heads give
+    them one and vote on the prefix at test time."""
 
     def __init__(self, classes, **kwargs):
         super().__init__()
@@ -104,12 +118,18 @@ class Hierarchy(nn.Module):
 
         for depth in (1, 2, 3):
             owner, n = prefixes(classes, depth)
-            self.levels.append(nn.Sequential(nn.Linear(width, 256), nn.SiLU(), nn.Linear(256, n)))
-            self.register_buffer(f"owner{depth}", torch.as_tensor(owner, dtype=torch.long))
+            self.levels.append(
+                nn.Sequential(nn.Linear(width, 256), nn.SiLU(), nn.Linear(256, n))
+            )
+            self.register_buffer(
+                f"owner{depth}", torch.as_tensor(owner, dtype=torch.long)
+            )
 
         # the readout is the input of the body's last block, a hook keeps it for the coarse heads
         self._readout = None
-        self.body.out.register_forward_pre_hook(lambda _, inputs: setattr(self, "_readout", inputs[0]))
+        self.body.out.register_forward_pre_hook(
+            lambda _, inputs: setattr(self, "_readout", inputs[0])
+        )
 
     def forward(self, b):
         fine = self.body(b)
@@ -121,11 +141,9 @@ class Hierarchy(nn.Module):
 
 
 def decode(fine, coarse, owners, rule):
-    """One predicted EC per reaction, so the benchmark's metric applies unchanged.
-
-    flat takes the most probable class. marginal adds, for every class, the log of the total probability of its prefix
-    at each level, so a class whose siblings are also likely wins over an isolated one. hierarchy adds the log
-    probability that the coarse heads give its prefixes.
+    """One predicted EC per reaction, so the benchmark's metric applies unchanged. flat takes the most probable class,
+    marginal adds for every class the log of the total probability of its prefix at each level, so a class with likely
+    siblings wins over an isolated one, and hierarchy adds the log probability the coarse heads give its prefixes.
     """
     log_p = torch.log_softmax(fine, 1)
 
@@ -136,7 +154,9 @@ def decode(fine, coarse, owners, rule):
     for depth, owner in enumerate(owners):
         if rule == "marginal":
             n = int(owner.max()) + 1
-            mass = torch.zeros(len(fine), n, device=fine.device).index_add_(1, owner, log_p.exp())
+            mass = torch.zeros(len(fine), n, device=fine.device).index_add_(
+                1, owner, log_p.exp()
+            )
             score = score + torch.log(mass.clamp(min=1e-30))[:, owner]
         else:
             score = score + torch.log_softmax(coarse[depth], 1)[:, owner]
@@ -167,12 +187,23 @@ def predict(model, reactions, device, batch=16, rule="flat"):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("phase", choices=["prepare", "train"])
-    ap.add_argument("root", nargs="?", help="the unpacked CARE_datasets directory, for prepare")
-    ap.add_argument("--model", default="npf", help="npf (state-equation readout) or pgnn (generic readout)")
+    ap.add_argument(
+        "root", nargs="?", help="the unpacked CARE_datasets directory, for prepare"
+    )
+    ap.add_argument(
+        "--model",
+        default="npf",
+        help="npf, the state-equation readout, or pgnn, the generic readout",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int, default=EPOCHS)
     ap.add_argument("--batch", type=int, default=16)
-    ap.add_argument("--hierarchy", type=float, default=0.0, help="weight of the auxiliary losses at EC levels 1 to 3")
+    ap.add_argument(
+        "--hierarchy",
+        type=float,
+        default=0.0,
+        help="weight of the auxiliary losses at EC levels 1 to 3",
+    )
     args = ap.parse_args()
 
     if args.phase == "prepare":
@@ -188,16 +219,25 @@ def main():
     rng = np.random.default_rng(args.seed)
 
     global OWNERS
-    OWNERS = [torch.as_tensor(prefixes(classes, depth)[0], dtype=torch.long, device=device) for depth in (1, 2, 3)]
+    OWNERS = [
+        torch.as_tensor(prefixes(classes, depth)[0], dtype=torch.long, device=device)
+        for depth in (1, 2, 3)
+    ]
 
     # the gate is left unsupervised, no atom map of any kind is read
     kwargs = dict(petri=args.model.startswith("npf"), gate=args.model == "npf")
-    model = (Hierarchy(classes, **kwargs) if args.hierarchy else chem.Classifier(len(classes), **kwargs)).to(device)
+    model = (
+        Hierarchy(classes, **kwargs)
+        if args.hierarchy
+        else chem.Classifier(len(classes), **kwargs)
+    ).to(device)
     tag = f"-hier{args.hierarchy:g}" if args.hierarchy else ""
     params = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     steps = args.epochs * (len(train) // args.batch + 1)
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, 1e-3, total_steps=steps, pct_start=0.1)
+    sched = torch.optim.lr_scheduler.OneCycleLR(
+        opt, 1e-3, total_steps=steps, pct_start=0.1
+    )
     start = time.time()
 
     for epoch in range(args.epochs):
@@ -210,7 +250,9 @@ def main():
                 fine, coarse = model(b)
                 loss = F.cross_entropy(fine, b["label"])
                 for owner, logits in zip(model.owners(), coarse):
-                    loss = loss + args.hierarchy * F.cross_entropy(logits, owner[b["label"]])
+                    loss = loss + args.hierarchy * F.cross_entropy(
+                        logits, owner[b["label"]]
+                    )
             else:
                 loss = F.cross_entropy(model(b), b["label"])
 
@@ -223,22 +265,43 @@ def main():
 
         if epoch % 5 == 4 or epoch == args.epochs - 1:
             accuracy = levels(*predict(model, test, device), classes)
-            print(f"epoch {epoch}: loss {np.mean(losses):.4f}  level4 {accuracy['level4']:.4f}  "
-                  f"level1 {accuracy['level1']:.4f}  ({time.time() - start:.0f}s)", flush=True)
+            print(
+                f"epoch {epoch}: loss {np.mean(losses):.4f}  level4 {accuracy['level4']:.4f}  "
+                f"level1 {accuracy['level1']:.4f}  ({time.time() - start:.0f}s)",
+                flush=True,
+            )
 
     metrics = levels(*predict(model, test, device), classes, CARE_EASY_TEST)
     rules = ["marginal"] + (["hierarchy"] if args.hierarchy else [])
 
     # the same model read with a decoding rule that respects the EC hierarchy
     for rule in rules:
-        metrics.update({f"{k}_{rule}": v for k, v in levels(*predict(model, test, device, rule=rule), classes, CARE_EASY_TEST).items()})
+        metrics.update(
+            {
+                f"{k}_{rule}": v
+                for k, v in levels(
+                    *predict(model, test, device, rule=rule), classes, CARE_EASY_TEST
+                ).items()
+            }
+        )
 
-    result = {"benchmark": "CARE task 2, easy split", "model": args.model, "seed": args.seed, "params": params,
-              "n_train": len(train), "n_test": len(test), "n_test_official": CARE_EASY_TEST, "n_classes": len(classes),
-              "train_seconds": time.time() - start, "metrics": metrics}
+    result = {
+        "benchmark": "CARE task 2, easy split",
+        "model": args.model,
+        "seed": args.seed,
+        "params": params,
+        "n_train": len(train),
+        "n_test": len(test),
+        "n_test_official": CARE_EASY_TEST,
+        "n_classes": len(classes),
+        "train_seconds": time.time() - start,
+        "metrics": metrics,
+    }
     out = Path("results/care/easy")
     out.mkdir(parents=True, exist_ok=True)
-    (out / f"{args.model}{tag}-{args.seed}.json").write_text(json.dumps(result, indent=1))
+    (out / f"{args.model}{tag}-{args.seed}.json").write_text(
+        json.dumps(result, indent=1)
+    )
     torch.save(model.state_dict(), out / f"{args.model}{tag}-{args.seed}.pt")
     print(json.dumps(result, indent=1))
 

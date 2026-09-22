@@ -251,7 +251,7 @@ def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400)):
 
 def name(a, before, firing):
     i, j, t = firing
-    pair = "–".join(
+    pair = "-".join(
         sorted(
             (SYMBOL.get(int(a["element"][k]), "X") for k in (i, j)),
             key=lambda e: (e != "C", e),

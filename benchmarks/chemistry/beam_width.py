@@ -1,5 +1,5 @@
-"""How much is left in the search on Schneider 50k? Greedy against beams of growing width, and whether the recorded firing vector is
-in the beam at all. If widening stops helping, the mode of the model is reached and only the model can improve.
+"""How much is left in the search on Schneider 50k. Greedy against beams of growing width, and whether the recorded
+firing vector is in the beam at all. If widening stops helping, only the model can improve.
 
     uv run python -m benchmarks.chemistry.beam_width    # results/chem/search/beam_width.log
 """

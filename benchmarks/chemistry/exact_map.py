@@ -1,12 +1,10 @@
 """Atom maps as exact minimum firing vectors of the valence net, with no learning and no recorded map.
 
-The cost is lexicographic. First the number of bond places that a firing empties or fills, then the number of tokens
-that move on the places that stay marked, on hydrogen and on charge. An integer program finds the minimum and proves
-it. The second level was chosen on 200 reactions of the Golden set, the other 1,560 are held out and reported apart.
-Recorded maps of Schneider 50k cannot serve for that choice, they often swap the two oxygens of an acid.
-
-The defaults are the chosen cost (exact.CHOSEN) and a budget in deterministic time with one solver worker, so the
-maps do not depend on the load of the machine.
+The cost is lexicographic, first the bond places a firing empties or fills, then the tokens that move on places that
+stay marked, on hydrogen and on charge, and an integer program finds and proves the minimum. The second level was
+chosen on 200 Golden reactions, the other 1,560 are held out and reported apart, since the recorded maps of Schneider
+50k often swap the two oxygens of an acid. The defaults are exact.CHOSEN and a budget in deterministic time with
+interleaved workers, so the maps do not depend on the load of the machine.
 
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --secondary 0,0,0 --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places

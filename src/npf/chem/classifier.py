@@ -8,13 +8,10 @@ from .encoder import N_BOND, Encoder, mlp
 
 
 class Classifier(nn.Module):
-    """Reads the firing vector of a reaction through the state equation, without an atom mapping.
-
-    petri False is the generic counterpart that pools both sides and concatenates them. gate weighs precursor
-    molecules by the probability that a firing touches them. explicit_firing adds one term per fired transition,
-    which needs a mapping, those of the exact mapper. mapped_atoms is its generic counterpart,
-    it reads the same mapping as one term per seated atom and never forms a firing vector.
-    """
+    """Reads the firing vector of a reaction through the state equation, without an atom mapping. petri False pools
+    both sides and concatenates them. gate weighs precursor molecules by the probability that a firing touches them.
+    explicit_firing adds one term per fired transition from the maps of the exact mapper, mapped_atoms reads the same
+    maps as one term per seated atom and never forms a firing vector."""
 
     def __init__(
         self,
@@ -96,8 +93,7 @@ class Classifier(nn.Module):
         logit = None
 
         if self.gated:
-            # solvents and catalysts have no counterpart in B and would not cancel, so every precursor molecule gets
-            # a participation gate computed from the molecule and the product
+            # solvents and catalysts have no counterpart in B and would not cancel, so every precursor molecule is gated
             member = (
                 F.one_hot(b["frag_a"].clamp(min=0), int(b["frag_a"].max()) + 1).to(
                     da[0].dtype
@@ -128,9 +124,8 @@ class Classifier(nn.Module):
             else torch.zeros_like(a)
         )
 
-        # state equation readout r = sum_B psi - sum_A psi. with the true correspondence pi it equals the sum of
-        # psi_B(i) - psi_A(pi(i)) over atoms within R of a changed place, minus psi_A over unmatched atoms.
-        # everything the firing did not touch cancels exactly
+        # state equation readout r = sum_B psi - sum_A psi, which equals the sum of psi_B(i) - psi_A(pi(i)) over atoms
+        # within R of a changed place minus psi_A over unmatched atoms, everything the firing did not touch cancels
         readout = torch.cat([p - a, spectators] if self.petri else [a, p], -1)
 
         if self.transition is not None:
@@ -213,8 +208,7 @@ class Classifier(nn.Module):
         return F.mse_loss(self.firing_prediction[has_map], b["hist"][has_map])
 
     def auxiliary_loss(self, b):
-        """Where a mapping is available during training, those of the exact mapper, the molecules touched by a firing
-        are known."""
+        """Supervises the gate where a map of the exact mapper says which molecules a firing touched."""
         has_map = (b["target"] >= 0).any(1)
         if not self.gated or not has_map.any():
             return 0.0

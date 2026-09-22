@@ -1,11 +1,10 @@
-"""Numerical checks of the propositions as they are stated in the paper (paper/sections, numbered as in the paper).
-Wherever possible the check runs against the implementation that produced the results, with random untrained weights,
-because a guarantee for all weights must also hold at initialisation.
+"""Numerical checks of the propositions as stated in paper/sections, numbered as in the paper. Wherever possible the
+check runs against the implementation that produced the results with random untrained weights, since a guarantee for
+all weights must also hold at initialisation.
 
     CUDA_VISIBLE_DEVICES="" uv run python -m benchmarks.checks.paper_checks
 
-Note that this is an experiment on whether Qwen 3.6 27B can translate propositions into code.
-Various corrections have been added.
+This began as an experiment on whether Qwen 3.6 27B can translate propositions into code, with corrections added since.
 """
 
 import numpy as np
@@ -57,7 +56,7 @@ F_in = C @ rng.normal(size=C.shape[1])
 F_out = F_in + X @ rng.normal(size=X.shape[1])
 v = np.linalg.pinv(C) @ F_in
 print(
-    f"    dim ker C^T = {X.shape[1]};  |X^T F| for F in im C: {np.abs(X.T @ F_in).max():.1e};  for F not in im C: {np.abs(X.T @ F_out).max():.2f}"
+    f"    dim ker C^T = {X.shape[1]},  |X^T F| for F in im C: {np.abs(X.T @ F_in).max():.1e},  for F not in im C: {np.abs(X.T @ F_out).max():.2f}"
 )
 print(
     f"    F in im C is reproduced by v = C^+ F: |C v - F| = {np.abs(C @ v - F_in).max():.1e}   {ok(np.abs(C @ v - F_in).max() < 1e-10)}"
@@ -65,7 +64,7 @@ print(
 
 # Proposition 5
 print(
-    "P5  token-game layer with ARBITRARY demands d >= 0 (numpy transcription of Eq. 7)"
+    "P5  token-game layer with arbitrary demands d >= 0, a numpy transcription of Eq. 7"
 )
 
 
@@ -237,7 +236,8 @@ with torch.no_grad():
     residual = (batch.m_b - batch.m - layers.apply_incidence(out, batch)).abs().max()
 
 print(
-    f"    implementation (project_state_equation on simulated pairs): |m_B - m_A - C sigma^| = {residual:.1e}, min sigma^ = {out.min():.3f}   {ok(residual < 1e-3)}"
+    f"    implementation (project_state_equation on simulated pairs): |m_B - m_A - C sigma^| = {residual:.1e}, "
+    f"min sigma^ = {out.min():.3f}   {ok(residual < 1e-3)}"
 )
 
 # Proposition 6
@@ -262,7 +262,8 @@ for t in range(L):
     m[:, t + 1] += delta
 
 print(
-    f"    second input reachable: after moving delta through the chain the marking is m_A + delta e_pL >= m_A: {ok(np.allclose(m, MA + delta * np.eye(L + 1)[-1]))}"
+    f"    second input reachable: after moving delta through the chain the marking is m_A + delta e_pL >= m_A: "
+    f"{ok(np.allclose(m, MA + delta * np.eye(L + 1)[-1]))}"
 )
 pgnn = models.PGNN("transitions", rounds=4)
 
@@ -366,7 +367,7 @@ print(
 
 # Proposition 3
 print(
-    "P3  state-equation readout: cancellation and invariance (random graphs, random local psi)"
+    "P3  state-equation readout, cancellation and invariance on random graphs with a random local psi"
 )
 R = 3
 
@@ -527,9 +528,9 @@ print(
 )
 
 
-# the I-projection of app:kl
+# the I-projection of the KL appendix
 print(
-    "KL  the I-projection: positive, idempotent, Pythagorean, and invariant under a gauge change of the prior"
+    "KL  the I-projection is positive, idempotent, Pythagorean and invariant under a gauge change of the prior"
 )
 
 

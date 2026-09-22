@@ -1,8 +1,8 @@
-"""Top-1 accuracy of one trained token game under the three generations of the rules that decode a marking into
-molecules (npf.chem.decode.RECONSTRUCTION). The firings are the same, only the reading of slack tokens as hydrogens
-and charges differs. The rules are compared on the validation reactions that no run selects on (experiment.SCREEN). The
-ceiling, the share of reactions whose recorded firings decode to the recorded product, is also reported on the official
-test set, where it describes the metric and decides nothing.
+"""Top-1 accuracy of one trained token game under the three generations of the decoding rules, RECONSTRUCTION in
+npf.chem.decode. The firings are the same, only the reading of slack tokens as hydrogens and charges differs. The rules
+are compared on the validation reactions of experiment.SCREEN that no run selects on. The ceiling, the share of
+reactions whose recorded firings decode to the recorded product, is also reported on the test set, where it decides
+nothing.
 
     uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
     uv run python -m benchmarks.chemistry.decoding_rules <weights> --dataset uspto_mit --width 256 --rounds 8 --attention 8 --split test
@@ -48,6 +48,7 @@ def main():
     model.eval()
 
     predictions = []
+
     for rs in batches(reactions, 64):
         b = chem.collate(rs, device)
         predictions += list(zip(rs, model.decode(model(b), b, rs)))

@@ -1,12 +1,11 @@
 """Exact minimum firing vector between two markings of the valence net, as an integer program.
 
-A mapping seats every product atom on a precursor atom of the same element. The cost is the number of bond places
-that a firing empties or fills, which is the number of bonds made and broken, written on the net. It is not the
-distance of Jochum, Gasteiger and Ugi, which counts valence electrons. A product bond is kept when both of its atoms
-sit on the two ends of a precursor bond. Every product bond that
-is not kept was formed, and every precursor bond with a seated end that is not kept was broken. Below that first
-level the tokens that move on kept bonds, on hydrogen and on charge are counted. The solver proves optimality, so the
-search is exact, and it can list every optimal mapping, which are the ties that the net cannot break.
+A mapping seats every product atom on a precursor atom of the same element. The cost is the number of bond places a
+firing empties or fills, the bonds made and broken, not the distance of Jochum, Gasteiger and Ugi, which counts
+valence electrons. A product bond is kept when its atoms sit on the two ends of a precursor bond, every other product
+bond was formed and every precursor bond with a seated end that is not kept was broken. Below that level the tokens
+that move on kept bonds, on hydrogen and on charge are counted. The solver proves optimality and can list every
+optimal mapping, the ties the net cannot break.
 """
 
 import numpy as np
@@ -15,18 +14,15 @@ from scipy.optimize import linear_sum_assignment
 
 from .featurisation import BOND_ORDER, dense_bonds
 
-# the cost of the mapper, chosen on 200 reactions of the Golden set (benchmarks.chemistry.exact_map). Hydrogen on
-# heteroatoms is not counted, hydrogen on carbon is a bond place of its own, the second level weighs bond order
-# tokens, hydrogen and charge moves alike
+# the cost chosen on 200 Golden reactions in benchmarks.chemistry.exact_map, hydrogen on heteroatoms is not counted,
+# hydrogen on carbon is a bond place of its own and the second level weighs order tokens, hydrogen and charge alike
 CHOSEN = dict(secondary=(1, 1, 1), labile_h=False, ch_places=True)
 
 
 def _hydrogen_weights(reaction, secondary, labile_h, ch_places):
-    """Per product atom, the weight of a hydrogen move on the first and on the second level.
-
-    A hydrogen on a heteroatom exchanges with the medium, so with labile_h False it says nothing about the seat. A
-    hydrogen on carbon sits on a bond place of its own, with ch_places its moves count as bond places that change.
-    """
+    """Per product atom, the weight of a hydrogen move on the first and on the second level. A hydrogen on a heteroatom
+    exchanges with the medium, so with labile_h False it says nothing about the seat, and with ch_places a hydrogen
+    on carbon is a bond place of its own."""
     carbon = reaction["b"]["element"] == 6
     first = np.where(carbon & ch_places, 1, 0)
     second = np.where(
@@ -178,8 +174,8 @@ def _model(
             kept.append(y)
 
             if kind is not None and all_orders:
-                # tokens of a kept bond are the difference of the orders, a bond that is not kept moves all of its
-                # tokens, so keeping saves twice the smaller order. Orders are doubled to keep aromatic halves whole
+                # a kept bond moves the difference of the orders and a dropped one all of them, so keeping saves twice
+                # the smaller order, doubled to keep aromatic halves whole
                 order_cost.append(
                     -int(round(4 * min(BOND_ORDER[types_b[i, k]], BOND_ORDER[kind])))
                     * y
@@ -193,8 +189,7 @@ def _model(
         if len(kinds) > 1:
             model.AddAtMostOne(kept[-len(kinds) :])
 
-    # a redundant cut that tightens the relaxation. An atom seated on p keeps at most as many bonds as p has
-    # neighbours of the right elements
+    # a redundant cut, an atom seated on p keeps at most as many bonds as p has neighbours of the right elements
     for (i, kind), ys in kept_at.items():
         if not ys:
             continue
@@ -278,8 +273,7 @@ def _model(
     )
     scale = bound + 1
 
-    # formed = product bonds that are not kept, broken = precursor bonds with a seated end that carry no kept bond.
-    # seating is injective, so every kept product bond lies on its own precursor bond
+    # formed bonds are product bonds not kept, broken ones precursor bonds with a seated end and no kept bond on them
     bonds = n_bonds_b + sum(touched) - 2 * sum(kept)
 
     if not sources:
@@ -323,11 +317,9 @@ def _write(model, seat, meaning, types, mapping):
 
 
 def star_bound(reaction):
-    """A lower bound on the number of bond places that change, from one linear assignment.
-
-    An atom seated on p keeps at most as many bonds as the element counts of the two neighbourhoods share, so it
-    changes at least the l1 distance of the two counts. Every changed place is seen from at most two seated atoms.
-    """
+    """A lower bound on the number of bond places that change, from one linear assignment. An atom seated on p changes
+    at least the l1 distance of the element counts of the two neighbourhoods, and every changed place is seen from at
+    most two seated atoms."""
     a, b = reaction["a"], reaction["b"]
     count = lambda g: np.stack(
         [
@@ -449,11 +441,10 @@ def cheapest_mappings(
     labile_h=True,
     ch_places=False,
 ):
-    """Every mapping of proved minimum cost up to limit and True, or else the cheapest mapping found in time and False.
-    The list is empty when not even a feasible seating was found, and partial when the listing runs out of budget.
-    deterministic = a budget in deterministic time for each solve, so the result does not depend on
-    the load of the machine, seconds then only guards the wall time. workers search the proof together, interleaved,
-    the listing of the ties is one worker by nature."""
+    """Every mapping of proved minimum cost up to limit and True, else the cheapest mapping found in time and False.
+    The list is empty without a feasible seating and partial when the listing runs out of budget. deterministic is a
+    budget in deterministic time per solve, seconds then only guards the wall time, and workers share the proof while
+    the listing of the ties runs on one."""
     options = dict(
         secondary=secondary,
         all_orders=all_orders,

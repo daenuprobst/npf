@@ -1,15 +1,15 @@
 """The valence net as an open net. Atoms leave, and atoms and molecules enter from the environment.
 
-Recorded reactions are not balanced. By-products are left out, so precursor atoms leave, which the injection of the
-product atoms into the precursor atoms allows already. A reagent can also be used twice and written once, or not be
-written at all, and then no injection exists. The open net adds two source transitions. One lets a further copy of a
-precursor molecule enter, the other lets a single atom of an element in deficit enter. By convention a firing of a
-source is charged one unit on each level, the price of one bond place. Sources are offered only when the product holds
-more atoms of an element than the precursors do, so a reaction that can be mapped without them is mapped as before.
+Recorded reactions are not balanced. Precursor atoms leave as by-products, which the injection of the product atoms
+allows already, but a reagent used twice and written once, or not written at all, leaves no injection. The open net
+adds two source transitions, a further copy of a precursor molecule enters, or a single atom of an element in deficit.
+A firing of a source costs one unit on each level, the price of one bond place, and sources are offered only when the
+product holds more atoms of an element than the precursors, so any other reaction is mapped as before.
 
-The mapping then yields a balanced equation. The atoms of a used molecule that take no seat leave as by-products,
-with every bond to a seated atom closed by hydrogen, which balances the heavy atoms and leaves hydrogen to the medium.
+The mapping yields a balanced equation. The atoms of a used molecule that take no seat leave as by-products, with
+every bond to a seated atom closed by hydrogen, which balances the heavy atoms and leaves hydrogen to the medium.
 """
+
 from collections import Counter
 
 import numpy as np
@@ -31,14 +31,16 @@ def deficit(reaction):
 
 
 def with_equivalents(reaction, cap=MAX_COPIES):
-    """The reaction with further copies of every precursor molecule that holds an element in deficit.
-
-    copy numbers the copies of a molecule from 1, the written molecule is 0, and origin is the written atom of every
-    atom. The solver decides which copies enter, each one at the cost of one place.
-    """
+    """The reaction with further copies of every precursor molecule that holds an element in deficit. copy numbers
+    the copies from 1 with the written molecule as 0, origin is the written atom of every atom, and the solver
+    decides which copies enter at the cost of one place each."""
     a, short = reaction["a"], deficit(reaction)
     n = len(a["element"])
-    per_atom = [key for key, value in a.items() if key != "bonds" and isinstance(value, np.ndarray) and len(value) == n]
+    per_atom = [
+        key
+        for key, value in a.items()
+        if key != "bonds" and isinstance(value, np.ndarray) and len(value) == n
+    ]
     parts, bonds = {key: [a[key]] for key in per_atom}, [a["bonds"]]
     copy, origin, offset = [np.zeros(n, np.int64)], [np.arange(n)], n
 
@@ -54,9 +56,14 @@ def with_equivalents(reaction, cap=MAX_COPIES):
         inner = a["bonds"][np.isin(a["bonds"][:, 0], atoms)]
 
         # as many copies as would cover the deficit from this molecule alone
-        for number in range(1, min(cap, int(np.ceil(short[helps] / counts[helps]).max())) + 1):
+        for number in range(
+            1, min(cap, int(np.ceil(short[helps] / counts[helps]).max())) + 1
+        ):
             shifted = inner.copy()
-            shifted[:, 0], shifted[:, 1] = index[inner[:, 0]] + offset, index[inner[:, 1]] + offset
+            shifted[:, 0], shifted[:, 1] = (
+                index[inner[:, 0]] + offset,
+                index[inner[:, 1]] + offset,
+            )
             bonds.append(shifted)
             copy.append(np.full(len(atoms), number))
             origin.append(atoms)
@@ -65,8 +72,11 @@ def with_equivalents(reaction, cap=MAX_COPIES):
             for key in per_atom:
                 parts[key].append(a[key][atoms])
 
-    opened = {key: np.concatenate(parts[key]) for key in per_atom} | {"bonds": np.concatenate(bonds), "copy": np.concatenate(copy),
-                                                                      "origin": np.concatenate(origin)}
+    opened = {key: np.concatenate(parts[key]) for key in per_atom} | {
+        "bonds": np.concatenate(bonds),
+        "copy": np.concatenate(copy),
+        "origin": np.concatenate(origin),
+    }
 
     return reaction | {"a": opened}
 
@@ -100,11 +110,9 @@ def _smiles(a, types, atoms, h):
 
 
 def balance(reaction, mapping):
-    """The balanced equation that a mapping implies.
-
-    equivalents counts every precursor molecule that takes part, spectators are the written molecules that do not,
-    by_products are the pieces that leave, and entered lists the product atoms that came from outside.
-    """
+    """The balanced equation that a mapping implies. equivalents counts every precursor molecule that takes part,
+    spectators are the written molecules that do not, by_products the pieces that leave and entered the product atoms
+    that came from outside."""
     a = reaction["a"]
     types = dense_bonds(a)
     n = len(a["element"])
@@ -113,7 +121,9 @@ def balance(reaction, mapping):
     seated[mapping[mapping >= 0]] = True
     equivalents, spectators, by_products = Counter(), [], []
 
-    for fragment, number in sorted({(int(f), int(c)) for f, c in zip(a["fragment"], copies)}):
+    for fragment, number in sorted(
+        {(int(f), int(c)) for f, c in zip(a["fragment"], copies)}
+    ):
         atoms = np.nonzero((a["fragment"] == fragment) & (copies == number))[0]
         name = _smiles(a, types, atoms, a["h"][atoms])
 
@@ -129,19 +139,37 @@ def balance(reaction, mapping):
         if not len(leaving):
             continue
 
-        _, piece = connected_components(types[np.ix_(leaving, leaving)] > 0, directed=False)
+        _, piece = connected_components(
+            types[np.ix_(leaving, leaving)] > 0, directed=False
+        )
         for k in range(piece.max() + 1):
             part = leaving[piece == k]
 
             # every bond to a seated atom is closed with hydrogen
-            closed = np.floor(BOND_ORDER[types[np.ix_(part, staying)]].sum(1) + 0.5).astype(np.int64)
+            closed = np.floor(
+                BOND_ORDER[types[np.ix_(part, staying)]].sum(1) + 0.5
+            ).astype(np.int64)
             by_products.append(_smiles(a, types, part, a["h"][part] + closed))
 
     product = reaction["smiles"].split(">>")[1]
-    entered = [(int(i), Chem.GetPeriodicTable().GetElementSymbol(int(reaction["b"]["element"][i]))) for i in np.nonzero(mapping < 0)[0]]
+    entered = [
+        (
+            int(i),
+            Chem.GetPeriodicTable().GetElementSymbol(int(reaction["b"]["element"][i])),
+        )
+        for i in np.nonzero(mapping < 0)[0]
+    ]
 
     # the atoms that entered are written on the left as bare atoms, their true source is not known
-    left = ".".join([name for name, count in equivalents.items() for _ in range(count)] + [f"[{symbol}]" for _, symbol in entered])
+    left = ".".join(
+        [name for name, count in equivalents.items() for _ in range(count)]
+        + [f"[{symbol}]" for _, symbol in entered]
+    )
 
-    return {"equivalents": dict(equivalents), "spectators": spectators, "by_products": sorted(by_products), "entered": entered,
-            "balanced": left + ">>" + ".".join([product] + sorted(by_products))}
+    return {
+        "equivalents": dict(equivalents),
+        "spectators": spectators,
+        "by_products": sorted(by_products),
+        "entered": entered,
+        "balanced": left + ">>" + ".".join([product] + sorted(by_products)),
+    }

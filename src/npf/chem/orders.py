@@ -1,10 +1,11 @@
 """Enabled linearisations of a firing vector on the valence net.
 
-A firing vector says which bond places change and how, not in which order. Enabling forbids some orders, because a
-transition that adds tokens to a bond place needs free valence tokens on both atoms. Counting the enabled orders is a
-dynamic program over subsets, each subset being the marking reached after those firings. A firing vector with no
-enabled order cannot occur in the net at all, whatever the rate law is.
+A firing vector says which bond places change, not in which order, and a transition that adds tokens to a bond place
+needs free valence tokens on both atoms. The enabled orders are counted by a dynamic program over subsets, each the
+marking reached after those firings. A firing vector with no enabled order cannot occur in the net, whatever the rate
+law is.
 """
+
 import numpy as np
 
 from .featurisation import BOND_ORDER, EXTRA_CAPACITY, dense_bonds
@@ -19,7 +20,9 @@ def slack(reaction, bonds):
     """Free valence tokens of every atom at a marking, counted from the precursors."""
     a = reaction["a"]
     before = BOND_ORDER[dense_bonds(a)]
-    capacity = np.array([EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]]) + np.maximum(-a["q"], 0)
+    capacity = np.array(
+        [EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]]
+    ) + np.maximum(-a["q"], 0)
 
     return a["h"] + capacity - (BOND_ORDER[bonds] - before).sum(1)
 

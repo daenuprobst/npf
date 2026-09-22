@@ -1,8 +1,8 @@
 """Static checks of the moved benchmark scripts. No training is run here.
 
-A script that was only moved can still break in three ways that no import of the package notices, a relative import of
-a module that was renamed, an attribute that the new package does not export, and a local variable that now has the
-name of an imported module (the old module was called data, the new ones are called nets, datasets and so on).
+A moved script can still break in three ways that no import of the package notices, a relative import of a renamed
+module, an attribute the new package does not export, and a local variable that now has the name of an imported
+module, since the old module was called data and the new ones nets, datasets and so on.
 """
 import ast
 import importlib

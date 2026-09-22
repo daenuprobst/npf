@@ -51,6 +51,7 @@ def test_map_reaction_writes_map_numbers(schneider):
 
     # map numbers only, the molecules stay the same
     from rdkit import Chem
-    plain = lambda side: ".".join(sorted(Chem.MolToSmiles(m) for m in (Chem.MolFromSmiles(s) for s in side.split(".")) if [a.SetAtomMapNum(0) for a in m.GetAtoms()] is not None))
+    molecules = lambda side: (Chem.MolFromSmiles(s) for s in side.split("."))
+    plain = lambda side: ".".join(sorted(Chem.MolToSmiles(m) for m in molecules(side) if [a.SetAtomMapNum(0) for a in m.GetAtoms()] is not None))
     assert [plain(s) for s in mapped.split(">>")] == [plain(s) for s in r["smiles"].split(">>")]
     assert np.array_equal(np.sort([a.GetAtomMapNum() for a in Chem.MolFromSmiles(mapped.split(">>")[1]).GetAtoms()]), np.arange(1, len(r["b"]["x"]) + 1))

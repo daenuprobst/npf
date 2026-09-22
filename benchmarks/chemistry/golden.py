@@ -1,10 +1,10 @@
-"""Atom mapping on the Golden dataset of Lin et al. (Mol. Inform. 2022) with 1,851 manually curated reactions, the
-accepted benchmark for atom-to-atom mapping. RXNMapper, GraphormerMapper, LocalMapper and SAMMNet report on it.
+"""Atom mapping on the Golden dataset of Lin et al., Mol. Inform. 2022, with 1,851 manually curated reactions, the
+accepted benchmark for atom-to-atom mapping that RXNMapper, GraphormerMapper, LocalMapper and SAMMNet report on.
 
-The criterion is the one of Lin et al. A mapping is correct if its condensed graph of reaction (CGR) is identical to
-the CGR of the curated mapping. The CGR is built as a labelled graph over all precursor atoms, with the element on
-the atoms and the bond order before and after on the bonds, and compared by isomorphism, so that symmetry-equivalent
-mappings count as correct. RXNMapper is scored with exactly the same code.
+The criterion is the one of Lin et al. A mapping is correct if its condensed graph of reaction equals the CGR of the
+curated mapping, a labelled graph over all precursor atoms with the element on the atoms and the bond order before
+and after on the bonds, compared by isomorphism so that symmetry-equivalent mappings count. RXNMapper is scored with
+the same code.
 
     uv run python -m benchmarks.chemistry.golden prepare <golden_dataset.rdf>       # writes data/golden.pkl and data/golden_unmapped.txt
 
@@ -124,7 +124,7 @@ def same_cgr(reaction, mapping, reference):
 
 
 def mapping_from_smiles(reaction, mapped_rxn):
-    """product atom -> precursor atom from a mapped reaction SMILES over the same molecules (e.g. RXNMapper output)."""
+    """product atom -> precursor atom from a mapped reaction SMILES over the same molecules, as RXNMapper writes it."""
     precursors, products = mapped_rxn.split(">>")
     row = {
         "original_rxn": f"{precursors}>>{products}",
@@ -137,7 +137,7 @@ def mapping_from_smiles(reaction, mapped_rxn):
     if r is None or r["target"] is None:
         return None
 
-    # featurise orders atoms canonically after removing the maps, so indices agree with `reaction` if the molecules do
+    # featurise orders atoms canonically after removing the maps, so indices agree with reaction if the molecules do
     same = (
         np.array_equal(r["a"]["element"], reaction["a"]["element"])
         and np.array_equal(r["b"]["element"], reaction["b"]["element"])
@@ -148,8 +148,8 @@ def mapping_from_smiles(reaction, mapped_rxn):
     if same:
         return r["target"].astype(np.int64)
 
-    # the canonical order counts double-bond stereo, which the two SMILES can write differently. The molecules are then
-    # matched as graphs without stereo, and the mapping is carried over
+    # the canonical order counts double-bond stereo, which the two SMILES can write differently, so the molecules are
+    # matched as graphs without stereo and the mapping is carried over
     pa, pb = match(r["a"], reaction["a"]), match(r["b"], reaction["b"])
     if pa is None or pb is None:
         return None

@@ -1,9 +1,7 @@
 """The mappings that the net cannot tell apart. Every optimal mapping of a Golden reaction is enumerated, mappings with
-the same condensed graph of reaction are merged, and the classes that remain are the true ties.
-
-Reported are the share of reactions whose curated map is among the optima, which no tie-breaker can exceed, and the
-accuracy of a uniform choice among the classes, which is what the net alone is worth when the arbitrary choice of the
-solver is taken out.
+the same condensed graph of reaction are merged, and the classes that remain are the true ties. Reported are the share
+of reactions whose curated map is among the optima, which no tie-breaker can exceed, and the accuracy of a uniform
+choice among the classes, the worth of the net alone without the arbitrary choice of the solver.
 
     uv run python -m benchmarks.chemistry.exact_ties               # results/chem/exact_map/ties-golden.json
 """

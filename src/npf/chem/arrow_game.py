@@ -13,13 +13,10 @@ MAX_ARROWS = 16
 
 
 class ArrowGame(nn.Module):
-    """Embedded jump chain of a stochastic net on the arrow net, with a learned rate law.
-
-    A state is the marking of one elementary step in progress, bond orders cur [B, N, N], lone pairs [B, N] and
-    charges [B, N], with the arrows fired so far in fired_a and fired_b [B, N, N]. The events are the arrows a(i, j)
-    and b(i, j) and STOP, which ends the step. enabling False is the ablation without octet capacities and charge
-    windows, where only lone pairs and bond pairs that exist can move.
-    """
+    """Embedded jump chain of a stochastic net on the arrow net, with a learned rate law. A state is the marking of a
+    step in progress, bond orders cur [B, N, N], lone pairs and charges [B, N], and the arrows fired so far in fired_a
+    and fired_b [B, N, N]. The events are the arrows a(i, j), b(i, j) and STOP. enabling False is the ablation without
+    octet capacities and charge windows, where only pairs that exist can move."""
 
     def __init__(self, d=256, rounds=6, attention=6, pair=64, enabling=True, slack=1):
         super().__init__()
@@ -70,10 +67,9 @@ class ArrowGame(nn.Module):
         return h
 
     def enabled(self, s):
-        """The Petri part. a(i, j) needs a lone pair on i, a free octet slot on j and room on the bond place, b(i, j)
-        needs a pair on the bond ij, and both keep every charge within its window widened by slack. An arrow that would
-        undo one fired in this step is not enabled. Returns the mask [B, N, N, 2] of the arrows and [B] of STOP.
-        """
+        """Masks [B, N, N, 2] of the arrows and [B] of STOP. a(i, j) needs a lone pair on i, a free slot on j and room
+        on the bond place, b(i, j) a pair on the bond, both keep every charge within its widened window, and an arrow
+        that would undo one fired in this step is not enabled."""
         lone, q, cur, mask = s["lone"], s["q"], s["cur"], s["mask"]
         n = cur.shape[1]
         pairs = (
@@ -133,9 +129,8 @@ class ArrowGame(nn.Module):
         return torch.cat([arrows, stop.masked_fill(~stop_ok, -1e4)[:, None]], 1)
 
     def loss(self, s):
-        # the record gives the arrows of a step but no order, and every enabled order reaches the same marking. a
-        # state is reached by a random enabled part of the arrows, and every remaining arrow after which the rest can
-        # still fire is a correct next event. the loss is -log sum of their probabilities, or -log P(STOP) at the end
+        # the record gives the arrows of a step but no order, so a state is a random enabled part of them and every
+        # remaining arrow after which the rest can still fire is correct, the loss is -log of their total probability
         flat = self.events(s)
         target = torch.cat(
             [s["target"].permute(0, 3, 1, 2).flatten(1), s["target_stop"][:, None]], 1
@@ -146,11 +141,9 @@ class ArrowGame(nn.Module):
 
     @torch.no_grad()
     def beam(self, static, width=10, top=10):
-        """Most probable end markings of a batch of steps, by beam search over arrows.
-
-        static holds the per step tensors z, odd, cap, lo, hi, mask [B, N] and the start marking cur [B, N, N],
-        lone and q [B, N]. Hypotheses with the same firing vector reach the same marking, so they merge and their
-        probabilities add. Returns per step a list of (sorted arrows, log probability), best first.
+        """Most probable end markings of a batch of steps by beam search over arrows. static holds z, odd, cap, lo, hi,
+        mask [B, N], cur [B, N, N], lone and q [B, N]. Hypotheses with the same firing vector reach the same marking
+        and merge. Returns per step a list of (sorted arrows, log probability), best first.
         """
         batch, n = static["mask"].shape
         device = static["mask"].device

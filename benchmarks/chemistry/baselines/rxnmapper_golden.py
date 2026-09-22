@@ -1,8 +1,8 @@
 """RXNMapper on the unmapped Golden reactions, the pretrained mapper the exact mapper is compared with.
 
-RXNMapper needs an environment of its own (transformers and an older torch), so this script imports nothing of npf.
-It reads data/golden_unmapped.txt, written by benchmarks.chemistry.golden prepare, and writes the mapped reaction
-SMILES and RXNMapper's confidence per reaction id, the file that benchmarks.chemistry.exact_map_report reads.
+RXNMapper needs an environment of its own with transformers and an older torch, so this script imports nothing of npf.
+It reads data/golden_unmapped.txt from benchmarks.chemistry.golden prepare and writes the mapped reaction SMILES and
+confidence per reaction id, the file benchmarks.chemistry.exact_map_report reads.
 
     uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py
 """
@@ -12,14 +12,14 @@ import sys
 import time
 from pathlib import Path
 
-from rxnmapper import RXNMapper
-
 
 def main(
     unmapped="data/golden_unmapped.txt",
     out="results/chem/rxnmapper_golden.json",
     batch=32,
 ):
+    # imported here so the script imports without the rxnmapper environment
+    from rxnmapper import RXNMapper
 
     rows = [
         line.split("\t")

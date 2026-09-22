@@ -41,19 +41,17 @@ def marking_to_products(a, edits):
 
 
 def marking_fragments(a, edits):
-    """Molecules encoded by the marking after the firings edits [(i, j, new bond type)], as sets of canonical SMILES.
-    Returns the fragments that contain a re-typed bond place, and all fragments.
+    """Molecules of the marking after the firings edits [(i, j, new bond type)], as sets of canonical SMILES, the
+    fragments that hold a re-typed bond place and all fragments.
 
-    Hydrogens are not predicted. A slack token can be a hydrogen, a lone pair or a charge, and the marking does not
-    say which, so the rules below decide with conservation arguments. The valence sum_j b_ij + h_i - q_i of every
-    atom is a P-invariant. Tokens that an atom cannot cover with hydrogens go to its charge, a new cation with a
-    hydrogen loses the proton, and a new aromatic cation takes it from an [nH] of the same ring system.
-    R1 S, P and halogens return tokens to lone pairs in steps of two.
-    R2 and R3 inside an aromatic system a surplus token pairs with the hydrogen of an [nH], and a deficit is
-    covered by an aromatic n that takes up a hydrogen. The bond order 1.5 hides these tautomer shifts.
-    R5 total charge is conserved, so for every new cation one of the atoms that would have gained a hydrogen
-    becomes an anion instead. This covers N-oxides, nitro groups and halide counter ions of quaternary salts.
-    R6 products are recorded in their neutral form, a convention of the data.
+    A slack token is a hydrogen, a lone pair or a charge, and the marking does not say which, so the rules decide by
+    conservation. The valence sum_j b_ij + h_i - q_i of every atom is a P-invariant. Tokens an atom cannot cover with
+    hydrogens go to its charge, a new cation with a hydrogen loses the proton and a new aromatic cation takes it from
+    an [nH] of its ring system. R1 S, P and halogens return tokens to lone pairs in steps of two. R2 and R3 in an
+    aromatic system a surplus token pairs with the hydrogen of an [nH] and a deficit is covered by an aromatic n that
+    takes one up, the bond order 1.5 hides these tautomer shifts. R5 charge is conserved, so for every new cation an
+    atom that would have gained a hydrogen becomes an anion instead, as in N-oxides, nitro groups and the halides of
+    quaternary salts. R6 products are recorded in their neutral form.
     """
     before = dense_bonds(a)
     after = before.copy()

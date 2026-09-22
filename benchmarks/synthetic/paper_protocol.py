@@ -4,6 +4,7 @@ which the paper trains its linear special case (Eq. 13), so that model is includ
 
     uv run python -m benchmarks.synthetic.paper_protocol
 """
+
 import json
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -13,6 +14,7 @@ import torch
 import torch.nn.functional as F
 
 from npf import batching, datasets, models, nets, simulate
+
 from .experiment import transition_metrics
 
 N_NETS, N_SEEDS, EPOCHS, BATCH, DT = 5, 3, 300, 10, 0.5
@@ -55,10 +57,15 @@ def run(name, net, seen, true, noise, seed, device):
 
     if sum(p.numel() for p in model.parameters()):
         opt = torch.optim.Adam(model.parameters(), lr=1e-2)
-        sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, EPOCHS * len(train) // BATCH, eta_min=1e-4)
+        sched = torch.optim.lr_scheduler.CosineAnnealingLR(
+            opt, EPOCHS * len(train) // BATCH, eta_min=1e-4
+        )
         for _ in range(EPOCHS):
             for rows in np.split(rng.permutation(train), len(train) // BATCH):
-                loss = F.mse_loss(model(batching.collate([seen], [rows], device)), batching.flat_targets([seen], [rows], "sigma", device))
+                loss = F.mse_loss(
+                    model(batching.collate([seen], [rows], device)),
+                    batching.flat_targets([seen], [rows], "sigma", device),
+                )
                 opt.zero_grad()
                 loss.backward()
                 opt.step()
@@ -67,12 +74,22 @@ def run(name, net, seen, true, noise, seed, device):
     model.eval()
 
     with torch.no_grad():
-        pred = model(batching.collate([seen], [test], device)).double().cpu().numpy().reshape(len(test), -1)
+        pred = (
+            model(batching.collate([seen], [test], device))
+            .double()
+            .cpu()
+            .numpy()
+            .reshape(len(test), -1)
+        )
 
     # scored against the true states
-    held_out = datasets.Group(net, true.m[test], true.m_b[test], true.dt[test], true.sigma[test])
+    held_out = datasets.Group(
+        net, true.m[test], true.m_b[test], true.dt[test], true.sigma[test]
+    )
 
-    return transition_metrics([held_out], [pred]) | {"params": sum(p.numel() for p in model.parameters())}
+    return transition_metrics([held_out], [pred]) | {
+        "params": sum(p.numel() for p in model.parameters())
+    }
 
 
 def job(args):
@@ -87,8 +104,10 @@ def main(root="results"):
     jobs = [
         (name, noise, net_seed, seed)
         for noise in (0.0, 1.0)
-        for name in ["se-only", "gnn", "pgnn-linear", "pgnn", "pgnn+", "npf"] + (["npf-hard"] if noise else [])
-        for net_seed in range(N_NETS) for seed in range(N_SEEDS if name != "se-only" else 1)
+        for name in ["se-only", "gnn", "pgnn-linear", "pgnn", "pgnn+", "npf"]
+        + (["npf-hard"] if noise else [])
+        for net_seed in range(N_NETS)
+        for seed in range(N_SEEDS if name != "se-only" else 1)
     ]
     runs = {}
 
@@ -97,16 +116,30 @@ def main(root="results"):
         for name, noise, metrics in pool.map(job, jobs):
             runs.setdefault(f"{name}|noise={noise}", []).append(metrics)
 
-    out = {key: {k: (float(np.mean([r[k] for r in rs])), float(np.std([r[k] for r in rs]))) for k in rs[0]} for key, rs in runs.items()}
+    out = {
+        key: {
+            k: (float(np.mean([r[k] for r in rs])), float(np.std([r[k] for r in rs])))
+            for k in rs[0]
+        }
+        for key, rs in runs.items()
+    }
 
     # paired comparison on identical (net, seed) runs, how often is NPF the better model?
     for key, rs in runs.items():
         ours = runs[f"npf|noise={key.split('=')[1]}"]
         if len(rs) == len(ours):
-            out[key]["npf_wins"] = (float(np.mean([a["rmse"] < b["rmse"] for a, b in zip(ours, rs)])), 0.0)
+            out[key]["npf_wins"] = (
+                float(np.mean([a["rmse"] < b["rmse"] for a, b in zip(ours, rs)])),
+                0.0,
+            )
 
     for key, m in out.items():
-        print(f"{key:>24}: " + "  ".join(f"{k}={m[k][0]:.3f}±{m[k][1]:.3f}" for k in ("rmse", "mae", "rmse_row", "rmse_ker", "consistent", "params")), flush=True)
+        keys = ("rmse", "mae", "rmse_row", "rmse_ker", "consistent", "params")
+        print(
+            f"{key:>24}: "
+            + "  ".join(f"{k}={m[k][0]:.3f}+-{m[k][1]:.3f}" for k in keys),
+            flush=True,
+        )
 
     path = Path(root) / "paper_protocol.json"
     path.parent.mkdir(exist_ok=True)

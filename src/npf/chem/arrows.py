@@ -8,10 +8,9 @@ bond ij onto i as a lone pair. A bond pair that moves to another bond is b follo
     b(i, j)   B_ij -1  L_i +1    V_j +1
 
 The octet budget L_i + sum_j B_ij + V_i of every atom is a P-invariant, so enabling is the octet rule, an arrow may
-only end at an atom with a free slot. The formal charge q_i = e_i - 2 L_i - sum_j B_ij is linear in the marking. A
-window lo <= q <= hi per element holds whenever a step ends, and inside a step, whose arrows are concerted, a charge may
-leave it by one. A bond place holds at most a triple bond. Arrows move pairs, so an unpaired electron is a constant of
-the marking.
+only end at an atom with a free slot. The formal charge q_i = e_i - 2 L_i - sum_j B_ij is linear in the marking, a
+window lo <= q <= hi per element holds whenever a step ends and a charge may leave it by one inside a step. A bond
+place holds at most a triple bond, and arrows move pairs, so an unpaired electron is a constant of the marking.
 """
 
 import random
@@ -35,12 +34,9 @@ NONMETALS = {1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 33, 34, 35, 52, 53}
 
 
 def molecule(smiles):
-    """Marking of mapped molecules, as arrays indexed by map number minus one.
-
-    Returns z (atomic numbers), q (formal charges), lone (lone pairs), odd (an unpaired electron, 0 or 1), bonds
-    {(i, j): order} with i < j. Aromatic bonds are written as a Kekule structure, so every bond place holds a whole
-    number of pairs.
-    """
+    """Marking of mapped molecules as arrays indexed by map number minus one, z atomic numbers, q formal charges, lone
+    the lone pairs, odd an unpaired electron as 0 or 1, and bonds a dict from (i, j) with i < j to the order. Aromatic
+    bonds are kekulised, so every bond place holds a whole number of pairs."""
     mol = Chem.MolFromSmiles(smiles, PARSE)
     Chem.Kekulize(mol, clearAromaticFlags=True)
     n = mol.GetNumAtoms()
@@ -109,11 +105,9 @@ def apply(m, arrows):
 
 
 def decompose(m_a, m_b):
-    """All firing vectors of arrows that take m_a to m_b, as lists of (kind, i, j), without order.
-
-    Every pair a bond gains came from a lone pair of one of its two atoms, every pair it loses went to one of them,
-    and the lone pairs of each atom must change as recorded. The two choices per pair are enumerated with pruning.
-    """
+    """All firing vectors of arrows that take m_a to m_b, as lists of (kind, i, j) without order. Every pair a bond
+    gains came from a lone pair of one of its atoms and every pair it loses went to one of them, so the two choices
+    per pair are enumerated with pruning on the recorded lone pair changes."""
     places = set(m_a["bonds"]) | set(m_b["bonds"])
     units = []
 
@@ -160,12 +154,10 @@ def decompose(m_a, m_b):
 
 
 class Orders:
-    """The enabled orders of one firing vector of arrows from m_a. cap, lo and hi are per atom arrays.
-
-    The octet capacity holds after every arrow, a charge stays within its window widened by slack inside the step, and
-    STOP is enabled only when every charge is back inside its window. The marking reached depends only on the multiset
-    fired so far (state equation), so completability is memoised on the multiset that remains.
-    """
+    """The enabled orders of one firing vector of arrows from m_a, with per atom arrays cap, lo and hi. The octet
+    capacity holds after every arrow, a charge stays within its window widened by slack inside the step, and STOP needs
+    every charge back inside its window. The marking depends only on the multiset fired, so completability is memoised
+    on the multiset that remains."""
 
     def __init__(self, m_a, arrows, cap, lo, hi, slack=1):
         self.arrows, self.m = tuple(sorted(arrows)), m_a
@@ -264,10 +256,8 @@ def limits(m, octet, window):
 
 
 def tables(shells, charges, least=10):
-    """Per element octet capacities and charge windows from counts over training markings.
-
-    shells and charges map an atomic number to a Counter of observed values. A value counts if seen at least least
-    times, so that single annotation errors do not widen the net.
+    """Per element octet capacities and charge windows from Counters of observed shells and charges per atomic number.
+    A value counts when seen at least least times, so single annotation errors do not widen the net.
     """
     octet, window = {}, {}
     for z, seen in shells.items():

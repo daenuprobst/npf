@@ -42,8 +42,7 @@ BOND_TYPE = {
 # bond order of every bond type index, aromatic bonds count 1.5
 BOND_ORDER = np.array([0.0, 1.0, 2.0, 3.0, 1.5])
 
-# capacity of the slack place, the number of valence tokens an atom can take up beyond its hydrogens by changing
-# charge or expanding its valence. measured on the training data, carbon needs none, N and O one, S and P two
+# valence tokens an atom can take beyond its hydrogens by a charge or a valence expansion, measured on training data
 EXTRA_CAPACITY = {7: 1, 8: 1, 15: 2, 16: 2, 17: 1, 35: 1, 53: 1}
 
 # valence expansion in steps of two tokens, as in S=O and P=O
@@ -78,9 +77,9 @@ def atom_features(atom):
 
 
 def skeleton_classes(mol):
-    """Symmetry classes of the bare skeleton, elements and connectivity only. Atoms that differ only by bond orders,
-    hydrogens or charges, such as the two oxygens of a carboxylic acid or of a nitro group, are interchangeable
-    in an atom mapping, and these classes treat them as such."""
+    """Symmetry classes of the bare skeleton, elements and connectivity only, so that atoms which differ only by bond
+    order, hydrogens or charge, such as the two oxygens of a carboxylic acid, are interchangeable.
+    """
     bare = Chem.RWMol(mol)
     for bond in bare.GetBonds():
         bond.SetBondType(Chem.BondType.SINGLE)
@@ -166,12 +165,9 @@ def dense_bonds(g):
 
 
 def featurise(row, max_atoms=(200, 130)):
-    """Both graphs for every parseable reaction. target and edits are set only if the recorded atom mapping is a
-    clean injection of product atoms into precursor atoms. Classification does not need them.
-
-    max_atoms bounds the precursor and the product side, since atom pairs are held densely. The default keeps the
-    published USPTO and Schneider results unchanged, None keeps every reaction.
-    """
+    """Both graphs of a parseable reaction. target and edits are set only when the recorded map is a clean injection
+    of product atoms into precursor atoms. max_atoms bounds both sides since atom pairs are dense, the default keeps
+    the published results and None keeps every reaction."""
     reactants, reagents, product = row["original_rxn"].split(">")
     a, b = graph(".".join(s for s in (reactants, reagents) if s)), graph(product)
     too_big = (
@@ -274,11 +270,11 @@ def build(tsv="data/schneider50k.tsv", out="data/schneider50k.pkl"):
         f"{len(data)}/{len(rows)} reactions parsed, {len(mapped)} with a clean atom mapping and <= {MAX_PRECURSOR_ATOMS}/{MAX_PRODUCT_ATOMS} atoms"
     )
     print(
-        f"valence P-invariant (bond orders + H - charge) conserved for {atoms_ok.mean():.4f} of product atoms, "
+        f"valence P-invariant, bond orders + H - charge, conserved for {atoms_ok.mean():.4f} of product atoms, "
         f"for every atom in {np.mean([d['conserved'].all() for d in mapped]):.4f} of reactions"
     )
     print(
-        f"atoms: precursors {np.mean([len(d['a']['x']) for d in mapped]):.1f}, product {np.mean([len(d['b']['x']) for d in mapped]):.1f}; "
+        f"atoms: precursors {np.mean([len(d['a']['x']) for d in mapped]):.1f}, product {np.mean([len(d['b']['x']) for d in mapped]):.1f}, "
         f"edits per reaction: mean {n_edits.mean():.2f}, median {np.median(n_edits):.0f}, max {n_edits.max()}"
     )
 
@@ -406,8 +402,7 @@ def collate(reactions, device):
             out["edits"][k, i, j] = t + 1
             out["edits"][k, j, i] = t + 1
 
-    # several firing vectors per reaction that are all correct (targets of the net), in the layout of edits.
-    # n_set counts the real ones, a reaction without a set has its edits as the only one
+    # every correct firing vector in the layout of edits, n_set counts them, without a set edits is the only one
     if any(r.get("edits_set") is not None for r in reactions):
         sets = [
             r["edits_set"] if r.get("edits_set") is not None else [r["edits"]]
@@ -427,7 +422,7 @@ def collate(reactions, device):
 
 
 def batch_indices(reactions, size, rng=None):
-    """Index batches of similar size (less padding), shuffled if an rng is given."""
+    """Index batches of similar size to save padding, shuffled if an rng is given."""
     idx = np.arange(len(reactions)) if rng is None else rng.permutation(len(reactions))
     out = []
 

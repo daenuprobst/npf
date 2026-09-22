@@ -23,8 +23,7 @@ class TokenGame(nn.Module):
         self.pair = mlp(2 * d + N_BOND + 2, 2 * d, N_BOND)
         self.stop = mlp(d, d, 1)
 
-        # a constant added to the log rate of STOP when decoding, zero in every reported run. it is part of the rate
-        # law, so the model stays the same stochastic net, and it is not a trained parameter
+        # a constant on the log rate of STOP at decoding, zero in every reported run, part of the rate law, not trained
         self.stop_bias = 0.0
         self.register_buffer("order", torch.tensor(BOND_ORDER, dtype=torch.float32))
 
@@ -57,9 +56,8 @@ class TokenGame(nn.Module):
         logits = self.pair(z)
         n = cur.shape[1]
 
-        # enabling is the valence rule. a transition that adds gain tokens to B_ij takes them from S_i and S_j, so it
-        # needs gain <= s_i and gain <= s_j. every reachable marking is then non-negative for all weights
-        # aromatic bonds count 1.5, so markings are multiples of one half and the capacity gets half a token of slack
+        # enabling is the valence rule, a transition that adds gain tokens to B_ij takes them from S_i and S_j, so it
+        # needs gain <= s_i and gain <= s_j, and aromatic bonds count 1.5, so the capacity gets half a token of slack
         gain = self.order[None, None, None, :] - self.order[cur][..., None]
         room = hydrogens + b["cap_a"] + 0.5
         enabled = (
@@ -121,11 +119,9 @@ class TokenGame(nn.Module):
         )
 
     def loss(self, b):
-        # the record gives a firing vector but no order, and sequences with the same firing vector reach the same
-        # marking. so a random part of the firing vector is fired and any remaining enabled firing is a correct next
-        # step. the loss is -log sum_t P(t | m_A + C sigma_F) over these firings, or -log P(STOP) if none remains.
-        # the net can give a set of firing vectors instead (edits_set). one of them is drawn, a firing is correct when
-        # it continues a vector of the set that contains the fired part, STOP when the fired part is a whole vector
+        # the record gives a firing vector but no order, so a random part of it is fired and any remaining enabled
+        # firing is correct, the loss is -log sum_t P(t | m_A + C sigma_F) or -log P(STOP) if none remains. with a set
+        # of vectors one is drawn, a firing is correct when it continues a vector that contains the fired part
         edits, options = b["edits"], b.get("edits_set")
         keep = torch.rand(len(edits), 1, 1, device=edits.device)
         draw = torch.rand(edits.shape, device=edits.device)
@@ -162,8 +158,7 @@ class TokenGame(nn.Module):
         log_z = torch.logsumexp(flat, 1)
         per_state = log_z - torch.logsumexp(torch.cat(hit, 1), 1)
 
-        # a noisy record can leave firings to come of which none is enabled. such a state has no correct next event,
-        # so it is left out. scoring the disabled firings instead, which are not in log_z, leaves the loss unbounded
+        # a state with no enabled firing left has no correct next event and is left out, else the loss is unbounded
         usable = done | found
 
         return (per_state * usable).sum() / usable.sum().clamp(min=1)
@@ -195,8 +190,7 @@ class TokenGame(nn.Module):
     @torch.no_grad()
     def beam_search(self, b, width=5):
         """Most probable final markings of one reaction, batch of size 1."""
-        # hypotheses are keyed by their firing vector. sequences that differ only in the order of their firings
-        # reach the same marking by the state equation, so they merge and their probabilities add
+        # hypotheses are keyed by their firing vector, orders of the same firings reach the same marking and merge
         n = b["ba"].shape[1]
         beams, finished = {
             frozenset(): (
@@ -224,8 +218,7 @@ class TokenGame(nn.Module):
             for r, key in enumerate(keys):
                 firings = self.apply_event(top_ix[r], n)
                 for lp, event in zip(top_lp[r].tolist(), firings):
-                    # a transition that is not enabled has probability zero, it can reach the top k only when fewer than k
-                    # events are enabled
+                    # a disabled event has probability zero and enters the top k only when fewer than k are enabled
                     if lp < -1e3:
                         continue
 
@@ -263,11 +256,9 @@ class TokenGame(nn.Module):
 
     @torch.no_grad()
     def beam_search_batch(self, b, width=5):
-        """beam_search for a batch of reactions at once, one ranked list per reaction.
-
-        The hypotheses of all reactions share one evaluation of the rate law per step. Their markings stay on the host
-        and go to the device once per step, so extending a hypothesis launches no device work.
-        """
+        """beam_search for a batch of reactions at once, one ranked list per reaction. The hypotheses of all reactions
+        share one evaluation of the rate law per step, and their markings stay on the host, so extending a hypothesis
+        launches no device work."""
         device, batch = b["ba"].device, b["ba"].shape[0]
         start = b["ba"].cpu().numpy()
         untouched = np.zeros(start.shape[1:], bool)
@@ -299,8 +290,7 @@ class TokenGame(nn.Module):
                 base, c0, f0 = beams[r][key]
                 firings = self.apply_event(top_ix[h], cur.shape[1])
                 for lp, event in zip(top_lp[h].tolist(), firings):
-                    # a transition that is not enabled has probability zero, it can reach the top k only when fewer than k
-                    # events are enabled
+                    # a disabled event has probability zero and enters the top k only when fewer than k are enabled
                     if lp < -1e3:
                         continue
 

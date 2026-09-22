@@ -1,8 +1,8 @@
-"""Molecular Transformer (Schwaller et al. 2019) trained on nested random subsets of the official USPTO-MIT training
-file, as a reference for data efficiency. No paper of the compared methods reports such numbers, so the baseline is
-trained here with the published recipe, mixed setting, 4 layers of width 256, 8 heads, one randomised copy of every
-training source, Noam schedule, beam 5. OpenNMT-py runs in an isolated environment. The subsets are the ones that
-benchmarks.chemistry.experiment uses with --subset, and all 40,000 test reactions are in the denominator.
+"""Molecular Transformer, Schwaller et al. 2019, trained on nested random subsets of the official USPTO-MIT training
+file as a reference for data efficiency, since no compared paper reports such numbers. The published recipe is used,
+mixed setting, 4 layers of width 256, 8 heads, one randomised copy of every training source, Noam schedule, beam 5,
+with OpenNMT-py in an isolated environment. The subsets are those of benchmarks.chemistry.experiment --subset, and all
+40,000 test reactions are in the denominator.
 
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 4090
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer train 4090 --steps 30000

@@ -68,7 +68,7 @@ TABLES = {
     "transitions": [
         ("test", "rmse", "RMSE", 3),
         ("test", "mae", "MAE", 3),
-        ("test", "rmse_row", "RMSE in im Cᵀ", 3),
+        ("test", "rmse_row", "RMSE in im C^T", 3),
         ("test", "rmse_ker", "RMSE in ker C", 3),
         ("test", "acc_sample", "all counts exact", 3),
         ("test", "consistent", "takes A to B", 3),
@@ -93,14 +93,14 @@ TABLES = {
 def cell(values, decimals):
     values = [v for v in values if v is not None]
     if not values:
-        return "–"
+        return "-"
 
     mean, std = np.mean(values), np.std(values)
     if abs(mean) < 10**-decimals and mean != 0:
         return f"{mean:.0e}"
 
     return f"{mean:.{decimals}f}" + (
-        f" ± {std:.{decimals}f}" if len(values) > 1 else ""
+        f" +- {std:.{decimals}f}" if len(values) > 1 else ""
     )
 
 
@@ -141,7 +141,7 @@ def main(root="results"):
         keys = [
             ("rmse", "RMSE"),
             ("mae", "MAE"),
-            ("rmse_row", "RMSE in im Cᵀ"),
+            ("rmse_row", "RMSE in im C^T"),
             ("rmse_ker", "RMSE in ker C"),
             ("consistent", "takes A to B"),
             ("npf_wins", "NPF better in (paired runs)"),
@@ -166,10 +166,10 @@ def main(root="results"):
                                 (
                                     f"{m[k][0]:.0%}"
                                     if k == "npf_wins"
-                                    else f"{m[k][0]:.3f} ± {m[k][1]:.3f}"
+                                    else f"{m[k][0]:.3f} +- {m[k][1]:.3f}"
                                 )
                                 if k in m
-                                else "–"
+                                else "-"
                             )
                             for k, _ in keys
                         )
@@ -245,7 +245,7 @@ def chemistry(root="results"):
             if task == "classify" and extra.exists():
                 m = json.loads(extra.read_text())
                 print(
-                    f"| {CHEM_LABEL[name]}, ensemble of {m['members']} | – | – | {m['accuracy']:.4f} | – |"
+                    f"| {CHEM_LABEL[name]}, ensemble of {m['members']} | - | - | {m['accuracy']:.4f} | - |"
                 )
 
     data_efficiency(root)
@@ -279,7 +279,7 @@ def data_efficiency(root="results"):
                 print(
                     f"| {CHEM_LABEL[model]} | "
                     + " | ".join(
-                        cell(rows[model, n], 4) if (model, n) in rows else "–"
+                        cell(rows[model, n], 4) if (model, n) in rows else "-"
                         for n in sizes
                     )
                     + " |"
@@ -302,15 +302,16 @@ def insights(root="results"):
         ]
         matched = violations("pgnn-nettargets-matched-[0-9].json")
         print(
-            f"* **validity**: {fwd['beam_candidates_that_are_valid_molecules']:.2%} of all top-5 beam candidates are valid molecules; valence violations of the "
-            f"one-shot counterpart at equal capacity: {np.mean(matched) if matched else float('nan'):.2%} ({len(matched)} seeds) (token game: 0 by construction)"
+            f"* **validity**: {fwd['beam_candidates_that_are_valid_molecules']:.2%} of the top-5 beam candidates are valid "
+            f"molecules. One-shot counterpart of equal capacity, {np.mean(matched) if matched else float('nan'):.2%} "
+            f"valence violations ({len(matched)} seeds). Token game, none by construction"
         )
         print(
-            f"* **calibration**: expected calibration error {fwd['expected_calibration_error']:.3f} once the probabilities of all traces reaching the same product are added"
+            f"* **calibration**: expected calibration error {fwd['expected_calibration_error']:.3f} with the traces of a product merged"
         )
         print(
-            f"* **firing order**: in sequences that both break and form bonds, a bond is broken first in {fwd['firing_order'].get('break first', 0)} "
-            f"and formed first in {fwd['firing_order'].get('form first', 0)} cases (enabling: a saturated atom has no free valence token)"
+            f"* **firing order**: in sequences that break and form, a bond breaks first in {fwd['firing_order'].get('break first', 0)} "
+            f"and forms first in {fwd['firing_order'].get('form first', 0)} cases"
         )
         shown = [
             f"{c}: {', '.join(f'{smi} ({n})' for smi, n in v[:2])}"
@@ -318,23 +319,23 @@ def insights(root="results"):
             if v
         ]
         print(
-            "* **by-products** (never in the training targets; most frequent leaving fragments per class): "
+            "* **by-products**, never in the targets, most frequent leaving fragments per class: "
             + "; ".join(shown)
         )
 
     if attr:
         rows = attr["attribution_norm_by_distance_to_reaction_centre"]
         print(
-            "* **exact attribution**: mean contribution of an atom to the state-equation readout by distance (bonds) from the reaction centre: "
+            "* **attribution**: mean contribution of an atom to the readout by bonds from the reaction centre, "
             + ", ".join(f"{d}: {v['mean']:.3f}" for d, v in list(rows.items())[:6])
-            + f"; exactly zero beyond 3 bonds for {rows['4']['share_exactly_zero']:.1%} of the atoms"
+            + f", exactly zero beyond 3 bonds for {rows['4']['share_exactly_zero']:.1%} of the atoms"
         )
 
     if audit:
         print(
-            f"* **data audit**: for {audit['recorded_mapping_changes_more_places']:.2%} of the test reactions the recorded mapping makes and breaks more "
-            f"bonds than the minimum firing vector (e.g. {audit['examples'][0]['places_recorded']} vs {audit['examples'][0]['places_exact']} "
-            f"for `{audit['examples'][0]['reaction'][:60]}`)"
+            f"* **data audit**: for {audit['recorded_mapping_changes_more_places']:.2%} of the test reactions the recorded map "
+            f"makes and breaks more bonds than the minimum firing vector ({audit['examples'][0]['places_recorded']} vs "
+            f"{audit['examples'][0]['places_exact']} for `{audit['examples'][0]['reaction'][:60]}`)"
         )
 
 
@@ -370,7 +371,8 @@ def load_bearing(root="results"):
     ]
     if any(runs("chem/forward", pat) for _, pat in rows):
         print(
-            "### forward prediction (Schneider 50k): which part of the token game matters\n\n| model | product top-1 (greedy) | valence-valid |\n|---|---:|---:|"
+            "### forward prediction (Schneider 50k), which part of the token game matters\n\n"
+            "| model | product top-1 (greedy) | valence-valid |\n|---|---:|---:|"
         )
 
         for label, pat in rows:
@@ -413,7 +415,7 @@ def load_bearing(root="results"):
     eq = read("equilibrium.json")
     if eq:
         print(
-            "\n### thermodynamic equilibrium layer: predict the equilibrium marking of a reversible net (nRMSE, 1 = no change; drift of conserved totals)\n"
+            "\n### thermodynamic equilibrium layer, equilibrium marking of a reversible net (nRMSE, 1 = no change)\n"
         )
         print(
             "| model | params | test | larger nets | 3x tokens | conservation drift | negative markings |\n|---|---:|---:|---:|---:|---:|---:|"
@@ -441,10 +443,10 @@ def load_bearing(root="results"):
     sh = read("sheaf.json")
     if sh:
         print(
-            "\n### learned incidence (conversion ratios hidden; scored against the true net)\n"
+            "\n### learned incidence, conversion ratios hidden, scored against the true net\n"
         )
         print(
-            "| model | RMSE | MAE | RMSE in im Cᵀ | takes A to B | larger nets: RMSE |\n|---|---:|---:|---:|---:|---:|"
+            "| model | RMSE | MAE | RMSE in im C^T | takes A to B | larger nets: RMSE |\n|---|---:|---:|---:|---:|---:|"
         )
 
         for name, label in (
@@ -478,8 +480,8 @@ def load_bearing(root="results"):
         ):
             if name in sh:
                 print(
-                    f"\nLargest relative error of a learned conversion ratio, mean over seeds, {label}: {np.mean([r['ratio_relative_error'] for r in sh[name]]):.2%}; "
-                    f"largest violation of R[a,b]·R[b,c] = R[a,c] (no arbitrage): {np.mean([r['arbitrage_gap'] for r in sh[name]]):.2%}."
+                    f"\nLearned conversion ratios, {label}. Largest relative error {np.mean([r['ratio_relative_error'] for r in sh[name]]):.2%}, "
+                    f"largest violation of R[a,b]R[b,c] = R[a,c] (no arbitrage) {np.mean([r['arbitrage_gap'] for r in sh[name]]):.2%}, means over seeds."
                 )
 
     col = read("coloured.json")
@@ -520,7 +522,8 @@ def load_bearing(root="results"):
     inv = read("chem/insights_invariance.json")
     if inv:
         print(
-            f"\n### classifier: counterfactual invariance of the readout, {inv['reactions_with_a_remote_site']} reactions, methyl added >= {inv['min_distance_bonds']} bonds from every change\n"
+            f"\n### classifier, counterfactual invariance of the readout, {inv['reactions_with_a_remote_site']} reactions, "
+            f"methyl added >= {inv['min_distance_bonds']} bonds from every change\n"
         )
         print(
             "| readout | max logit change | mean logit change | predictions changed |\n|---|---:|---:|---:|"
@@ -533,7 +536,8 @@ def load_bearing(root="results"):
         ):
             if name in inv:
                 print(
-                    f"| {label} | {np.mean(inv[name]['max_logit_change']):.1e} | {np.mean(inv[name]['mean_logit_change']):.1e} | {np.mean(inv[name]['predictions_changed']):.4%} |"
+                    f"| {label} | {np.mean(inv[name]['max_logit_change']):.1e} | {np.mean(inv[name]['mean_logit_change']):.1e} | "
+                    f"{np.mean(inv[name]['predictions_changed']):.4%} |"
                 )
 
     variants = [
@@ -572,7 +576,7 @@ def load_bearing(root="results"):
                     (
                         mean_std([r["metrics"]["accuracy"] for r in table[m, tag]], 4)
                         if table[m, tag]
-                        else "–"
+                        else "-"
                     )
                     for _, tag in columns
                 )
@@ -613,11 +617,10 @@ def benchmarks_with_published_protocols(root="results"):
             "\n### USPTO-MIT forward prediction, official split, mixed setting, share of all 40,000 test reactions\n"
         )
         print(
-            "top-1 to top-5: the recorded main product is among the molecules the firings touch and every recorded molecule is in the "
-            "final marking, the rule of the token game. major: the largest molecule made is the recorded main product, a rule that "
-            "commits to one molecule as the largest molecule of a SMILES prediction does. The Molecular Transformer is scored by exact "
-            "match of the whole product side, the published protocol, and under the two rules; its training set is counted in lines "
-            "of the training file, the token game's in usable reactions.\n"
+            "Token game rule, the recorded major product is among the molecules the firings touch and every "
+            "recorded molecule is in the final marking. Major, the largest molecule made is the recorded major "
+            "product. Molecular Transformer, exact match of the product side and both rules. Training reactions "
+            "in lines of the file for the transformer and usable reactions for the token game.\n"
         )
         print(
             "| model | params | seeds | training reactions | top-1 greedy | top-1 | top-2 | top-3 | top-5 | major top-1 | valence-valid | training (h) |"
@@ -645,11 +648,11 @@ def benchmarks_with_published_protocols(root="results"):
             ):
                 if f"{rule}_top1" in r:
                     print(
-                        f"| Molecular Transformer, trained here, {label} | – | 1 | {r['subset_lines']:,} lines | – | "
+                        f"| Molecular Transformer, trained here, {label} | - | 1 | {r['subset_lines']:,} lines | - | "
                         + " | ".join(
                             cell([r.get(f"{rule}_top{j}")], 4) for j in (1, 2, 3, 5)
                         )
-                        + f" | {cell([r.get('product_major_top1')], 4) if rule == 'product' else '–'} | – | – |"
+                        + f" | {cell([r.get('product_major_top1')], 4) if rule == 'product' else '-'} | - | - |"
                     )
 
     exact = [
@@ -668,7 +671,7 @@ def benchmarks_with_published_protocols(root="results"):
             "\n### Golden atom mapping set, exact minimum firing vector of the valence net, no learning and no recorded map\n"
         )
         print(
-            "The second level of the cost was chosen on 200 reactions, the other 1,560 are held out. Intervals are 95 % bootstrap intervals.\n"
+            "Cost chosen on 200 reactions, 1,560 held out. Intervals are 95 % bootstrap intervals.\n"
         )
         print(
             "| cost on the net | all usable | interval | held out | proved optimal | correct when proved | median time (s) |"
@@ -708,10 +711,10 @@ def benchmarks_with_published_protocols(root="results"):
         a, h = chosen[0][0]["all"], chosen[0][0]["held_out"]
         print(
             f"| RXNMapper, same reactions and scorer | {a['rxnmapper']:.4f} | {a['rxnmapper_ci95'][0]:.3f} to {a['rxnmapper_ci95'][1]:.3f} | "
-            f"{h['rxnmapper']:.4f} | – | – | – |"
+            f"{h['rxnmapper']:.4f} | - | - | - |"
         )
         print(
-            f"| either of the two (oracle) | {a['either']:.4f} | – | {h['either']:.4f} | – | – | – |"
+            f"| either of the two (oracle) | {a['either']:.4f} | - | {h['either']:.4f} | - | - | - |"
         )
         best = chosen[0][0]
         if "by_places" in best:
@@ -719,8 +722,8 @@ def benchmarks_with_published_protocols(root="results"):
                 "\n### Golden atom mapping set by the number of places that the curated map changes\n"
             )
             print(
-                "Many changed places indicate one-pot and multi-step reactions. A curated map that is not minimal is another correspondence of "
-                "the atoms, one that changes more places than the cheapest correspondence does.\n"
+                "Many changed places indicate one-pot and multi-step reactions. A curated map that is not minimal "
+                "changes more places than the cheapest correspondence.\n"
             )
             print(
                 "| places changed | reactions | minimum firing vector | RXNMapper | curated map is not minimal | proved optimal |"
@@ -729,7 +732,8 @@ def benchmarks_with_published_protocols(root="results"):
 
             for b in best["by_places"]:
                 print(
-                    f"| {b['places']} | {b['reactions']:,} | {b['exact_net_mapper']:.4f} | {b['rxnmapper']:.4f} | {b['curated_not_minimal']:.4f} | {b['proved']:.4f} |"
+                    f"| {b['places']} | {b['reactions']:,} | {b['exact_net_mapper']:.4f} | {b['rxnmapper']:.4f} | "
+                    f"{b['curated_not_minimal']:.4f} | {b['proved']:.4f} |"
                 )
 
         ties = Path(root) / "chem" / "exact_map" / "ties-golden.json"
@@ -739,8 +743,8 @@ def benchmarks_with_published_protocols(root="results"):
                 "\n### Golden atom mapping set, the mappings that the net cannot tell apart\n"
             )
             print(
-                f"Every optimal mapping of a reaction is enumerated and mappings with the same condensed graph are merged. Enumeration completed for "
-                f"{t['enumerated']:.1%} of the {t['reactions']:,} usable reactions, {t['complete']:.1%} of them below the limit of 512 mappings.\n"
+                f"All optimal mappings are enumerated and merged by condensed graph. Complete for {t['enumerated']:.1%} "
+                f"of the {t['reactions']:,} usable reactions, {t['complete']:.1%} of them below the limit of 512 mappings.\n"
             )
             print("| on the enumerated reactions | share |\n|---|---:|")
 
@@ -763,8 +767,8 @@ def benchmarks_with_published_protocols(root="results"):
                 print(f"| {label} | {t[key]:.4f} |")
 
         print(
-            f"\nPaired sign test of the chosen cost against RXNMapper on all usable reactions, {a['only_ours']} reactions only the net maps "
-            f"correctly, {a['only_rxnmapper']} only RXNMapper does, p = {a['sign_test_p']:.2f}."
+            f"\nSign test against RXNMapper on all usable reactions, {a['only_ours']} only the net maps correctly, "
+            f"{a['only_rxnmapper']} only RXNMapper, p = {a['sign_test_p']:.2f}."
         )
 
 

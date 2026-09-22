@@ -110,7 +110,7 @@ def with_targets(reactions, path, processes, seconds):
 
 
 def as_is(item):
-    """The loader must not turn the numpy arrays of the reactions into tensors, the scoring reads them as they are."""
+    """Keeps the numpy arrays of the reactions as they are, the scoring reads them."""
     return item
 
 

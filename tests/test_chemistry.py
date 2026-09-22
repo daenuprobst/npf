@@ -1,4 +1,4 @@
-"""The token game on a few hundred Schneider 50k reactions: batched beam search and the training loss."""
+"""Batched beam search and the training loss of the token game on a few hundred Schneider 50k reactions."""
 import numpy as np
 import torch
 from conftest import assert_same_arrays

@@ -1,10 +1,9 @@
-"""The feasible start of the exact mapper (chem.exact), a seating found without a solver.
+"""The feasible start of the exact mapper in chem.exact, a seating found without a solver.
 
 A mapping of the product atoms onto the precursor atoms determines the firing vector sigma with m_B = m_A + C sigma,
-and its size is the number of tokens that move. A firing only changes the R-ball of the places it touches (the
-cancellation proposition), so atoms whose environment is the same on both sides can only be seated on matching atoms,
-which cuts the search down to the reaction centre. Token descent and a branch and bound with a node budget give a
-cheap seating that the integer program starts from and never returns worse than.
+and its size is the number of tokens that move. A firing only changes the R-ball of the places it touches, so atoms
+with the same environment on both sides are seated on matching atoms, which cuts the search to the reaction centre.
+Token descent and a bounded branch and bound give a cheap seating that the integer program never returns worse than.
 """
 
 import numpy as np
@@ -87,11 +86,9 @@ def cost_of(reaction, mapping):
 
 
 def branch_and_bound(reaction, incumbent, budget=200000, depth=DEPTH):
-    """Exact minimiser over the domains, unless the budget runs out.
-
-    Atoms are seated in order of how constrained they are. The bound is the cost among the seated atoms plus the
-    unavoidable unary cost of the rest, both of which only grow, so a partial seating that reaches the incumbent is cut.
-    """
+    """Exact minimiser over the domains unless the budget runs out. Atoms are seated most constrained first, and the
+    bound is the cost among the seated atoms plus the unavoidable unary cost of the rest, both of which only grow, so
+    a partial seating that reaches the incumbent is cut."""
     a, b = reaction["a"], reaction["b"]
     order_a, order_b = BOND_ORDER[dense_bonds(a)], BOND_ORDER[dense_bonds(b)]
     doms = domains(reaction, depth)
@@ -167,12 +164,9 @@ def branch_and_bound(reaction, incumbent, budget=200000, depth=DEPTH):
 
 
 def weighted_cost(reaction, mapping, weights=(0.0, 1.0, 0.0, 0.0)):
-    """Size of the firing vector with separate weights for its four kinds of token moves.
-
-    weights are (bond order tokens, bond places that change between empty and marked, hydrogens, charges). The
-    default counts only the bond places that a firing empties or fills, which is the number of bonds made and
-    broken, and the cost under which curated maps are least often beaten by wrong ones.
-    """
+    """Size of the firing vector with weights for (bond order tokens, bond places that change between empty and marked,
+    hydrogens, charges). The default counts only the bonds made and broken, the cost under which curated maps are
+    least often beaten by wrong ones."""
     a, b = reaction["a"], reaction["b"]
     before = BOND_ORDER[dense_bonds(a)]
     after = np.zeros_like(before)
@@ -191,7 +185,7 @@ def weighted_cost(reaction, mapping, weights=(0.0, 1.0, 0.0, 0.0)):
 
 
 def token_descent(reaction, mapping, passes=3):
-    """Re-seat one product atom at a time (swapping if the seat is taken) whenever that strictly shrinks the firing
+    """Re-seat one product atom at a time, swapping if the seat is taken, whenever that strictly shrinks the firing
     vector."""
     a, b = reaction["a"], reaction["b"]
     mapping = mapping.copy()
@@ -228,9 +222,8 @@ def token_descent(reaction, mapping, passes=3):
 
 
 def feasible_start(reaction, budget=20000):
-    """A seating by element and atom environment, improved by token descent and a branch and bound over seatings that
-    minimises the tokens moved. None when some product atom has no precursor atom of its element left.
-    """
+    """A seating by element and environment, improved by token descent and branch and bound on the tokens moved. None
+    when some product atom has no precursor atom of its element left."""
     out, used = np.zeros(len(reaction["b"]["x"]), np.int64), set()
     for i, d in enumerate(domains(reaction)):
         free = [int(j) for j in d if int(j) not in used]

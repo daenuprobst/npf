@@ -1,4 +1,5 @@
 """Ground truth dynamics of the synthetic benchmarks. Hidden from every model."""
+
 import numpy as np
 
 # system size that scales the propensities of transitions with several input tokens
@@ -15,7 +16,12 @@ def propensity(net, M):
     # a transition is enabled iff every input place holds Pre(p, t) tokens
     enabled = np.where(w > 0, Mx >= w - 1e-9, True).all(1)
 
-    return k * VOLUME * np.prod(falling / (VOLUME * K[None, :, None]) ** w, axis=1) * enabled
+    return (
+        k
+        * VOLUME
+        * np.prod(falling / (VOLUME * K[None, :, None]) ** w, axis=1)
+        * enabled
+    )
 
 
 def gillespie_pairs(net, M0, t_a, t_b, rng):
@@ -39,7 +45,11 @@ def gillespie_pairs(net, M0, t_a, t_b, rng):
         if fire.any():
             idx = np.nonzero(fire)[0]
             cum = np.cumsum(lam[idx], 1)
-            j = (cum < (rng.random(len(idx)) * total[idx])[:, None]).sum(1).clip(max=net.n_trans - 1)
+            j = (
+                (cum < (rng.random(len(idx)) * total[idx])[:, None])
+                .sum(1)
+                .clip(max=net.n_trans - 1)
+            )
             M[idx] += net.C[:, j].T
             counted = t_next[idx] > t_a[idx]
             np.add.at(sigma, (idx[counted], j[counted]), 1.0)
@@ -49,7 +59,7 @@ def gillespie_pairs(net, M0, t_a, t_b, rng):
 
 
 def flux(net, M, kind):
-    """Rate laws of the fluid nets, [S, P] to [S, T]. sat is a saturating product law, min is synchronisation by the scarcest input."""
+    """Rate laws of the fluid nets, [S, P] to [S, T]. sat is a saturating product, min is set by the scarcest input."""
     K, k = np.exp(net.e[:, 0]), np.exp(net.a[:, 0])
     mask = net.Pre > 0
 

@@ -36,15 +36,15 @@ def firing_vector(reaction, mapping):
 
 
 def recorded_products(reaction):
-    """Every recorded product molecule (canonical, no stereochemistry) has to be predicted."""
+    """Every recorded product molecule, canonical and without stereochemistry, has to be predicted."""
     return {
         canonical_product(smi) for smi in reaction["smiles"].split(">>")[1].split(".")
     }
 
 
 def product_found(reaction, edits):
-    """The recorded major product is made by the firings, and every recorded product molecule (counter-ions of
-    salts are spectators) is part of the final marking."""
+    """The firings make the recorded major product and every recorded molecule is in the final marking, so the
+    counter-ions of salts are spectators."""
     touched, everything = marking_fragments(reaction["a"], edits)
     recorded = reaction["smiles"].split(">>")[1]
 
@@ -55,9 +55,8 @@ def product_found(reaction, edits):
 
 
 def product_major(reaction, edits):
-    """The largest molecule that the firings make is the recorded major product. This commits to one molecule without
-    looking at the record, the way the largest molecule of a SMILES prediction is scored, so both sides compare alike.
-    """
+    """The largest molecule the firings make is the recorded major product, one molecule chosen without the record, the
+    way the largest molecule of a SMILES prediction is scored."""
     touched = marking_fragments(reaction["a"], edits)[0]
 
     return bool(touched) and canonical_product(
@@ -66,11 +65,9 @@ def product_major(reaction, edits):
 
 
 def targets(reaction, seconds=3.0, limit=64):
-    """The first mapping of minimum cost and the firing vectors of all of them that the token game can train on.
-
-    seconds is the budget in deterministic solver time, for the proof and again for listing the ties. The mapping is
-    None when no seating exists, proved says whether the minimum was proved before the budget ran out.
-    """
+    """The first mapping of minimum cost and the firing vectors of all of them that the token game can train on. seconds
+    is the deterministic solver budget for the proof and again for listing the ties, the mapping is None when no seating
+    exists, and proved says whether the minimum was proved in time."""
     start = time.time()
     row = {
         "id": reaction["id"],
@@ -128,8 +125,8 @@ def targets(reaction, seconds=3.0, limit=64):
 
 
 def attach(reaction, row, single=False):
-    """The targets of a row on its reaction. edits_set holds the firing vectors of the token game (the first alone
-    with single), target and edits the first mapping for the classifier. A recorded map is dropped.
+    """The targets of a row on its reaction. edits_set holds the firing vectors of the token game, the first alone with
+    single, target and edits the first mapping for the classifier, and a recorded map is dropped.
     """
     vectors = row["vectors"][:1] if single else row["vectors"]
     reaction["edits_set"] = vectors or None

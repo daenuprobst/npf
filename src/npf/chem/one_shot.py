@@ -52,10 +52,10 @@ class Forward(nn.Module):
         return F.cross_entropy(logits[valid], b["edits"][valid])
 
     def decode(self, logits, b, reactions):
-        """Most probable firing vector. With petri it is repaired greedily until every atom is within the valence rule of
-        the token game, h_i + c_i + max(-q_i, 0) - sum_j (order_after(ij) - order_before(ij)) >= -1/2. A violated atom
-        drops its least likely bond forming firing or fires its most likely bond breaking transition, whichever is
-        cheaper."""
+        """Most probable firing vector, with petri repaired greedily until every atom satisfies the valence rule of the
+        token game, h_i + c_i + max(-q_i, 0) - sum_j (order_after(ij) - order_before(ij)) >= -1/2. A violated atom drops
+        its least likely bond forming firing or fires its most likely bond breaking one, whichever is cheaper.
+        """
         logp = torch.log_softmax(logits.float(), -1).cpu().numpy()
         out = []
         for k, r in enumerate(reactions):

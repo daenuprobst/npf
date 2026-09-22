@@ -1,10 +1,9 @@
 """Forward training targets from the net alone, with no recorded atom map anywhere.
 
-For a training reaction the exact solver lists every mapping of minimum cost, the cost of the learning-free mapper
-(exact.cheapest_mappings). Each mapping gives a firing vector with m_B = m_A + C sigma. A vector is kept when it
-moves at most MAX_TOKENS tokens, has an enabled order and decodes to the recorded product, so the target set is a
-function of the precursors, the product and the net. Vectors that differ by a symmetry of the precursors are all
-kept, the loss sums over the set. When the solver cannot prove the minimum in time the cheapest vector it found
+For a training reaction exact.cheapest_mappings lists every mapping of minimum cost, and each gives a firing vector
+with m_B = m_A + C sigma. A vector is kept when it moves at most MAX_TOKENS tokens, has an enabled order and decodes
+to the recorded product, so the target set is a function of the precursors, the product and the net. Vectors that
+differ by a symmetry are all kept and the loss sums over the set. Without a proof in time the cheapest vector found
 stands alone.
 
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit --subset 40900   # data/net_targets_uspto_mit-sub40900.pkl
