@@ -1,13 +1,14 @@
-"""The experiment scripts run end to end, old and new, on a small budget. Result files must agree in every number.
+"""The experiment scripts run end to end on a small budget and write complete result files.
 
 The data sets are cut down by patching the loaders, everything else is the unmodified main function with its
 command line. All output goes to the temporary directory of the test.
 """
+import copy
 import json
+import pickle
 import sys
 
 import pytest
-import torch
 
 
 def run_main(module, argv, monkeypatch):
@@ -24,46 +25,40 @@ def load_result(path):
 
 @pytest.mark.parametrize("task,regime,model", [("transitions", "petri", "npf"), ("transitions", "graph", "pgnn+se"), ("transitions", "petri-ode", "gnn"),
                                                ("next", "petri-min", "npf@8"), ("next", "graph-sat", "pgnn")])
-def test_synthetic_experiment(old, monkeypatch, tmp_path, task, regime, model):
-    from benchmarks.synthetic import experiment as new_exp
+def test_synthetic_experiment(monkeypatch, tmp_path, task, regime, model):
+    from benchmarks.synthetic import experiment
     from npf import datasets
-    old_exp, old_data = old("experiment"), old("data")
 
     def fewer_nets(fn):
         return lambda seed, n_nets, *args, **kw: fn(seed, 16 if n_nets == 300 else 3, *args, **kw)
 
     for name in ("make_pairs", "make_flow_pairs", "make_flows"):
-        monkeypatch.setattr(old_data, name, fewer_nets(getattr(old_data, name)))
         monkeypatch.setattr(datasets, name, fewer_nets(getattr(datasets, name)))
 
-    argv = ["--task", task, "--regime", regime, "--model", model, "--seed", "1", "--iters", "6"]
-    run_main(old_exp, argv + ["--root", str(tmp_path / "old")], monkeypatch)
-    run_main(new_exp, argv + ["--root", str(tmp_path / "new")], monkeypatch)
-    file = f"{task}/{regime}/{model}-1.json"
-    a, b = load_result(tmp_path / "old" / file), load_result(tmp_path / "new" / file)
-    assert a == b
-    assert len(a["curve"]) == 1 and a["metrics"]["test"]
+    argv = ["--task", task, "--regime", regime, "--model", model, "--seed", "1", "--iters", "6", "--root", str(tmp_path)]
+    run_main(experiment, argv, monkeypatch)
+    file = tmp_path / f"{task}/{regime}/{model}-1.json"
+    first = load_result(file)
+    assert len(first["curve"]) == 1 and first["metrics"]["test"]
 
     # a second run reads the cache that the first one wrote
-    run_main(new_exp, argv + ["--root", str(tmp_path / "new")], monkeypatch)
-    assert load_result(tmp_path / "new" / file) == b
+    run_main(experiment, argv, monkeypatch)
+    assert load_result(file) == first
 
 
+SMALL = ["--width", "32", "--rounds", "2", "--attention", "1"]
 CHEM_RUNS = [
-    ("classify", "npf", []), ("classify", "pgnn", []), ("classify", "npf-nogate", ["--firing", "--labels", "40"]),
-    ("map", "npf", []), ("map", "pgnn", []), ("map", "npf-nokept", []),
-    ("forward", "npf", ["--width", "32", "--rounds", "2", "--attention", "1"]),
-    ("forward", "npf-noenabling", ["--width", "32", "--rounds", "2", "--attention", "1", "--hops", "3", "--no-beam"]),
-    ("forward", "pgnn", []), ("forward", "npf-oneshot", []),
+    ("classify", "npf", []), ("classify", "pgnn", []), ("classify", "npf-sigma", []), ("classify", "pgnn-sigma", []),
+    ("classify", "npf", ["--firing", "--labels", "40", "--select", "last"]),
+    ("forward", "npf", SMALL), ("forward", "npf", SMALL + ["--net-targets", "TARGETS"]),
+    ("forward", "npf-noenabling", SMALL + ["--no-beam"]), ("forward", "pgnn", []), ("forward", "npf-oneshot", []),
 ]
 
 
-@pytest.mark.parametrize("task,model,extra", CHEM_RUNS, ids=[f"{t}-{m}" for t, m, _ in CHEM_RUNS])
-def test_chemistry_experiment(old, schneider_all, monkeypatch, tmp_path, task, model, extra):
-    from benchmarks.chemistry import experiment as new_exp
+@pytest.mark.parametrize("task,model,extra", CHEM_RUNS, ids=[f"{t}-{m}-{k}" for k, (t, m, _) in enumerate(CHEM_RUNS)])
+def test_chemistry_experiment(schneider_all, monkeypatch, tmp_path, task, model, extra):
+    from benchmarks.chemistry import experiment, net_targets
     from npf import chem
-    old_exp = old("chem_experiment")
-    import copy
     reactions = schneider_all["reactions"]
 
     if task == "classify":
@@ -75,34 +70,22 @@ def test_chemistry_experiment(old, schneider_all, monkeypatch, tmp_path, task, m
     subset = {"reactions": picked, "classes": schneider_all["classes"]}
 
     # the scripts attach histograms and label masks to the reactions, so each run gets its own copy
-    monkeypatch.setattr(old("chem_data"), "load", lambda path="": copy.deepcopy(subset))
     monkeypatch.setattr(chem, "load", lambda path="": copy.deepcopy(subset))
-    argv = ["--task", task, "--model", model, "--seed", "0", "--epochs", "1", "--batch", "8"] + extra
-    run_main(old_exp, argv + ["--root", str(tmp_path / "old")], monkeypatch)
-    run_main(new_exp, argv + ["--root", str(tmp_path / "new")], monkeypatch)
-    files = sorted(p.relative_to(tmp_path / "old") for p in (tmp_path / "old").rglob("*") if p.is_file())
 
-    # the new tree also writes the beam candidates of the token game, which the flat one did not
-    produced = sorted(p.relative_to(tmp_path / "new") for p in (tmp_path / "new").rglob("*") if p.is_file())
-    assert files == [p for p in produced if p.parts[-2] != "beams"]
-    assert {p.suffix for p in files} == {".json", ".pt"}
+    # targets of the net for the training reactions, computed the way benchmarks.chemistry.net_targets does
+    if "TARGETS" in extra:
+        train = experiment.splits(copy.deepcopy(subset), "forward", recorded=False)[0]
+        rows = [net_targets.targets((r, 0.5, 16)) for r in train]
+        (tmp_path / "targets.pkl").write_bytes(pickle.dumps({"targets": {x["id"]: x["vectors"] for x in rows if x["vectors"]}}))
+        extra = [str(tmp_path / "targets.pkl") if a == "TARGETS" else a for a in extra]
 
-    for file in files:
-        if file.suffix == ".json":
-            a, b = load_result(tmp_path / "old" / file), load_result(tmp_path / "new" / file)
-
-            # merged top-k and the official denominator are new, every metric the flat script reported has to agree
-            if isinstance(b.get("metrics"), dict):
-                b = b | {"metrics": {k: v for k, v in b["metrics"].items() if "merged" not in k and not k.endswith("_official")}}
-
-            assert a == b
-        else:
-            a, b = torch.load(tmp_path / "old" / file), torch.load(tmp_path / "new" / file)
-
-            # since the token game runs over events, one weight of one ablation (the stop bias without enabling)
-            # differs by 2e-10, which is round-off. every other weight is equal bit for bit
-            assert list(a) == list(b) and all(torch.allclose(a[k], b[k], rtol=0, atol=1e-9) for k in a)
-            assert sum(not torch.equal(a[k], b[k]) for k in a) <= 1
+    argv = ["--task", task, "--model", model, "--seed", "0", "--epochs", "1", "--batch", "8", "--root", str(tmp_path)] + extra
+    run_main(experiment, argv, monkeypatch)
+    results = [p for p in tmp_path.rglob("*.json")]
+    assert len(results) == 1 and results[0].with_suffix(".pt").exists()
+    result = load_result(results[0])
+    assert result["args"]["task"] == task and len(result["curve"]) == 1
+    assert ("accuracy" if task == "classify" else "product_top1") in result["metrics"]
 
     # the saved weights are scored again without training
-    run_main(new_exp, argv + ["--root", str(tmp_path / "new"), "--evaluate-only"], monkeypatch)
+    run_main(experiment, argv + ["--evaluate-only"], monkeypatch)

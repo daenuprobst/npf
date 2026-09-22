@@ -57,15 +57,6 @@ def test_first_level_alone_counts_bond_places(smiles):
     assert proved and cost == enumerate_minimum(r)[1] == chem.weighted_cost(r, mapping, (0, 1, 0, 0))
 
 
-def test_a_learned_prior_never_changes_the_cost():
-    r = reaction(SMALL[0])
-    rng = np.random.default_rng(0)
-    prior = rng.random((len(r["b"]["x"]), len(r["a"]["x"])))
-    plain = exact.solve(r, seconds=30, secondary=(1, 1, 1))
-    with_prior = exact.solve(r, prior=prior, seconds=30, secondary=(1, 1, 1))
-    assert with_prior[1] == plain[1] and key(r, with_prior[0]) == key(r, plain[0])
-
-
 def test_acyl_substitution_is_a_tie_on_the_net():
     """Which oxygen of an ester comes from the alcohol is not decided by the two levels of the cost. Both seatings
     change two bond places and move one hydrogen, so only a learned rate law can order them."""
@@ -84,17 +75,6 @@ def test_acyl_substitution_is_a_tie_on_the_net():
     assert len(hydroxyls) == 2 and keys[0] == keys[1] == key(r, mapping)
 
 
-def test_an_adverse_prior_cannot_buy_a_bond_place():
-    """Heptane stays heptane at no cost, even when the prior prefers the seats on two smaller alkanes."""
-    r = reaction("CCCCCCC.CCCC.CCC>>CCCCCCC")
-    fragment = r["a"]["fragment"]
-    whole = max(set(fragment.tolist()), key=lambda f: (fragment == f).sum())
-    prior = np.ones((len(r["b"]["x"]), len(r["a"]["x"])))
-    prior[:, fragment != whole] = 0.0
-    mapping, cost, proved = exact.solve(r, prior=prior, seconds=30)
-    assert proved and cost == 0 and (fragment[mapping] == whole).all()
-
-
 @pytest.mark.parametrize("smiles", SMALL[:4])
 def test_star_bound_never_exceeds_the_minimum(smiles):
     r = reaction(smiles)
@@ -106,8 +86,8 @@ def test_enumeration_lists_exactly_the_optimal_seatings():
     best, _ = enumerate_minimum(r)
     seats = [np.nonzero(r["a"]["element"] == e)[0] for e in r["b"]["element"]]
     expected = {m for m in itertools.product(*seats) if len(set(m)) == len(m) and key(r, np.array(m)) == best}
-    found = {tuple(m.tolist()) for m in exact.optimal_mappings(r, secondary=(1, 1, 1), limit=1000, seconds=30)}
-    assert found == expected
+    maps, proved = exact.cheapest_mappings(r, secondary=(1, 1, 1), limit=1000, seconds=120, deterministic=30)
+    assert proved and {tuple(m.tolist()) for m in maps} == expected
 
 
 VARIANTS = [dict(secondary=(1, 1, 1)), dict(secondary=(1, 1, 1), all_orders=True), dict(secondary=(1, 1, 1), labile_h=False),

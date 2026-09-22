@@ -2,93 +2,93 @@
  "rows": "results/chem/exact_map/golden-1-1-1.pkl",
  "all": {
   "reactions": 1760,
-  "exact_net_mapper": 0.8323863636363636,
+  "exact_net_mapper": 0.8221590909090909,
   "exact_net_mapper_ci95": [
-   0.8147727272727273,
-   0.85
+   0.8045454545454546,
+   0.8397727272727272
   ],
-  "rxnmapper": 0.8539772727272728,
+  "rxnmapper": 0.8556818181818182,
   "rxnmapper_ci95": [
-   0.8374857954545455,
-   0.8704545454545455
+   0.8392045454545455,
+   0.8721590909090909
   ],
-  "either": 0.9142045454545454,
-  "only_ours": 106,
-  "only_rxnmapper": 144,
-  "sign_test_p": 0.019098528650781346,
-  "proved": 0.8943181818181818,
-  "exact_net_mapper_when_proved": 0.8405336721728082
+  "either": 0.9090909090909091,
+  "only_ours": 94,
+  "only_rxnmapper": 153,
+  "sign_test_p": 0.00021015585758628105,
+  "proved": 0.9954545454545455,
+  "exact_net_mapper_when_proved": 0.8247716894977168
  },
  "held_out": {
   "reactions": 1560,
-  "exact_net_mapper": 0.8294871794871795,
+  "exact_net_mapper": 0.8211538461538461,
   "exact_net_mapper_ci95": [
-   0.8102564102564103,
-   0.8480769230769231
+   0.801923076923077,
+   0.8403846153846154
   ],
-  "rxnmapper": 0.8538461538461538,
+  "rxnmapper": 0.8557692307692307,
   "rxnmapper_ci95": [
-   0.8358974358974359,
-   0.8711538461538462
+   0.8378205128205128,
+   0.8730769230769231
   ],
-  "either": 0.9134615384615384,
-  "only_ours": 93,
-  "only_rxnmapper": 131,
-  "sign_test_p": 0.013252477974958907,
-  "proved": 0.8948717948717949,
-  "exact_net_mapper_when_proved": 0.836676217765043
+  "either": 0.9096153846153846,
+  "only_ours": 84,
+  "only_rxnmapper": 138,
+  "sign_test_p": 0.000352894230965023,
+  "proved": 0.9961538461538462,
+  "exact_net_mapper_when_proved": 0.8236808236808236
  },
  "dev": {
   "reactions": 200,
-  "exact_net_mapper": 0.855,
+  "exact_net_mapper": 0.83,
   "exact_net_mapper_ci95": [
-   0.805,
-   0.9
+   0.775,
+   0.88
   ],
   "rxnmapper": 0.855,
   "rxnmapper_ci95": [
    0.805,
    0.9
   ],
-  "either": 0.92,
-  "only_ours": 13,
-  "only_rxnmapper": 13,
-  "sign_test_p": 1.0,
-  "proved": 0.89,
-  "exact_net_mapper_when_proved": 0.8707865168539326
+  "either": 0.905,
+  "only_ours": 10,
+  "only_rxnmapper": 15,
+  "sign_test_p": 0.42435622215270996,
+  "proved": 0.99,
+  "exact_net_mapper_when_proved": 0.8333333333333334
  },
  "by_places": [
   {
    "places": "1 to 2",
    "reactions": 966,
-   "exact_net_mapper": 0.8747412008281573,
-   "rxnmapper": 0.9182194616977226,
-   "curated_not_minimal": 0.007246376811594203,
-   "proved": 0.9409937888198758
+   "exact_net_mapper": 0.8623188405797102,
+   "rxnmapper": 0.9192546583850931,
+   "curated_not_minimal": 0.008281573498964804,
+   "proved": 1.0
   },
   {
    "places": "3 to 4",
    "reactions": 568,
-   "exact_net_mapper": 0.8098591549295775,
-   "rxnmapper": 0.795774647887324,
-   "curated_not_minimal": 0.051056338028169015,
-   "proved": 0.8556338028169014
+   "exact_net_mapper": 0.8045774647887324,
+   "rxnmapper": 0.7992957746478874,
+   "curated_not_minimal": 0.0528169014084507,
+   "proved": 0.9947183098591549
   },
   {
    "places": "5 to 6",
    "reactions": 140,
-   "exact_net_mapper": 0.6285714285714286,
+   "exact_net_mapper": 0.6214285714285714,
    "rxnmapper": 0.6928571428571428,
    "curated_not_minimal": 0.10714285714285714,
-   "proved": 0.75
+   "proved": 0.9785714285714285
   },
   {
    "places": "7 or more",
    "reactions": 31,
-   "exact_net_mapper": 0.5483870967741935,
+   "exact_net_mapper": 0.4838709677419355,
    "rxnmapper": 0.41935483870967744,
    "curated_not_minimal": 0.22580645161290322,
-   "proved": 0.6774193548387096
+   "proved": 0.9354838709677419
   }
  ]
 }

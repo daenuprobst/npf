@@ -1,0 +1,57 @@
+{
+ "rows": "results/chem/exact_map/enzymemap_3k-1-1-1-nolabile-ch.pkl",
+ "data": "enzymemap_3k",
+ "all": {
+  "reactions": 2888,
+  "exact_net_mapper": 0.8739612188365651,
+  "exact_net_mapper_ci95": [
+   0.8614958448753463,
+   0.8860803324099723
+  ],
+  "rxnmapper": 0.7763157894736842,
+  "rxnmapper_ci95": [
+   0.7610803324099723,
+   0.7915512465373962
+  ],
+  "either": 0.8916204986149584,
+  "only_ours": 333,
+  "only_rxnmapper": 51,
+  "sign_test_p": 7.545414936766741e-52,
+  "proved": 0.9975761772853186,
+  "exact_net_mapper_when_proved": 0.8746962860118015
+ },
+ "by_places": [
+  {
+   "places": "1 to 2",
+   "reactions": 2359,
+   "exact_net_mapper": 0.9075879610004239,
+   "rxnmapper": 0.7994913098770665,
+   "curated_not_minimal": 0.07079270877490462,
+   "proved": 0.9974565493853328
+  },
+  {
+   "places": "3 to 4",
+   "reactions": 481,
+   "exact_net_mapper": 0.7338877338877339,
+   "rxnmapper": 0.6756756756756757,
+   "curated_not_minimal": 0.14760914760914762,
+   "proved": 0.997920997920998
+  },
+  {
+   "places": "5 to 6",
+   "reactions": 22,
+   "exact_net_mapper": 0.5,
+   "rxnmapper": 0.5909090909090909,
+   "curated_not_minimal": 0.2727272727272727,
+   "proved": 1.0
+  },
+  {
+   "places": "7 or more",
+   "reactions": 8,
+   "exact_net_mapper": 0.125,
+   "rxnmapper": 0.125,
+   "curated_not_minimal": 0.75,
+   "proved": 1.0
+  }
+ ]
+}

@@ -8,6 +8,8 @@ dependencies = [
     "scipy",
     "torch",
     "rdkit>=2026.3.6",
+    "ortools>=9.15.6755",
+    "lightning>=2.6.6",
 ]
 
 [dependency-groups]

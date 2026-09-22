@@ -1,12 +1,12 @@
-"""Minimum firing vector between two markings of the valence net, used as an atom mapping.
+"""The feasible start of the exact mapper (chem.exact), a seating found without a solver.
 
 A mapping of the product atoms onto the precursor atoms determines the firing vector sigma with m_B = m_A + C sigma,
-and its size is the number of tokens that move. Choosing the mapping is therefore maximum a posteriori inference in a
-pairwise model, unary terms for hydrogens and charges, pairwise terms for bond orders, under an injectivity
-constraint. A firing only changes the R-ball of the places it touches (the cancellation proposition), so atoms whose
-environment is the same on both sides can only be seated on matching atoms, which cuts the search down to the
-reaction centre.
+and its size is the number of tokens that move. A firing only changes the R-ball of the places it touches (the
+cancellation proposition), so atoms whose environment is the same on both sides can only be seated on matching atoms,
+which cuts the search down to the reaction centre. Token descent and a branch and bound with a node budget give a
+cheap seating that the integer program starts from and never returns worse than.
 """
+
 import numpy as np
 
 from .featurisation import BOND_ORDER, dense_bonds
@@ -18,11 +18,32 @@ def colours(graph, depth=DEPTH):
     """Weisfeiler Lehman colours at every depth, from element, charge, hydrogen count and bond orders only."""
     bonds = dense_bonds(graph)
     neighbours = [np.nonzero(bonds[i])[0] for i in range(len(bonds))]
-    colour = np.array([hash((int(e), int(q), int(h))) for e, q, h in zip(graph["element"], graph["q"], graph["h"])], np.int64)
+    colour = np.array(
+        [
+            hash((int(e), int(q), int(h)))
+            for e, q, h in zip(graph["element"], graph["q"], graph["h"])
+        ],
+        np.int64,
+    )
     out = [colour]
     for _ in range(depth):
-        colour = np.array([hash((int(colour[i]), tuple(sorted((int(bonds[i, j]), int(colour[j])) for j in neighbours[i]))))
-                           for i in range(len(colour))], np.int64)
+        colour = np.array(
+            [
+                hash(
+                    (
+                        int(colour[i]),
+                        tuple(
+                            sorted(
+                                (int(bonds[i, j]), int(colour[j]))
+                                for j in neighbours[i]
+                            )
+                        ),
+                    )
+                )
+                for i in range(len(colour))
+            ],
+            np.int64,
+        )
         out.append(colour)
 
     return out
@@ -58,62 +79,11 @@ def cost_of(reaction, mapping):
     kept[mapping] = True
     bonds = np.abs(np.triu((after - before) * (kept[:, None] | kept[None, :]), 1)).sum()
 
-    return float(bonds + np.abs(b["h"] - a["h"][mapping]).sum() + np.abs(b["q"] - a["q"][mapping]).sum())
-
-
-def map_inference(reaction, unary, pair, incumbent, budget=200000, depth=DEPTH):
-    """Exact maximum a posteriori seating under an arbitrary pairwise energy.
-
-    unary[i, j] is the energy of seating product atom i on precursor atom j, pair(i, j, i2, j2) the energy of a pair
-    of seats. Both are non-negative, so the energy of a partial seating bounds every completion from below and a
-    branch that reaches the incumbent can be cut. With unary = token moves and pair = bond changes this is the
-    minimum firing vector, with the energies of a trained mapper it is the mode of its own distribution.
-    """
-    b = reaction["b"]
-    doms = domains(reaction, depth)
-    free = sorted(range(len(b["x"])), key=lambda i: (len(doms[i]), -float(unary[i].min())))
-    floor = np.array([min(unary[i][j] for j in doms[i]) for i in range(len(b["x"]))])
-    tail = np.zeros(len(free) + 1)
-    for k in range(len(free) - 1, -1, -1):
-        tail[k] = tail[k + 1] + floor[free[k]]
-
-    energy = lambda m: sum(unary[i, m[i]] for i in range(len(m))) + sum(pair(i, m[i], i2, m[i2]) for i in range(len(m)) for i2 in range(i))
-    best, best_map, steps, exhaustive = energy(incumbent), incumbent.copy(), 0, True
-
-    def recurse(k, mapping, seated, used, partial):
-        nonlocal best, best_map, steps, exhaustive
-
-        if steps > budget:
-            exhaustive = False
-            return
-
-        if partial + tail[k] >= best - 1e-9:
-            return
-
-        if k == len(free):
-            if partial < best - 1e-9:
-                best, best_map = partial, mapping.copy()
-
-            return
-
-        i = free[k]
-        for j in doms[i]:
-            if j in used:
-                continue
-
-            steps += 1
-            add = unary[i, j] + sum(pair(i, j, i2, mapping[i2]) for i2 in seated)
-            mapping[i] = j
-            used.add(j)
-            seated.append(i)
-            recurse(k + 1, mapping, seated, used, partial + add)
-            seated.pop()
-            used.discard(j)
-            mapping[i] = -1
-
-    recurse(0, np.full(len(b["x"]), -1), [], set(), 0.0)
-
-    return best_map, best, exhaustive
+    return float(
+        bonds
+        + np.abs(b["h"] - a["h"][mapping]).sum()
+        + np.abs(b["q"] - a["q"][mapping]).sum()
+    )
 
 
 def branch_and_bound(reaction, incumbent, budget=200000, depth=DEPTH):
@@ -125,15 +95,29 @@ def branch_and_bound(reaction, incumbent, budget=200000, depth=DEPTH):
     a, b = reaction["a"], reaction["b"]
     order_a, order_b = BOND_ORDER[dense_bonds(a)], BOND_ORDER[dense_bonds(b)]
     doms = domains(reaction, depth)
-    free = sorted(range(len(b["x"])), key=lambda i: (len(doms[i]), -int((order_b[i] > 0).sum())))
+    free = sorted(
+        range(len(b["x"])), key=lambda i: (len(doms[i]), -int((order_b[i] > 0).sum()))
+    )
 
     # cheapest hydrogen and charge move still to come, a valid bound for the unseated atoms
-    unary = np.array([min(abs(b["h"][i] - a["h"][j]) + abs(b["q"][i] - a["q"][j]) for j in doms[i]) for i in range(len(b["x"]))])
+    unary = np.array(
+        [
+            min(
+                abs(b["h"][i] - a["h"][j]) + abs(b["q"][i] - a["q"][j]) for j in doms[i]
+            )
+            for i in range(len(b["x"]))
+        ]
+    )
     tail = np.zeros(len(free) + 1)
     for k in range(len(free) - 1, -1, -1):
         tail[k] = tail[k + 1] + unary[free[k]]
 
-    best, best_map, steps, exhaustive = cost_of(reaction, incumbent), incumbent.copy(), 0, True
+    best, best_map, steps, exhaustive = (
+        cost_of(reaction, incumbent),
+        incumbent.copy(),
+        0,
+        True,
+    )
 
     def recurse(k, mapping, seated, used, partial):
         nonlocal best, best_map, steps, exhaustive
@@ -198,104 +182,71 @@ def weighted_cost(reaction, mapping, weights=(0.0, 1.0, 0.0, 0.0)):
     mask = np.triu(kept[:, None] | kept[None, :], 1)
     w_order, w_link, w_h, w_q = weights
 
-    return float(w_order * np.abs((after - before) * mask).sum() + w_link * (((after > 0) != (before > 0)) & mask).sum()
-                 + w_h * np.abs(b["h"] - a["h"][mapping]).sum() + w_q * np.abs(b["q"] - a["q"][mapping]).sum())
+    return float(
+        w_order * np.abs((after - before) * mask).sum()
+        + w_link * (((after > 0) != (before > 0)) & mask).sum()
+        + w_h * np.abs(b["h"] - a["h"][mapping]).sum()
+        + w_q * np.abs(b["q"] - a["q"][mapping]).sum()
+    )
 
 
-def ordered_domains(reaction, depth=DEPTH):
-    """Every precursor atom of the right element for every product atom, the most similar environment first.
-
-    Nothing is excluded, because an atom next to the reaction centre changes its environment and its true seat
-    then shares no deep colour with it. The order only decides what the search tries first.
-    """
+def token_descent(reaction, mapping, passes=3):
+    """Re-seat one product atom at a time (swapping if the seat is taken) whenever that strictly shrinks the firing
+    vector."""
     a, b = reaction["a"], reaction["b"]
-    ca, cb = colours(a, depth), colours(b, depth)
-    out = []
-    for i in range(len(b["x"])):
-        seats = np.nonzero(a["element"] == b["element"][i])[0]
-        agreement = np.zeros(len(seats))
-
-        for d in range(1, depth + 1):
-            agreement += ca[d][seats] == cb[d][i]
-
-        out.append(seats[np.argsort(-agreement, kind="stable")])
-
-    return out
-
-
-def minimise_weighted(reaction, incumbent, weights=(0.0, 1.0, 0.0, 0.0), prior=None, budget=60000, depth=DEPTH):
-    """Branch and bound for the weighted cost over the full domains, seeded with a feasible mapping.
-
-    prior[i, j] is an optional small non-negative energy of seating i on j, for instance the negative log probability
-    of a trained mapper scaled down so that it can never outweigh one unit of the cost. It then only orders the
-    mappings that the net cannot tell apart. Returns the mapping, its cost and whether the search was exhaustive.
-    """
-    a, b = reaction["a"], reaction["b"]
+    mapping = mapping.copy()
+    best = cost_of(reaction, mapping)
     order_a, order_b = BOND_ORDER[dense_bonds(a)], BOND_ORDER[dense_bonds(b)]
-    link_a, link_b = order_a > 0, order_b > 0
-    w_order, w_link, w_h, w_q = weights
-    n_b = len(b["x"])
-    unary = w_h * np.abs(b["h"][:, None] - a["h"][None, :]) + w_q * np.abs(b["q"][:, None] - a["q"][None, :])
+    for _ in range(passes):
+        improved = False
 
-    if prior is not None:
-        unary = unary + prior
+        # only atoms that take part in a firing under the current mapping can be badly seated
+        mism = (
+            np.abs(order_b - order_a[np.ix_(mapping, mapping)]).sum(1)
+            + np.abs(b["h"] - a["h"][mapping])
+            + np.abs(b["q"] - a["q"][mapping])
+        )
+        for i in np.nonzero(mism > 0)[0]:
+            for j in np.nonzero(a["element"] == b["element"][i])[0]:
+                if j == mapping[i]:
+                    continue
 
-    doms = ordered_domains(reaction, depth)
+                trial = mapping.copy()
+                holder = np.nonzero(mapping == j)[0]
+                if len(holder):
+                    trial[holder[0]] = mapping[i]
 
-    # atoms with many bonds first, their seats constrain the most
-    free = sorted(range(n_b), key=lambda i: (-int(link_b[i].sum()), len(doms[i])))
-    floor = np.array([unary[i, doms[i]].min() if len(doms[i]) else 0.0 for i in range(n_b)])
-    tail = np.zeros(n_b + 1)
-    for k in range(n_b - 1, -1, -1):
-        tail[k] = tail[k + 1] + floor[free[k]]
+                trial[i] = j
+                cost = cost_of(reaction, trial)
+                if cost < best - 1e-9:
+                    mapping, best, improved = trial, cost, True
 
-    def total(mapping):
-        return weighted_cost(reaction, mapping, weights) + (float(prior[np.arange(n_b), mapping].sum()) if prior is not None else 0.0)
+        if not improved:
+            break
 
-    best, best_map, steps, exhaustive = total(incumbent), incumbent.copy(), 0, True
+    return mapping
 
-    def recurse(k, mapping, seated, used, partial):
-        nonlocal best, best_map, steps, exhaustive
 
-        if steps > budget:
-            exhaustive = False
-            return
+def feasible_start(reaction, budget=20000):
+    """A seating by element and atom environment, improved by token descent and a branch and bound over seatings that
+    minimises the tokens moved. None when some product atom has no precursor atom of its element left.
+    """
+    out, used = np.zeros(len(reaction["b"]["x"]), np.int64), set()
+    for i, d in enumerate(domains(reaction)):
+        free = [int(j) for j in d if int(j) not in used]
+        if not free:
+            free = [
+                int(j)
+                for j in np.nonzero(
+                    reaction["a"]["element"] == reaction["b"]["element"][i]
+                )[0]
+                if int(j) not in used
+            ]
 
-        if partial + tail[k] >= best - 1e-9:
-            return
+        if not free:
+            return None
 
-        if k == n_b:
-            value = total(mapping)
-            if value < best - 1e-9:
-                best, best_map = value, mapping.copy()
+        out[i] = free[0]
+        used.add(free[0])
 
-            return
-
-        i = free[k]
-        idx = np.array(seated, dtype=int)
-        for j in doms[i]:
-            if j in used:
-                continue
-
-            steps += 1
-            add = unary[i, j]
-
-            if len(idx):
-                cols = mapping[idx]
-                add += w_order * np.abs(order_b[i, idx] - order_a[j, cols]).sum() + w_link * (link_b[i, idx] != link_a[j, cols]).sum()
-
-            if partial + add + tail[k + 1] >= best - 1e-9:
-                continue
-
-            mapping[i] = j
-            used.add(j)
-            seated.append(i)
-            recurse(k + 1, mapping, seated, used, partial + add)
-            seated.pop()
-            used.discard(j)
-            mapping[i] = -1
-
-    recurse(0, np.full(n_b, -1), [], set(), 0.0)
-
-    return best_map, best, exhaustive
-
+    return branch_and_bound(reaction, token_descent(reaction, out), budget=budget)[0]

@@ -16,5 +16,15 @@
  "product_top2": 0.0013,
  "product_top3": 0.001575,
  "product_top4": 0.001825,
- "product_top5": 0.002025
+ "product_top5": 0.002025,
+ "product_major_top1": 0.001075,
+ "product_major_top2": 0.0014,
+ "product_major_top3": 0.001675,
+ "product_major_top4": 0.001925,
+ "product_major_top5": 0.002125,
+ "product_found_top1": 0.001075,
+ "product_found_top2": 0.0014,
+ "product_found_top3": 0.001675,
+ "product_found_top4": 0.001925,
+ "product_found_top5": 0.002125
 }

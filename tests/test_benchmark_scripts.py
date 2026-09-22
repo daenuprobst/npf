@@ -16,8 +16,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = sorted(p for p in (ROOT / "benchmarks").rglob("*.py") if p.name != "__init__.py")
 
-# these two run their checks at import time
-RUN_ON_IMPORT = {"paper_checks.py", "theory_checks.py"}
+# this one runs its checks at import time
+RUN_ON_IMPORT = {"paper_checks.py"}
 
 
 def module_name(path):

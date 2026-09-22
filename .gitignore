@@ -232,7 +232,13 @@ results/**/*.log
 
 *.md
 !README.md
- *.pdf
+*.pdf
+*.done
+*.sh
+STATUS*.txt
+
 
 paper/
 superseded/
+data/flower/
+superseded*/

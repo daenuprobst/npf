@@ -1,8 +1,9 @@
 """Balanced equations from the open valence net, for one reaction or for the reactions of a data set that lack atoms.
 
-    uv run python -m benchmarks.chemistry.balance "CC(=O)Cl.NCCN>>CC(=O)NCCNC(C)=O"
-    uv run python -m benchmarks.chemistry.balance --data golden          # results/chem/open_net/golden.json
+uv run python -m benchmarks.chemistry.balance "CC(=O)Cl.NCCN>>CC(=O)NCCNC(C)=O"
+uv run python -m benchmarks.chemistry.balance --data golden          # results/chem/open_net/golden.json
 """
+
 import argparse
 import json
 import pickle
@@ -16,15 +17,19 @@ import numpy as np
 from npf import chem
 from npf.chem import exact, open_net
 
-OPTIONS = dict(secondary=(1, 1, 1), labile_h=False, ch_places=True)
-
 
 def work(job):
     reaction, seconds = job
     start = time.time()
 
     try:
-        mapping, cost, proved, solved = open_net.solve_open(reaction, seconds=seconds, workers=2, **OPTIONS)
+        mapping, cost, proved, solved = open_net.solve_open(
+            reaction,
+            seconds=4 * seconds,
+            deterministic=seconds,
+            workers=4,
+            **exact.CHOSEN,
+        )
     except Exception:
         mapping = None
 
@@ -34,15 +39,29 @@ def work(job):
     out = open_net.balance(solved, mapping)
     copies = exact.entered(solved, mapping) - len(out["entered"])
 
-    return {"id": reaction["id"], "solved": True, "proved": bool(proved), "cost": cost, "copies": copies, "atoms": len(out["entered"]),
-            "balanced": out["balanced"], "seconds": time.time() - start}
+    return {
+        "id": reaction["id"],
+        "solved": True,
+        "proved": bool(proved),
+        "cost": cost,
+        "copies": copies,
+        "atoms": len(out["entered"]),
+        "balanced": out["balanced"],
+        "seconds": time.time() - start,
+    }
 
 
 def one(smiles, seconds):
-    r = chem.featurise({"original_rxn": smiles, "rxn": smiles, "label": 0, "split": "test", "id": 0})
-    mapping, cost, proved, solved = open_net.solve_open(r, seconds=seconds, workers=4, **OPTIONS)
+    r = chem.featurise(
+        {"original_rxn": smiles, "rxn": smiles, "label": 0, "split": "test", "id": 0}
+    )
+    mapping, cost, proved, solved = open_net.solve_open(
+        r, seconds=4 * seconds, deterministic=seconds, workers=4, **exact.CHOSEN
+    )
     out = open_net.balance(solved, mapping)
-    print(f"places that change   {cost}  ({'proved minimal' if proved else 'not proved'})")
+    print(
+        f"places that change   {cost}  ({'proved minimal' if proved else 'not proved'})"
+    )
     print(f"equivalents          {out['equivalents']}")
     print(f"by-products          {out['by_products']}")
     print(f"spectators           {out['spectators']}")
@@ -58,14 +77,30 @@ def data_set(name, seconds, processes):
         rows = pool.map(work, [(r, seconds) for r in short], chunksize=1)
 
     done = [x for x in rows if x["solved"]]
-    how = Counter("copies and atoms" if x["copies"] and x["atoms"] else "copies only" if x["copies"] else "atoms only" for x in done)
-    summary = {"data": name, "reactions": len(reactions), "lack_atoms": len(short), "solved": len(done),
-               "proved": float(np.mean([x["proved"] for x in done])), **{k: v / len(done) for k, v in how.items()},
-               "median_seconds": float(np.median([x["seconds"] for x in done]))}
+    how = Counter(
+        (
+            "copies and atoms"
+            if x["copies"] and x["atoms"]
+            else "copies only" if x["copies"] else "atoms only"
+        )
+        for x in done
+    )
+
+    summary = {
+        "data": name,
+        "reactions": len(reactions),
+        "lack_atoms": len(short),
+        "solved": len(done),
+        "proved": float(np.mean([x["proved"] for x in done])),
+        **{k: v / len(done) for k, v in how.items()},
+        "median_seconds": float(np.median([x["seconds"] for x in done])),
+    }
+
     out = Path("results/chem/open_net")
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{name}.json").write_text(json.dumps(summary, indent=1))
     (out / f"{name}.rows.json").write_text(json.dumps(rows, indent=1))
+
     print(json.dumps(summary, indent=1))
 
 

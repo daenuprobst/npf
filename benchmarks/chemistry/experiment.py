@@ -1,23 +1,27 @@
-"""Atom mapping, forward prediction and reaction classification on the valence Petri net.
+"""Forward prediction and reaction classification on the valence Petri net.
 
     uv run python -m benchmarks.chemistry.experiment --task classify --model npf --seed 0
-    uv run python -m benchmarks.chemistry.experiment --task map --model pgnn
     uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit
 
 Models. npf uses the Petri semantics, pgnn is the same message passing with a generic readout, drfp is DRFP with an
 MLP for classification, and the npf-no... variants remove one Petri component each.
 
+Maps. No recorded atom map is read where it could be avoided. Classification reads the maps of the exact mapper
+(--maps), forward prediction trains on the firing vectors of the net (--net-targets, benchmarks.chemistry.net_targets).
+
 Splits. classify uses the published split of Schneider 50k with 200 training and 800 test reactions per class.
-On Schneider 50k, map and forward use a fixed random 80/10/10 split of the reactions that come with a clean atom
-mapping, which is an internal protocol for ablations. With the dataset uspto_mit the official split of Jin et al. is
-used, and forward prediction is scored on the whole official test set. Training records whose recorded mapping moves
-more than MAX_TOKENS tokens are dropped as label noise. Validation and test sets are never filtered.
+On Schneider 50k, forward uses a fixed random 80/10/10 split of the reactions that come with a clean atom mapping,
+which is an internal protocol for ablations. With the dataset uspto_mit the official split of Jin et al. is used, and
+forward prediction is scored on the whole official test set. Training records whose firing vector moves more than
+MAX_TOKENS tokens are dropped as label noise. Validation and test sets are never filtered.
 """
+
 import argparse
 import copy
+import hashlib
 import json
-import pickle
 import os
+import pickle
 import time
 from collections import Counter
 from pathlib import Path
@@ -27,16 +31,18 @@ import torch
 import torch.nn.functional as F
 
 from npf import chem
+from npf.chem import (
+    MAX_TOKENS,
+    batch_indices,
+    batches,
+    firing_vector,
+    product_found,
+    product_major,
+    recorded_products,
+)
 
-EPOCHS = {"classify": 60, "map": 25, "forward": 60}
-BATCH = {"classify": 64, "map": 48, "forward": 32}
-
-
-# token descent after the Hungarian step, with uniform costs it lowers the agreement with recorded maps by 4 points
-REFINE = False
-
-# training records whose recorded mapping moves more tokens are mostly incomplete (1.3 %), not trained on
-MAX_TOKENS = 10
+EPOCHS = {"classify": 60, "forward": 60}
+BATCH = {"classify": 64, "forward": 32}
 
 # lines of the official USPTO-MIT training and test files
 USPTO_MIT_TRAIN_LINES = 409035
@@ -45,20 +51,43 @@ USPTO_MIT_TEST_LINES = 40000
 # validation reactions whose beam candidates train the verifier, the first 1500 are used for model selection
 VERIFIER_REACTIONS = 12000
 
+# USPTO-MIT validation reactions on which runs are compared, disjoint from the 1500 that select the epoch
+SCREEN = slice(3000, 10500)
+
 
 def subset_lines(n):
     """The first n entries of one fixed random order of the lines of the official USPTO-MIT training file. Subsets
-    are nested and shared with the baselines, a reaction id of the training split is its line number."""
+    are nested and shared with the baselines, a reaction id of the training split is its line number.
+    """
     return np.random.default_rng(0).permutation(USPTO_MIT_TRAIN_LINES)[:n]
 
 
-def splits(data, task, clean_train=True):
+def splits(data, task, clean_train=True, recorded=True):
+    """Training, validation and test reactions. recorded=False keeps or drops no training reaction because of a
+    recorded atom map, forward targets then come from the net (use_net_targets). On USPTO-MIT both kinds of runs share
+    the validation reactions, on Schneider 50k the benchmark itself is defined on reactions with a clean recorded map.
+    """
     reactions = data["reactions"]
 
     # USPTO-MIT
     if any(r["split"] == "val" for r in reactions):
-        part = lambda name: [r for r in reactions if r["split"] == name]
-        train = [r for r in part("train") if r["target"] is not None and tokens_moved(r, r["target"]) <= MAX_TOKENS]
+        # the size caps of training and model selection, the same for both kinds of targets and read off the molecules
+        part = lambda name: [
+            r
+            for r in reactions
+            if r["split"] == name
+            and len(r["a"]["x"]) <= chem.MAX_PRECURSOR_ATOMS
+            and len(r["b"]["x"]) <= chem.MAX_PRODUCT_ATOMS
+        ]
+        train = part("train")
+
+        if recorded:
+            train = [
+                r
+                for r in train
+                if r["target"] is not None
+                and tokens_moved(r, r["target"]) <= MAX_TOKENS
+            ]
 
         # models trained here are also scored on the Golden atom mapping set, so no training reaction may share its
         # main product with that set
@@ -68,12 +97,13 @@ def splits(data, task, clean_train=True):
             banned = {main(r) for r in pickle.loads(golden.read_bytes())["reactions"]}
             n = len(train)
             train = [r for r in train if main(r) not in banned]
-            print(f"removed {n - len(train)} training reactions whose main product occurs in the Golden dataset", flush=True)
+            print(
+                f"removed {n - len(train)} training reactions whose main product occurs in the Golden dataset",
+                flush=True,
+            )
 
-        if task == "map":
-            return train, [r for r in part("val") if r["target"] is not None], [r for r in part("test") if r["target"] is not None]
-
-        return train, [r for r in part("val") if r["target"] is not None], part("test")
+        # every test reaction is scored, whatever its size
+        return train, part("val"), [r for r in reactions if r["split"] == "test"]
 
     if task == "classify":
         train = [r for r in reactions if r["split"] == "train"]
@@ -81,33 +111,39 @@ def splits(data, task, clean_train=True):
         rng.shuffle(train)
         return train[500:], train[:500], [r for r in reactions if r["split"] == "test"]
 
+    # the internal protocol of Schneider 50k is defined on the reactions with a clean recorded mapping, which fixes the
+    # benchmark and nothing else, since training targets can still come from the net
     mapped = [r for r in reactions if r["target"] is not None]
-
-    # the mapper used inside the classification pipeline, trained on Schneider's training split only
-    if task == "map-clean":
-        train = [r for r in mapped if r["split"] == "train" and tokens_moved(r, r["target"]) <= MAX_TOKENS]
-        return train[500:], train[:500], [r for r in mapped if r["split"] == "test"]
-
     order = np.random.default_rng(0).permutation(len(mapped))
     n = len(order) // 10
     pick = lambda idx: [mapped[i] for i in idx]
-    train = pick(order[2 * n:])
+    train = pick(order[2 * n :])
 
-    # minimum-firing prior against label noise, validation and test sets are left as they are
-    if clean_train:
+    # minimum-firing prior against label noise, validation and test sets are left as they are. Without recorded maps
+    # the same cap applies to the targets of the net instead
+    if clean_train and recorded:
         train = [r for r in train if tokens_moved(r, r["target"]) <= MAX_TOKENS]
 
-    return train, pick(order[:n]), pick(order[n:2 * n])
+    return train, pick(order[:n]), pick(order[n : 2 * n])
 
 
 def attach_firing_histograms(train, *others, n_types=300):
     """Auxiliary target, counts of the fired transition types (atom type, atom type, old bond, new bond) with
-    atom type = (element, aromatic, degree), the vocabulary is the n_types most frequent types of the training set."""
+    atom type = (element, aromatic, degree), the vocabulary is the n_types most frequent types of the training set.
+    """
+
     def types(r):
         a, bonds = r["a"], chem.dense_bonds(r["a"])
-        kind = lambda i: (int(a["element"][i]), int(a["x"][i][-2]), int(min((bonds[i] > 0).sum(), 4)))
+        kind = lambda i: (
+            int(a["element"][i]),
+            int(a["x"][i][-2]),
+            int(min((bonds[i] > 0).sum(), 4)),
+        )
 
-        return [(*sorted([kind(i), kind(j)]), int(bonds[i, j]), int(new)) for i, j, new in r["edits"]]
+        return [
+            (*sorted([kind(i), kind(j)]), int(bonds[i, j]), int(new))
+            for i, j, new in r["edits"]
+        ]
 
     counts = Counter(t for r in train if r["edits"] is not None for t in types(r))
     index = {t: k + 1 for k, (t, _) in enumerate(counts.most_common(n_types - 1))}
@@ -123,30 +159,19 @@ def attach_firing_histograms(train, *others, n_types=300):
     return n_types
 
 
-@torch.no_grad()
-def write_predicted_maps(model, reactions, device, path="data/predicted_maps.pkl"):
-    """Mapping of every reaction (with or without a recorded one) by the given mapper, {reaction id, product -> precursor}."""
-    import pickle
-    model.eval()
-    out = {}
-    for rs in batches(reactions, 32):
-        b = chem.collate(rs, device)
-        for r, mapping in zip(rs, model.decode(model(b), b)):
-            out[r["id"]] = mapping.astype(np.int16)
-
-    Path(path).write_bytes(pickle.dumps(out))
-    print(f"wrote {len(out)} predicted mappings to {path}", flush=True)
-
-
-def use_predicted_firing(*splits_, path="data/predicted_maps.pkl", blank_missing=False):
-    """Replace the recorded mapping and edits of every reaction by the ones our own mapper predicts."""
-    import pickle
+def use_predicted_firing(
+    *splits_, path="data/exact_maps_schneider50k.pkl", blank_missing=False
+):
+    """Replace the recorded mapping and edits of every reaction by the ones in a file of maps, those of the exact
+    mapper (benchmarks.chemistry.exact_map --write)."""
     maps = pickle.loads(Path(path).read_bytes())
     for r in (r for rs in splits_ for r in rs):
         # a reaction the file does not cover keeps its record, or loses it when no recorded map may be used at all
         if r["id"] not in maps:
             if blank_missing:
-                r["target"], r["edits"] = np.full(len(r["b"]["x"]), -1, np.int16), np.zeros((0, 3), np.int16)
+                r["target"], r["edits"] = np.full(
+                    len(r["b"]["x"]), -1, np.int16
+                ), np.zeros((0, 3), np.int16)
 
             continue
 
@@ -154,34 +179,54 @@ def use_predicted_firing(*splits_, path="data/predicted_maps.pkl", blank_missing
 
         # product atoms without a precursor (incomplete record), no firing vector
         if len(mapping) != len(r["b"]["x"]):
-            r["target"], r["edits"] = np.full(len(r["b"]["x"]), -1, np.int16), np.zeros((0, 3), np.int16)
+            r["target"], r["edits"] = np.full(len(r["b"]["x"]), -1, np.int16), np.zeros(
+                (0, 3), np.int16
+            )
             continue
 
-        before, after = chem.dense_bonds(r["a"]), np.zeros((len(r["a"]["x"]),) * 2, np.int8)
-        after[np.ix_(mapping, mapping)] = chem.dense_bonds(r["b"])
-        kept = np.zeros(len(before), bool)
-        kept[mapping] = True
-        i, j = np.nonzero(np.triu((after != before) & (kept[:, None] | kept[None, :]), 1))
-        r["target"], r["edits"] = mapping.astype(np.int16), np.stack([i, j, after[i, j]], 1).astype(np.int16)
+        r["target"], r["edits"] = mapping.astype(np.int16), firing_vector(r, mapping)
 
 
-def batch_indices(reactions, size, rng=None):
-    """Index batches of similar size (less padding), shuffled if an rng is given."""
-    idx = np.arange(len(reactions)) if rng is None else rng.permutation(len(reactions))
-    out = []
+def use_net_targets(train, path, single=False):
+    """Forward targets from the net alone. A reaction takes the firing vectors that benchmarks.chemistry.net_targets
+    found for it, its recorded mapping is dropped, and a reaction without such a vector is not trained on. single keeps
+    only the first vector, the ablation of the set."""
+    vectors = pickle.loads(Path(path).read_bytes())["targets"]
+    kept = []
+    for r in train:
+        found = vectors.get(r["id"])
+        if not found:
+            continue
 
-    for s in range(0, len(idx), size * 50):
-        chunk = sorted(idx[s:s + size * 50], key=lambda i: len(reactions[i]["a"]["x"]))
-        out += [chunk[k:k + size] for k in range(0, len(chunk), size)]
+        r["target"], r["edits"], r["edits_set"] = (
+            None,
+            found[0],
+            found[:1] if single else found,
+        )
+        kept.append(r)
 
-    if rng is not None:
-        rng.shuffle(out)
+    print(
+        f"net targets for {len(kept)} of {len(train)} training reactions, {np.mean([len(r['edits_set']) for r in kept]):.2f} "
+        f"firing vectors per reaction",
+        flush=True,
+    )
 
-    return out
+    return kept
 
 
-def batches(reactions, size, rng=None):
-    return [[reactions[i] for i in b] for b in batch_indices(reactions, size, rng)]
+def within(rs, pairs=640_000):
+    """A batch sorted by size, split where its padded atom pairs would exceed pairs. The forward models hold every
+    pair densely, and batches below the limit stay as they are."""
+    out, group = [], []
+    for r in rs:
+        n = len(r["a"]["x"])
+        if group and (len(group) + 1) * max(n, len(group[-1]["a"]["x"])) ** 2 > pairs:
+            out.append(group)
+            group = []
+
+        group.append(r)
+
+    return out + [group] if group else out
 
 
 class Collated(torch.utils.data.Dataset):
@@ -197,92 +242,48 @@ class Collated(torch.utils.data.Dataset):
         return chem.collate([self.reactions[i] for i in self.index_batches[k]], "cpu")
 
 
-def epoch_loader(reactions, size, rng, device, workers=int(os.environ.get("NPF_WORKERS", 4))):
-    loader = torch.utils.data.DataLoader(Collated(reactions, batch_indices(reactions, size, rng)), batch_size=None, shuffle=False,
-                                         num_workers=workers, prefetch_factor=4, pin_memory=device == "cuda")
+def epoch_loader(
+    reactions, size, rng, device, workers=int(os.environ.get("NPF_WORKERS", 4))
+):
+    loader = torch.utils.data.DataLoader(
+        Collated(reactions, batch_indices(reactions, size, rng)),
+        batch_size=None,
+        shuffle=False,
+        num_workers=workers,
+        prefetch_factor=4,
+        pin_memory=device == "cuda",
+    )
     for batch in loader:
         yield {k: v.to(device, non_blocking=True) for k, v in batch.items()}
 
 
-# ------------------------------------------------------------------ metrics
-
-def firing(reaction, mapping, connectivity=True):
-    """The transitions that must fire to turn A into B under a product -> precursor atom mapping, as a multiset
-    over equivalence classes of precursor atoms. connectivity=True, bonds formed and broken, atoms up to
-    skeleton symmetry - invariant under resonance and tautomerism on either side, the usual notion of a
-    correct atom mapping. connectivity=False, every change of bond type, atoms up to exact symmetry."""
-    a, bb = reaction["a"], chem.dense_bonds(reaction["b"])
-    before = chem.dense_bonds(a)
-    after = np.zeros_like(before)
-    after[np.ix_(mapping, mapping)] = bb
-    kept = np.zeros(len(before), bool)
-    kept[mapping] = True
-
-    if connectivity:
-        before, after = (before > 0).astype(np.int8), (after > 0).astype(np.int8)
-
-    i, j = np.nonzero(np.triu((after != before) & (kept[:, None] | kept[None, :]), 1))
-
-    return symmetric(a, i, j, before[i, j], after[i, j], "skeleton" if connectivity else "symmetry")
+# metrics
 
 
 def tokens_moved(reaction, mapping):
     """Size of the firing vector under a mapping, bond tokens plus hydrogens and charges that have to move."""
-    a, b = reaction["a"], reaction["b"]
-    before = chem.BOND_ORDER[chem.dense_bonds(a)]
-    after = np.zeros_like(before)
-    after[np.ix_(mapping, mapping)] = chem.BOND_ORDER[chem.dense_bonds(b)]
-    kept = np.zeros(len(before), bool)
-    kept[mapping] = True
-    bonds = np.abs(np.triu((after - before) * (kept[:, None] | kept[None, :]), 1)).sum()
-
-    return float(bonds + np.abs(b["h"] - a["h"][mapping]).sum() + np.abs(b["q"] - a["q"][mapping]).sum())
-
-
-def token_descent(reaction, mapping, passes=3):
-    """Discrete counterpart of the consensus rounds, starting from the learned correspondence, re-seat one product
-    atom at a time (swapping if the seat is taken) whenever that strictly shrinks the firing vector."""
-    a, b = reaction["a"], reaction["b"]
-    mapping = mapping.copy()
-    best = tokens_moved(reaction, mapping)
-    order_a, order_b = chem.BOND_ORDER[chem.dense_bonds(a)], chem.BOND_ORDER[chem.dense_bonds(b)]
-    for _ in range(passes):
-        improved = False
-
-        # only atoms that take part in a firing under the current mapping can be badly seated
-        mism = np.abs(order_b - order_a[np.ix_(mapping, mapping)]).sum(1) + np.abs(b["h"] - a["h"][mapping]) + np.abs(b["q"] - a["q"][mapping])
-        for i in np.nonzero(mism > 0)[0]:
-            for j in np.nonzero(a["element"] == b["element"][i])[0]:
-                if j == mapping[i]:
-                    continue
-
-                trial = mapping.copy()
-                holder = np.nonzero(mapping == j)[0]
-                if len(holder):
-                    trial[holder[0]] = mapping[i]
-
-                trial[i] = j
-                cost = tokens_moved(reaction, trial)
-                if cost < best - 1e-9:
-                    mapping, best, improved = trial, cost, True
-
-        if not improved:
-            break
-
-    return mapping
+    return chem.cost_of(reaction, mapping)
 
 
 def symmetric(a, i, j, old, new, classes="symmetry"):
     s = a[classes]
 
-    return Counter((min(s[x], s[y]), max(s[x], s[y]), int(o), int(n)) for x, y, o, n in zip(i, j, old, new))
+    return Counter(
+        (min(s[x], s[y]), max(s[x], s[y]), int(o), int(n))
+        for x, y, o, n in zip(i, j, old, new)
+    )
 
 
 @torch.no_grad()
 def evaluate(model, task, reactions, device):
     model.eval()
     stats = Counter()
-    for rs in batches(reactions, 64):
+    groups = batches(reactions, 64)
+
+    if task == "forward":
+        groups = [part for rs in groups for part in within(rs)]
+
+    for rs in groups:
         b = chem.collate(rs, device)
         out = model(b)
 
@@ -295,39 +296,33 @@ def evaluate(model, task, reactions, device):
                 stats["tp", t] += p == t
                 stats["pred", p] += 1
                 stats["true", t] += 1
-        elif task == "map":
-            for r, pred in zip(rs, model.decode(out, b)):
-                if getattr(model, "petri", False) and REFINE:
-                    pred = token_descent(r, pred)
-
-                ok = r["a"]["skeleton"][pred] == r["a"]["skeleton"][r["target"]]
-                ours, recorded = firing(r, pred), firing(r, r["target"])
-                stats["atoms"] += len(ok)
-                stats["atoms_ok"] += int(ok.sum())
-                stats["n"] += 1
-                stats["same_firing"] += ours == recorded
-                stats["same_firing_strict"] += firing(r, pred, False) == firing(r, r["target"], False)
-
-                # minimum-firing audit of the disagreements, whose firing vector moves fewer tokens?
-                if ours != recorded:
-                    n_ours, n_rec = tokens_moved(r, pred), tokens_moved(r, r["target"])
-                    stats["disagree_fewer" if n_ours < n_rec else "disagree_equal" if n_ours == n_rec else "disagree_more"] += 1
         else:
             for r, pred in zip(rs, model.decode(out, b, rs)):
                 a, before = r["a"], chem.dense_bonds(r["a"])
 
                 # no clean recorded mapping
-                true = r["edits"] if r["edits"] is not None else np.zeros((0, 3), np.int64)
-                same = lambda e: symmetric(a, e[:, 0], e[:, 1], before[e[:, 0], e[:, 1]], e[:, 2])
+                true = (
+                    r["edits"] if r["edits"] is not None else np.zeros((0, 3), np.int64)
+                )
+                same = lambda e: symmetric(
+                    a, e[:, 0], e[:, 1], before[e[:, 0], e[:, 1]], e[:, 2]
+                )
                 after = before.copy()
                 after[pred[:, 0], pred[:, 1]] = pred[:, 2]
                 after[pred[:, 1], pred[:, 0]] = pred[:, 2]
-                hydrogens = a["h"] - (chem.BOND_ORDER[after] - chem.BOND_ORDER[before]).sum(1)
+                hydrogens = a["h"] - (
+                    chem.BOND_ORDER[after] - chem.BOND_ORDER[before]
+                ).sum(1)
                 stats["n"] += 1
-                stats["exact"] += {tuple(e) for e in pred.tolist()} == {tuple(e) for e in true.tolist()}
+                stats["exact"] += {tuple(e) for e in pred.tolist()} == {
+                    tuple(e) for e in true.tolist()
+                }
                 stats["product"] += product_found(r, pred)
+                stats["major"] += product_major(r, pred)
                 stats["exact_sym"] += same(pred) == same(true)
-                capacity = np.array([chem.EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]]) + np.maximum(-a["q"], 0)
+                capacity = np.array(
+                    [chem.EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]]
+                ) + np.maximum(-a["q"], 0)
 
                 # no hydrogen place below its capacity
                 stats["enabled"] += bool((hydrogens >= -capacity - 0.5).all())
@@ -335,48 +330,65 @@ def evaluate(model, task, reactions, device):
     n = stats["n"]
 
     if task == "classify":
-        f1 = [2 * stats["tp", c] / max(stats["pred", c] + stats["true", c], 1) for c in range(stats["classes"])]
+        f1 = [
+            2 * stats["tp", c] / max(stats["pred", c] + stats["true", c], 1)
+            for c in range(stats["classes"])
+        ]
         return {"accuracy": stats["correct"] / n, "macro_f1": float(np.mean(f1))}
 
-    if task == "map":
-        return {"reactions_same_firing_vector": stats["same_firing"] / n, "atoms_correct": stats["atoms_ok"] / stats["atoms"],
-                "reactions_same_firing_vector_strict": stats["same_firing_strict"] / n,
-                "disagree_ours_moves_fewer_tokens": stats["disagree_fewer"] / n, "disagree_equal": stats["disagree_equal"] / n,
-                "disagree_ours_moves_more_tokens": stats["disagree_more"] / n}
-
-    return {"product_top1": stats["product"] / n, "edits_exact_up_to_symmetry": stats["exact_sym"] / n, "edits_exact": stats["exact"] / n,
-            "valence_valid": stats["enabled"] / n}
-
-
-def recorded_products(reaction):
-    """Every recorded product molecule (canonical, no stereochemistry) has to be predicted."""
-    out = set()
-    for smi in reaction["smiles"].split(">>")[1].split("."):
-        out.add(chem.canonical_product(smi))
-
-    return out
+    return {
+        "product_top1": stats["product"] / n,
+        "product_major_top1": stats["major"] / n,
+        "edits_exact_up_to_symmetry": stats["exact_sym"] / n,
+        "edits_exact": stats["exact"] / n,
+        "valence_valid": stats["enabled"] / n,
+    }
 
 
-def product_found(reaction, edits):
-    """The main recorded product is made by the firings, and every recorded product molecule (counter-ions of
-    salts are spectators) is part of the final marking."""
-    touched, everything = chem.marking_fragments(reaction["a"], edits)
-    recorded = reaction["smiles"].split(">>")[1]
+def ranked_candidates(model, reactions, device, width, batch, pairs=400_000):
+    """(reaction, ranked candidates) for every reaction. batch 1 searches one reaction at a time, larger batches share
+    the rate law evaluations of up to batch reactions of similar size, fewer when their hypotheses would hold more than
+    pairs atom pairs, since the rate law holds every pair densely."""
+    if batch <= 1:
+        for r in reactions:
+            yield r, model.beam_search(chem.collate([r], device), width)
 
-    return chem.canonical_product(recorded) in touched and recorded_products(reaction) <= everything
+        return
+
+    group = []
+    for i in sorted(
+        range(len(reactions)), key=lambda i: len(reactions[i]["a"]["x"])
+    ) + [None]:
+        n = len(reactions[i]["a"]["x"]) if i is not None else 0
+        if group and (
+            i is None or len(group) >= batch or (len(group) + 1) * width * n * n > pairs
+        ):
+            rs = [reactions[j] for j in group]
+            yield from zip(rs, model.beam_search_batch(chem.collate(rs, device), width))
+            group = []
+
+        if i is not None:
+            group.append(i)
 
 
 @torch.no_grad()
-def evaluate_beam(model, reactions, device, width=5, dump=None):
+def evaluate_beam(model, reactions, device, width=5, dump=None, batch=16):
     """Top-k product accuracy of the token game, the recorded product is among the k most probable markings.
-    With dump, the candidates of every reaction are written there, as (id, [(edits, log probability, correct)])."""
+    With dump, the candidates of every reaction are written there, as (id, [(edits, log probability, correct)]).
+    """
     model.eval()
-    hits, merged_hits, candidates = np.zeros(width), np.zeros(width), []
-    for r in reactions:
-        ranked = model.beam_search(chem.collate([r], device), width)
+    hits, major_hits, merged_hits, candidates = (
+        np.zeros(width),
+        np.zeros(width),
+        np.zeros(width),
+        [],
+    )
+    for r, ranked in ranked_candidates(model, reactions, device, width, batch):
         found = [product_found(r, edits) for edits, _ in ranked]
         first = found.index(True) if True in found else width
         hits[first:] += 1
+        major = [product_major(r, edits) for edits, _ in ranked]
+        major_hits[major.index(True) if True in major else width :] += 1
 
         # firing vectors that decode to the same molecules are one prediction, their probabilities add
         groups = {}
@@ -388,7 +400,9 @@ def evaluate_beam(model, reactions, device, width=5, dump=None):
         order = [right for _, right in sorted(groups.values(), key=lambda g: -g[0])]
         first = order.index(True) if True in order else width
         merged_hits[first:] += 1
-        candidates.append((r["id"], [(edits, lp, ok) for (edits, lp), ok in zip(ranked, found)]))
+        candidates.append(
+            (r["id"], [(edits, lp, ok) for (edits, lp), ok in zip(ranked, found)])
+        )
 
     if dump:
         Path(dump).parent.mkdir(parents=True, exist_ok=True)
@@ -396,16 +410,25 @@ def evaluate_beam(model, reactions, device, width=5, dump=None):
 
     n = len(reactions)
 
-    return {f"product_top{k + 1}": float(hits[k] / n) for k in range(width)} | {f"product_merged_top{k + 1}": float(merged_hits[k] / n) for k in range(width)}
+    return (
+        {f"product_top{k + 1}": float(hits[k] / n) for k in range(width)}
+        | {
+            f"product_merged_top{k + 1}": float(merged_hits[k] / n)
+            for k in range(width)
+        }
+        | {f"product_major_top{k + 1}": float(major_hits[k] / n) for k in range(width)}
+    )
 
 
-MAIN_METRIC = {"classify": "accuracy", "map": "reactions_same_firing_vector", "forward": "product_top1"}
+MAIN_METRIC = {"classify": "accuracy", "forward": "product_top1"}
 
 
-# ------------------------------------------------------------------ DRFP reference (classification only)
+# DRFP reference (classification only)
 
-def drfp_baseline(train, val, test, device, seed, everything=None):
+
+def drfp_baseline(train, val, test, device, seed, everything=None, select="best"):
     from multiprocessing import Pool
+
     cache = Path("data/drfp.npy")
 
     # the cache is indexed by the rank of the reaction id among ALL reactions
@@ -413,18 +436,31 @@ def drfp_baseline(train, val, test, device, seed, everything=None):
 
     if not cache.exists():
         with Pool(12) as pool:
-            fps = pool.map(_drfp, [r["smiles"] for r in sorted(everything, key=lambda r: r["id"])], chunksize=128)
+            fps = pool.map(
+                _drfp,
+                [r["smiles"] for r in sorted(everything, key=lambda r: r["id"])],
+                chunksize=128,
+            )
 
         np.save(cache, np.array(fps, np.uint8))
 
     rank = {r["id"]: k for k, r in enumerate(sorted(everything, key=lambda r: r["id"]))}
     fps = np.load(cache)
-    tensor = lambda rs: (torch.as_tensor(fps[[rank[r["id"]] for r in rs]], dtype=torch.float32, device=device),
-                         torch.as_tensor([r["label"] for r in rs], device=device))
+    tensor = lambda rs: (
+        torch.as_tensor(
+            fps[[rank[r["id"]] for r in rs]], dtype=torch.float32, device=device
+        ),
+        torch.as_tensor([r["label"] for r in rs], device=device),
+    )
     (xt, yt), (xv, yv), (xs, ys) = tensor(train), tensor(val), tensor(test)
     n_classes = max(r["label"] for r in everything) + 1
     torch.manual_seed(seed)
-    net = torch.nn.Sequential(torch.nn.Linear(2048, 1024), torch.nn.ReLU(), torch.nn.Dropout(0.2), torch.nn.Linear(1024, n_classes)).to(device)
+    net = torch.nn.Sequential(
+        torch.nn.Linear(2048, 1024),
+        torch.nn.ReLU(),
+        torch.nn.Dropout(0.2),
+        torch.nn.Linear(1024, n_classes),
+    ).to(device)
     opt = torch.optim.AdamW(net.parameters(), lr=1e-3, weight_decay=1e-4)
     best, state = 0.0, None
     for _ in range(40):
@@ -437,15 +473,29 @@ def drfp_baseline(train, val, test, device, seed, everything=None):
             opt.step()
 
         net.eval()
-        acc = float((net(xv).argmax(-1) == yv).float().mean())
+
+        # the last epoch is kept without looking at a validation label
+        acc = (
+            float((net(xv).argmax(-1) == yv).float().mean())
+            if select == "best"
+            else 1.0
+        )
         if acc >= best:
             best, state = acc, copy.deepcopy(net.state_dict())
 
     net.load_state_dict(state)
     pred = net(xs).argmax(-1)
-    f1 = [2 * float(((pred == c) & (ys == c)).sum()) / max(float((pred == c).sum() + (ys == c).sum()), 1) for c in range(n_classes)]
+    f1 = [
+        2
+        * float(((pred == c) & (ys == c)).sum())
+        / max(float((pred == c).sum() + (ys == c).sum()), 1)
+        for c in range(n_classes)
+    ]
 
-    return {"accuracy": float((pred == ys).float().mean()), "macro_f1": float(np.mean(f1))}, sum(p.numel() for p in net.parameters())
+    return {
+        "accuracy": float((pred == ys).float().mean()),
+        "macro_f1": float(np.mean(f1)),
+    }, sum(p.numel() for p in net.parameters())
 
 
 def _drfp(smiles):
@@ -454,76 +504,165 @@ def _drfp(smiles):
     return DrfpEncoder.encode(smiles, n_folded_length=2048)[0]
 
 
-# ------------------------------------------------------------------ main
+# main
+
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=list(EPOCHS), required=True)
-    ap.add_argument("--model", default="npf", help="npf | pgnn | drfp | ablations: npf-nogate, npf-sigma, pgnn-sigma (classify), npf-oneshot, npf-noenabling "
-                    "(forward), npf-noequilibrium, npf-nokept, npf-nomorphism, npf-nocost (map)")
+    ap.add_argument(
+        "--model",
+        default="npf",
+        help="npf | pgnn | drfp | ablations: npf-nogate, npf-sigma, pgnn-sigma (classify), npf-oneshot, npf-noenabling "
+        "(forward)",
+    )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int)
-    ap.add_argument("--limit", type=int, help="use only this many training reactions (smoke tests, data-efficiency)")
-    ap.add_argument("--subset", type=int, help="uspto_mit: train on the reactions among this many random lines of the official "
-                    "training file (data efficiency, the baselines get the same lines)")
+    ap.add_argument(
+        "--limit",
+        type=int,
+        help="use only this many training reactions (smoke tests, data-efficiency)",
+    )
+    ap.add_argument(
+        "--subset",
+        type=int,
+        help="uspto_mit: train on the reactions among this many random lines of the official "
+        "training file (data efficiency, the baselines get the same lines)",
+    )
     ap.add_argument("--root", default="results")
-    ap.add_argument("--dataset", choices=["schneider50k", "uspto_mit"], default="schneider50k")
-    ap.add_argument("--evaluate-only", action="store_true", help="re-score the saved weights on the test set")
-    ap.add_argument("--no-beam", action="store_true", help="skip the beam search (top-k) evaluation")
-    ap.add_argument("--dump-validation-beams", action="store_true", help="forward: also write the beam candidates of the validation "
-                    "reactions that model selection did not use")
-    ap.add_argument("--width", type=int, default=128, help="hidden width of the token game")
-    ap.add_argument("--rounds", type=int, default=6, help="message-passing rounds of the token game")
-    ap.add_argument("--attention", type=int, default=0, help="attention layers of the token game (default: 4, or 6 if width > 128)")
-    ap.add_argument("--composites", type=int, default=0, help="token game: also offer substitutions, one firing for a break and a "
-                    "formation at the shared atom, built from this many of the most probable breaks")
-    ap.add_argument("--hops", type=int, default=0, help="token game: pair feature 'distance in the current marking', up to this many bonds")
-    ap.add_argument("--matched", action="store_true", help="forward, pgnn or npf-oneshot: give the one-shot counterpart the encoder "
-                    "of the token game, so that the two have equal capacity (the default keeps the smaller published one)")
-    ap.add_argument("--batch", type=int, default=0, help="batch size (default: per task)")
+    ap.add_argument(
+        "--dataset", choices=["schneider50k", "uspto_mit"], default="schneider50k"
+    )
+    ap.add_argument(
+        "--evaluate-only",
+        action="store_true",
+        help="re-score the saved weights on the test set",
+    )
+    ap.add_argument(
+        "--no-beam", action="store_true", help="skip the beam search (top-k) evaluation"
+    )
+    ap.add_argument(
+        "--dump-validation-beams",
+        action="store_true",
+        help="forward: also write the beam candidates of the validation "
+        "reactions that model selection did not use",
+    )
+    ap.add_argument(
+        "--width", type=int, default=128, help="hidden width of the token game"
+    )
+    ap.add_argument(
+        "--rounds", type=int, default=6, help="message-passing rounds of the token game"
+    )
+    ap.add_argument(
+        "--attention",
+        type=int,
+        default=0,
+        help="attention layers of the token game (default: 4, or 6 if width > 128)",
+    )
+    ap.add_argument(
+        "--matched",
+        action="store_true",
+        help="forward, pgnn or npf-oneshot: give the one-shot counterpart the encoder "
+        "of the token game, so that the two have equal capacity (the default keeps the smaller published one)",
+    )
+    ap.add_argument(
+        "--batch", type=int, default=0, help="batch size (default: per task)"
+    )
     ap.add_argument("--amp", action="store_true", help="bfloat16 autocast")
+    ap.add_argument(
+        "--no-compile",
+        action="store_true",
+        help="token game on CUDA: train with the eager rate law instead of the "
+        "compiled one (the same function, compiled it launches far fewer kernels)",
+    )
+    ap.add_argument(
+        "--beam-batch",
+        type=int,
+        default=16,
+        help="reactions that share one beam search, 1 searches them one at a time",
+    )
     ap.add_argument("--tag", default="", help="suffix of the result files, e.g. -large")
-    ap.add_argument("--lr", type=float, default=1e-3, help="peak learning rate of the one-cycle schedule")
-    ap.add_argument("--clean-mapper", action="store_true", help="map: train on Schneider's training split only and write the predicted "
-                    "mapping of every reaction to data/predicted_maps.pkl (input of `--model npf-sigma` in classify)")
-    ap.add_argument("--maps", default="data/predicted_maps.pkl", help="classify with npf-sigma, the file of predicted maps to read the "
-                    "firing vector from, for instance the one of the mapper that was trained without any recorded map")
-    ap.add_argument("--net-maps", help="replace every recorded mapping by the one this file holds, before any target is built, "
-                    "so that no head of any task sees a recorded map (benchmarks.chemistry.net_maps writes such a file)")
-    ap.add_argument("--firing", action="store_true", help="classify: auxiliary task 'which transition types fired' (from recorded mappings)")
-    ap.add_argument("--labels", type=int, help="classify: number of training reactions whose class label is used; the rest only "
-                    "contribute their firing histograms (needs --firing to be of any use)")
-    ap.add_argument("--size-split", action="store_true", help="classify: train on the smaller half of the training reactions, "
-                    "test on the largest quarter of the test reactions (extrapolation in molecule size)")
+    ap.add_argument(
+        "--lr",
+        type=float,
+        default=1e-3,
+        help="peak learning rate of the one-cycle schedule",
+    )
+    ap.add_argument(
+        "--maps",
+        default="data/exact_maps_schneider50k.pkl",
+        help="classify: the atom maps that the participation gate, "
+        "the firing histograms and the explicit firing vector read, those of the exact mapper (exact_map --write)",
+    )
+    ap.add_argument(
+        "--net-targets",
+        help="forward: train on the sets of firing vectors that benchmarks.chemistry.net_targets wrote to "
+        "this file, no recorded atom map is read and no reaction is filtered by one",
+    )
+    ap.add_argument(
+        "--single-target",
+        action="store_true",
+        help="with --net-targets, only the first vector of every set",
+    )
+    ap.add_argument(
+        "--firing",
+        action="store_true",
+        help="classify: auxiliary task 'which transition types fired' (from the maps)",
+    )
+    ap.add_argument(
+        "--select",
+        choices=["best", "last"],
+        default="best",
+        help="the epoch kept, the best on the validation reactions or the "
+        "last, which reads no validation label",
+    )
+    ap.add_argument(
+        "--labels",
+        type=int,
+        help="classify: number of training reactions whose class label is used; the rest only "
+        "contribute their firing histograms (needs --firing to be of any use)",
+    )
+    ap.add_argument(
+        "--size-split",
+        action="store_true",
+        help="classify: train on the smaller half of the training reactions, "
+        "test on the largest quarter of the test reactions (extrapolation in molecule size)",
+    )
     args = ap.parse_args()
+
+    # maps and targets are data files outside version control, their digests say which ones a run read
+    for name, used in (
+        ("maps", args.task == "classify"),
+        ("net_targets", bool(args.net_targets)),
+    ):
+        if used and Path(getattr(args, name)).exists():
+            setattr(
+                args,
+                f"{name}_sha256",
+                hashlib.sha256(Path(getattr(args, name)).read_bytes()).hexdigest(),
+            )
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     data = chem.load(f"data/{args.dataset}.pkl")
-    train, val, test = splits(data, "map-clean" if args.clean_mapper else args.task)
-    train = train[:args.limit] if args.limit else train
+    train, val, test = splits(data, args.task, recorded=not args.net_targets)
+    train = train[: args.limit] if args.limit else train
 
     if args.subset:
         chosen = set(subset_lines(args.subset).tolist())
         train = [r for r in train if r["id"] in chosen]
         args.tag += f"-sub{args.subset}"
-        print(f"subset of {args.subset} lines of the training file: {len(train)} usable training reactions", flush=True)
+        print(
+            f"subset of {args.subset} lines of the training file: {len(train)} usable training reactions",
+            flush=True,
+        )
 
-    if args.clean_mapper:
-        args.tag += "-clean"
+    if args.net_targets:
+        train = use_net_targets(train, args.net_targets, single=args.single_target)
+        args.tag += "-nettargets" + ("-single" if args.single_target else "")
 
-    # every target below is derived from the mapping, so replacing it here makes the whole run free of recorded maps
-    if args.net_maps:
-        # training never sees a recorded map. classification reads the firing vector of the test reactions too, so
-        # those are replaced as well, forward prediction and mapping score the test reactions against the record
-        use_predicted_firing(train, path=args.net_maps, blank_missing=True)
-
-        if args.task == "classify":
-            use_predicted_firing(val, test, path=args.net_maps, blank_missing=True)
-
-        args.tag += "-netmaps"
-
-    # classification from the explicit firing vector that our own mapper predicts
-    if args.model in ("npf-sigma", "pgnn-sigma"):
+    # every head of the classifier that reads atom maps reads those of the exact mapper, on test reactions as well,
+    # so no recorded map enters classification
+    if args.task == "classify":
         use_predicted_firing(train, val, test, path=args.maps, blank_missing=True)
 
     n_types = 0
@@ -537,46 +676,93 @@ def main():
                 r["labelled"] = k < args.labels
 
             if not args.firing:
-                train = train[:args.labels]
+                train = train[: args.labels]
 
-        args.tag += ("-firing" if args.firing else "") + (f"-labels{args.labels}" if args.labels else "")
-
-    if args.composites:
-        args.tag += f"-comp{args.composites}"
+        args.tag += ("-firing" if args.firing else "") + (
+            f"-labels{args.labels}" if args.labels else ""
+        )
 
     if args.matched:
         args.tag += "-matched"
 
     if args.size_split:
         size = lambda r: len(r["a"]["x"])
-        small, large = np.median([size(r) for r in train]), np.quantile([size(r) for r in test], 0.75)
-        train, val, test = [r for r in train if size(r) <= small], [r for r in val if size(r) <= small], [r for r in test if size(r) >= large]
+        small, large = np.median([size(r) for r in train]), np.quantile(
+            [size(r) for r in test], 0.75
+        )
+        train, val, test = (
+            [r for r in train if size(r) <= small],
+            [r for r in val if size(r) <= small],
+            [r for r in test if size(r) >= large],
+        )
         args.tag += "-sizesplit"
-        print(f"size split: train on <= {small:.0f} precursor atoms ({len(train)} reactions), test on >= {large:.0f} ({len(test)})", flush=True)
+        print(
+            f"size split: train on <= {small:.0f} precursor atoms ({len(train)} reactions), test on >= {large:.0f} ({len(test)})",
+            flush=True,
+        )
 
     start = time.time()
 
     if args.model == "drfp":
-        metrics, n_params = drfp_baseline(train, val, test, device, args.seed, data["reactions"])
+        metrics, n_params = drfp_baseline(
+            train, val, test, device, args.seed, data["reactions"], args.select
+        )
         curve = []
     else:
         torch.manual_seed(args.seed)
         rng = np.random.default_rng(args.seed)
         petri = args.model.startswith("npf")
-        size = dict(d=args.width, rounds=args.rounds, attention=args.attention or (6 if args.width > 128 else 4))
-        model = {"classify": lambda: chem.Classifier(len(data["classes"]), petri=petri, gate=args.model not in ("npf-nogate", "npf-sigma", "npf-sigma-recorded"),
-                                                            n_firing_types=n_types, explicit_firing=args.model.startswith("npf-sigma"),
-                                                            mapped_atoms=args.model == "pgnn-sigma"),
-                 "map": lambda: chem.Mapper(petri=petri, equilibrium=args.model != "npf-noequilibrium", kept_bonds=args.model != "npf-nokept",
-                                                   morphism=args.model != "npf-nomorphism", token_cost=args.model != "npf-nocost"),
-                 "forward": lambda: chem.Forward(petri=petri, **(size if args.matched else {})) if args.model in ("pgnn", "npf-oneshot") else chem.TokenGame(
-                     **size, enabling=args.model != "npf-noenabling", hops=args.hops, composites=args.composites)}[args.task]().to(device)
+        size = dict(
+            d=args.width,
+            rounds=args.rounds,
+            attention=args.attention or (6 if args.width > 128 else 4),
+        )
+        model = {
+            "classify": lambda: chem.Classifier(
+                len(data["classes"]),
+                petri=petri,
+                gate=args.model not in ("npf-nogate", "npf-sigma"),
+                n_firing_types=n_types,
+                explicit_firing=args.model.startswith("npf-sigma"),
+                mapped_atoms=args.model == "pgnn-sigma",
+            ),
+            "forward": lambda: (
+                chem.Forward(petri=petri, **(size if args.matched else {}))
+                if args.model in ("pgnn", "npf-oneshot")
+                else chem.TokenGame(**size, enabling=args.model != "npf-noenabling")
+            ),
+        }[args.task]().to(device)
         n_params = sum(p.numel() for p in model.parameters())
         epochs = args.epochs or EPOCHS[args.task]
-        opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-5)
-        sched = torch.optim.lr_scheduler.OneCycleLR(opt, args.lr, total_steps=epochs * len(batch_indices(train, args.batch or BATCH[args.task])), pct_start=0.1)
+
+        # the token game is limited by kernel launches, not by arithmetic. compiling its rate law fuses them, and it is
+        # used for training only, evaluation keeps the eager rate law so that scores do not depend on compilation
+        compiled = None
+
+        if (
+            isinstance(model, chem.TokenGame)
+            and device == "cuda"
+            and not args.no_compile
+        ):
+            compiled = torch.compile(model.events, dynamic=True)
+
+        opt = torch.optim.AdamW(
+            model.parameters(), lr=args.lr, weight_decay=1e-5, fused=device == "cuda"
+        )
+        sched = torch.optim.lr_scheduler.OneCycleLR(
+            opt,
+            args.lr,
+            total_steps=epochs
+            * len(batch_indices(train, args.batch or BATCH[args.task])),
+            pct_start=0.1,
+        )
         best, state, curve = -1.0, None, []
-        weights = Path(args.root) / ("chem" if args.dataset == "schneider50k" else args.dataset) / args.task / f"{args.model}{args.tag}-{args.seed}{'-n' + str(args.limit) if args.limit else ''}.pt"
+        weights = (
+            Path(args.root)
+            / ("chem" if args.dataset == "schneider50k" else args.dataset)
+            / args.task
+            / f"{args.model}{args.tag}-{args.seed}{'-n' + str(args.limit) if args.limit else ''}.pt"
+        )
 
         if args.evaluate_only:
             state, epochs = torch.load(weights, map_location=device), 0
@@ -584,21 +770,29 @@ def main():
         for epoch in range(epochs):
             model.train()
             losses = []
+
+            if compiled is not None:
+                model.events = compiled
+
             for b in epoch_loader(train, args.batch or BATCH[args.task], rng, device):
                 if isinstance(model, chem.TokenGame):
                     with torch.autocast("cuda", dtype=torch.bfloat16, enabled=args.amp):
                         loss = model.loss(b)
 
-                # every round of the consensus is supervised
-                elif args.task == "map":
-                    loss = torch.stack([model.loss(lp, b) for lp in model(b, all_rounds=True)]).mean()
                 else:
                     out = model(b)
 
                     if args.task == "classify":
                         known = b["labelled"]
-                        loss = (F.cross_entropy(out[known], b["label"][known]) if known.any() else 0.0) \
-                            + 0.5 * model.auxiliary_loss(b) + model.firing_loss(b)
+                        loss = (
+                            (
+                                F.cross_entropy(out[known], b["label"][known])
+                                if known.any()
+                                else 0.0
+                            )
+                            + 0.5 * model.auxiliary_loss(b)
+                            + model.firing_loss(b)
+                        )
                     else:
                         loss = model.loss(out, b)
 
@@ -612,11 +806,29 @@ def main():
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 opt.step()
                 sched.step()
-                losses.append(loss.item())
 
-            score = evaluate(model, args.task, val[:1500], device)[MAIN_METRIC[args.task]]
-            curve.append((epoch, float(np.mean(losses)), score))
-            print(f"epoch {epoch}: loss {np.mean(losses):.4f}  val {MAIN_METRIC[args.task]} {score:.4f}  ({time.time() - start:.0f}s)", flush=True)
+                # reading the loss every step would wait for the device, the mean is read once per epoch
+                losses.append(loss.detach())
+
+            # evaluation runs the eager rate law, the instance attribute shadowed the method during training
+            if compiled is not None:
+                del model.events
+
+            mean_loss = (
+                float(torch.stack(losses).float().mean()) if losses else float("nan")
+            )
+
+            # the last epoch is kept without looking at a validation label
+            score = (
+                evaluate(model, args.task, val[:1500], device)[MAIN_METRIC[args.task]]
+                if args.select == "best"
+                else float(epoch)
+            )
+            curve.append((epoch, mean_loss, score))
+            print(
+                f"epoch {epoch}: loss {mean_loss:.4f}  val {MAIN_METRIC[args.task]} {score:.4f}  ({time.time() - start:.0f}s)",
+                flush=True,
+            )
 
             if score >= best:
                 best, state = score, copy.deepcopy(model.state_dict())
@@ -630,34 +842,83 @@ def main():
 
         if isinstance(model, chem.TokenGame) and not args.no_beam:
             beams = weights.parent.parent / "beams" / f"{weights.stem}-test.pkl"
-            metrics |= {k + "_beam": v for k, v in evaluate_beam(model, test, device, dump=beams).items()}
+            metrics |= {
+                k + "_beam": v
+                for k, v in evaluate_beam(
+                    model, test, device, dump=beams, batch=args.beam_batch
+                ).items()
+            }
 
             # candidates on validation reactions that were not used for model selection, for a verifier
             if args.dump_validation_beams:
-                evaluate_beam(model, val[1500:1500 + VERIFIER_REACTIONS], device, dump=weights.parent.parent / "beams" / f"{weights.stem}-val.pkl")
+                evaluate_beam(
+                    model,
+                    val[1500 : 1500 + VERIFIER_REACTIONS],
+                    device,
+                    batch=args.beam_batch,
+                    dump=weights.parent.parent / "beams" / f"{weights.stem}-val.pkl",
+                )
 
         torch.save(state, weights)
 
         # test reactions that RDKit cannot read count as wrong, so that the denominator is the official one
         if args.dataset == "uspto_mit" and args.task == "forward":
-            metrics |= {f"{k}_official": v * len(test) / USPTO_MIT_TEST_LINES for k, v in metrics.items() if k.startswith("product_")}
+            metrics |= {
+                f"{k}_official": v * len(test) / USPTO_MIT_TEST_LINES
+                for k, v in metrics.items()
+                if k.startswith("product_")
+            }
 
-    if args.clean_mapper:
-        write_predicted_maps(model, data["reactions"], device)
+            # validation reactions that no run selects on and that no recorded map chooses, where runs are compared
+            screen = [r for r in data["reactions"] if r["split"] == "val"][SCREEN]
+            metrics |= {
+                f"screen_{k}": v
+                for k, v in evaluate(model, "forward", screen, device).items()
+            }
 
-    result = {"task": args.task, "model": args.model, "seed": args.seed, "params": n_params, "n_train": len(train), "n_test": len(test),
-              "train_seconds": time.time() - start, "curve": curve, "metrics": metrics}
+            if isinstance(model, chem.TokenGame) and not args.no_beam:
+                metrics |= {
+                    f"screen_{k}_beam": v
+                    for k, v in evaluate_beam(
+                        model, screen, device, batch=args.beam_batch
+                    ).items()
+                }
+
+    result = {
+        "task": args.task,
+        "model": args.model,
+        "seed": args.seed,
+        "args": vars(args),
+        "params": n_params,
+        "n_train": len(train),
+        "n_test": len(test),
+        "train_seconds": time.time() - start,
+        "curve": curve,
+        "metrics": metrics,
+    }
     folder = "chem" if args.dataset == "schneider50k" else args.dataset
-    out = Path(args.root) / folder / args.task / f"{args.model}{args.tag}-{args.seed}{'-n' + str(args.limit) if args.limit else ''}.json"
+    out = (
+        Path(args.root)
+        / folder
+        / args.task
+        / f"{args.model}{args.tag}-{args.seed}{'-n' + str(args.limit) if args.limit else ''}.json"
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
 
     # keep the record of the training run
     if args.evaluate_only and out.exists():
         previous = json.loads(out.read_text())
-        result |= {"curve": previous["curve"], "train_seconds": previous["train_seconds"]}
+        result |= {
+            "curve": previous["curve"],
+            "train_seconds": previous["train_seconds"],
+        }
 
     out.write_text(json.dumps(result, indent=1))
-    print(f"chem/{args.task} {args.model} seed {args.seed}: " + "  ".join(f"{k}={v:.4f}" for k, v in metrics.items()) + f"  ({n_params} params, {result['train_seconds']:.0f}s)")
+    print(
+        f"chem/{args.task} {args.model} seed {args.seed}: "
+        + "  ".join(f"{k}={v:.4f}" for k, v in metrics.items())
+        + f"  ({n_params} params, {result['train_seconds']:.0f}s)"
+    )
 
 
 if __name__ == "__main__":

@@ -1,8 +1,0 @@
-{
- "product_reached_within_beam": 0.9745018212984787,
- "reactions_same_firing_vector": 0.9241482751232055,
- "same_firing_vector_given_reached": 0.9483289357959542,
- "disagree_ours_moves_fewer_tokens": 0.025926719520034284,
- "disagree_equal": 0.018641525605313906,
- "disagree_ours_moves_more_tokens": 0.005785301049925006
-}

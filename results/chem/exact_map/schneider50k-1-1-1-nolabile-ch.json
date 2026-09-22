@@ -8,15 +8,15 @@
  "all_orders": false,
  "labile_h": false,
  "ch_places": true,
- "seconds": 3.0,
- "deterministic": null,
+ "seconds": 12.0,
+ "deterministic": 3.0,
  "reactions": 49920,
  "seated": 0.992948717948718,
  "scored": 46672,
- "correct": 0.6921494686321563,
- "proved": 0.7227564102564102,
- "correct_when_proved": 0.7495965882895343,
- "correct_when_not_proved": 0.5255681818181818,
- "median_seconds": 0.254123330116272,
- "mean_seconds": 1.1092320177369774
+ "correct": 0.6978702434007542,
+ "proved": 0.7556690705128205,
+ "correct_when_proved": 0.749772319580516,
+ "correct_when_not_proved": 0.5176774935326243,
+ "median_seconds": 0.20917940139770508,
+ "mean_seconds": 1.4819399716857917
 }

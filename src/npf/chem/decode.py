@@ -1,4 +1,5 @@
 """From a marking of the valence net back to molecules."""
+
 import numpy as np
 from rdkit import Chem
 
@@ -7,7 +8,14 @@ from .featurisation import BOND_ORDER, HYPERVALENT, RD_BOND, dense_bonds
 # version of the decoding rules, all chosen on training reactions only
 # 1 is the rule set of the first Schneider 50k results, 2 adds R1 to R5, 3 adds the neutral product convention R6
 RECONSTRUCTION = 3
-NORMAL_VALENCE = {15: (3, 5), 16: (2, 4, 6), 34: (2, 4, 6), 17: (1, 3, 5, 7), 35: (1, 3, 5, 7), 53: (1, 3, 5, 7)}
+NORMAL_VALENCE = {
+    15: (3, 5),
+    16: (2, 4, 6),
+    34: (2, 4, 6),
+    17: (1, 3, 5, 7),
+    35: (1, 3, 5, 7),
+    53: (1, 3, 5, 7),
+}
 ANION_PRIORITY = {53: 0, 35: 0, 17: 0, 9: 0, 8: 1, 16: 1, 7: 2}
 
 # single atom ions such as halides and hydroxide stay as they are
@@ -22,7 +30,10 @@ def canonical_product(smiles):
 
     Chem.RemoveStereochemistry(mol)
 
-    return max(Chem.MolToSmiles(mol).split("."), key=lambda f: (Chem.MolFromSmiles(f).GetNumHeavyAtoms(), f))
+    return max(
+        Chem.MolToSmiles(mol).split("."),
+        key=lambda f: (Chem.MolFromSmiles(f).GetNumHeavyAtoms(), f),
+    )
 
 
 def marking_to_products(a, edits):
@@ -55,7 +66,9 @@ def marking_fragments(a, edits):
     # S, P and halogens cover a deficit from their lone pairs in steps of two, without a charge
     expand = np.array([HYPERVALENT.get(int(e), 0) for e in a["element"]])
     deficit = np.maximum(-left, 0)
-    h, q = np.maximum(left, 0).astype(int), (a["q"] + deficit - np.minimum(deficit, expand) // 2 * 2).astype(int)
+    h, q = np.maximum(left, 0).astype(int), (
+        a["q"] + deficit - np.minimum(deficit, expand) // 2 * 2
+    ).astype(int)
     touched = np.zeros(len(h), bool)
     for i, j, _ in edits:
         touched[[i, j]] = True
@@ -79,13 +92,20 @@ def marking_fragments(a, edits):
 
             # R1 hypervalent elements give tokens back to their lone pairs, two at a time
             if allowed:
-                target = min((v for v in allowed if v >= bonds - max(q[i], 0) - 1e-6), default=allowed[-1])
+                target = min(
+                    (v for v in allowed if v >= bonds - max(q[i], 0) - 1e-6),
+                    default=allowed[-1],
+                )
                 while h[i] >= 2 and bonds + h[i] - q[i] - 2 >= target - 1e-6:
                     h[i] -= 2
 
             # R2 the surplus token of an aromatic carbon joins the pi system together with the hydrogen of an [nH]
             elif aromatic[i] and a["element"][i] == 6:
-                donors = [k for k in ring_system(i) if a["element"][k] == 7 and h[k] > 0 and q[k] == 0 and k != i]
+                donors = [
+                    k
+                    for k in ring_system(i)
+                    if a["element"][k] == 7 and h[k] > 0 and q[k] == 0 and k != i
+                ]
                 if donors and h[i] > 0:
                     h[i] -= 1
                     h[donors[0]] -= 1
@@ -96,14 +116,25 @@ def marking_fragments(a, edits):
             h[i] -= 1
             q[i] -= 1
         elif aromatic[i]:
-            donors = [k for k in ring_system(i) if a["element"][k] == 7 and h[k] > 0 and q[k] == 0]
+            donors = [
+                k
+                for k in ring_system(i)
+                if a["element"][k] == 7 and h[k] > 0 and q[k] == 0
+            ]
             if donors:
                 h[donors[0]] -= 1
                 q[i] -= 1
 
             # R3 or for an aromatic n that takes up a hydrogen, as in a lactam
             elif RECONSTRUCTION >= 2 and a["element"][i] == 6:
-                takers = [k for k in ring_system(i) if a["element"][k] == 7 and h[k] == 0 and q[k] == 0 and (after[k] > 0).sum() == 2]
+                takers = [
+                    k
+                    for k in ring_system(i)
+                    if a["element"][k] == 7
+                    and h[k] == 0
+                    and q[k] == 0
+                    and (after[k] > 0).sum() == 2
+                ]
                 if takers:
                     h[takers[0]] += 1
                     q[i] -= 1
@@ -113,8 +144,17 @@ def marking_fragments(a, edits):
         surplus = int(q.sum() - a["q"].sum())
         if surplus > 0:
             new_cation = q > a["q"]
-            gained = [k for k in np.nonzero(touched & (h > a["h"]) & (q == a["q"]))[0] if int(a["element"][k]) in ANION_PRIORITY]
-            gained.sort(key=lambda k: (not new_cation[after[k] > 0].any(), ANION_PRIORITY[int(a["element"][k])]))
+            gained = [
+                k
+                for k in np.nonzero(touched & (h > a["h"]) & (q == a["q"]))[0]
+                if int(a["element"][k]) in ANION_PRIORITY
+            ]
+            gained.sort(
+                key=lambda k: (
+                    not new_cation[after[k] > 0].any(),
+                    ANION_PRIORITY[int(a["element"][k])],
+                )
+            )
 
             for k in gained[:surplus]:
                 h[k] -= 1
@@ -124,6 +164,7 @@ def marking_fragments(a, edits):
     # onium ions with a hydrogen are deprotonated
     if RECONSTRUCTION >= 3:
         from scipy.sparse.csgraph import connected_components
+
         _, member = connected_components(after > 0, directed=False)
         for f in np.unique(member[touched]):
             atoms = np.nonzero(member == f)[0]
@@ -132,11 +173,22 @@ def marking_fragments(a, edits):
 
             net = int(q[atoms].sum())
             for k in atoms:
-                if net < 0 and q[k] < 0 and int(a["element"][k]) in (7, 8, 16) and not (q[after[k] > 0] > 0).any():
+                if (
+                    net < 0
+                    and q[k] < 0
+                    and int(a["element"][k]) in (7, 8, 16)
+                    and not (q[after[k] > 0] > 0).any()
+                ):
                     h[k] += 1
                     q[k] += 1
                     net += 1
-                elif net > 0 and q[k] > 0 and h[k] > 0 and int(a["element"][k]) in (7, 8, 15, 16) and not (q[after[k] > 0] < 0).any():
+                elif (
+                    net > 0
+                    and q[k] > 0
+                    and h[k] > 0
+                    and int(a["element"][k]) in (7, 8, 15, 16)
+                    and not (q[after[k] > 0] < 0).any()
+                ):
                     h[k] -= 1
                     q[k] -= 1
                     net -= 1
@@ -157,10 +209,14 @@ def marking_fragments(a, edits):
                 mol.GetAtomWithIdx(int(k)).SetIsAromatic(True)
 
     out, spectators = set(), set()
-    for atoms, frag in zip(Chem.GetMolFrags(mol), Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)):
+    for atoms, frag in zip(
+        Chem.GetMolFrags(mol), Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
+    ):
         try:
             Chem.SanitizeMol(frag)
-            (out if touched[list(atoms)].any() else spectators).add(canonical_product(Chem.MolToSmiles(frag)))
+            (out if touched[list(atoms)].any() else spectators).add(
+                canonical_product(Chem.MolToSmiles(frag))
+            )
         except Exception:
             pass
 
@@ -186,36 +242,3 @@ def molecule(element, bonds, h, q):
                 mol.GetAtomWithIdx(int(k)).SetIsAromatic(True)
 
     return mol
-
-
-def mapping_from_marking(reaction, edits):
-    """Atom mapping read off a firing vector. Places keep their identity while tokens move, so if the marking after
-    edits contains the recorded product, matching the two graphs maps product atoms to precursor atoms.
-    Returns None if the product is not reached. Connectivity and elements are matched, bond orders follow."""
-    a, b = reaction["a"], reaction["b"]
-    after = dense_bonds(a).copy()
-    for i, j, t in edits:
-        after[i, j] = after[j, i] = t
-
-    bare = lambda element, bonds: molecule(element, (bonds > 0).astype(int), np.zeros(len(element)), np.zeros(len(element)))
-    whole, query = bare(a["element"], after), bare(b["element"], dense_bonds(b))
-    for m in (whole, query):
-        m.UpdatePropertyCache(strict=False)
-        Chem.FastFindRings(m)
-
-    pieces, query_pieces = [], []
-    frags = Chem.GetMolFrags(whole, asMols=True, sanitizeFrags=False, fragsMolAtomMapping=pieces)
-    query_frags = Chem.GetMolFrags(query, asMols=True, sanitizeFrags=False, fragsMolAtomMapping=query_pieces)
-    mapping = np.full(len(b["element"]), -1, np.int64)
-
-    # every product molecule has to be found among the fragments of the marking
-    for q, q_index in zip(query_frags, query_pieces):
-        for frag, index in zip(frags, pieces):
-            match = frag.GetSubstructMatch(q) if frag.GetNumAtoms() == q.GetNumAtoms() else ()
-            if match:
-                mapping[list(q_index)] = [index[k] for k in match]
-                break
-        else:
-            return None
-
-    return mapping if len(set(mapping)) == len(mapping) else None

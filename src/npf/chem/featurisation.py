@@ -1,4 +1,5 @@
 """Reactions as pairs of attributed graphs. State A is the precursor graph, state B the product graph."""
+
 import csv
 import pickle
 from multiprocessing import Pool
@@ -9,8 +10,34 @@ import torch
 from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.*")
-ELEMENTS = ["C", "N", "O", "S", "F", "Cl", "Br", "I", "P", "Si", "B", "Sn", "Mg", "Li", "Na", "K", "Cu", "Pd", "Zn", "Se"]
-BOND_TYPE = {Chem.BondType.SINGLE: 1, Chem.BondType.DOUBLE: 2, Chem.BondType.TRIPLE: 3, Chem.BondType.AROMATIC: 4}
+ELEMENTS = [
+    "C",
+    "N",
+    "O",
+    "S",
+    "F",
+    "Cl",
+    "Br",
+    "I",
+    "P",
+    "Si",
+    "B",
+    "Sn",
+    "Mg",
+    "Li",
+    "Na",
+    "K",
+    "Cu",
+    "Pd",
+    "Zn",
+    "Se",
+]
+BOND_TYPE = {
+    Chem.BondType.SINGLE: 1,
+    Chem.BondType.DOUBLE: 2,
+    Chem.BondType.TRIPLE: 3,
+    Chem.BondType.AROMATIC: 4,
+}
 
 # bond order of every bond type index, aromatic bonds count 1.5
 BOND_ORDER = np.array([0.0, 1.0, 2.0, 3.0, 1.5])
@@ -36,13 +63,18 @@ def one_hot(index, size):
 def atom_features(atom):
     symbol = atom.GetSymbol()
 
-    return np.concatenate([
-        one_hot(ELEMENTS.index(symbol) if symbol in ELEMENTS else len(ELEMENTS), len(ELEMENTS) + 1),
-        one_hot(atom.GetDegree(), 6),
-        one_hot({-1: 0, 0: 1, 1: 2}.get(atom.GetFormalCharge(), 3), 4),
-        one_hot(atom.GetTotalNumHs(), 5),
-        [atom.GetIsAromatic(), atom.IsInRing()],
-    ]).astype(np.uint8)
+    return np.concatenate(
+        [
+            one_hot(
+                ELEMENTS.index(symbol) if symbol in ELEMENTS else len(ELEMENTS),
+                len(ELEMENTS) + 1,
+            ),
+            one_hot(atom.GetDegree(), 6),
+            one_hot({-1: 0, 0: 1, 1: 2}.get(atom.GetFormalCharge(), 3), 4),
+            one_hot(atom.GetTotalNumHs(), 5),
+            [atom.GetIsAromatic(), atom.IsInRing()],
+        ]
+    ).astype(np.uint8)
 
 
 def skeleton_classes(mol):
@@ -64,7 +96,10 @@ def skeleton_classes(mol):
     bare.UpdatePropertyCache(strict=False)
     Chem.FastFindRings(bare)
 
-    return np.array(list(Chem.CanonicalRankAtoms(bare, breakTies=False, includeChirality=False)), np.int16)
+    return np.array(
+        list(Chem.CanonicalRankAtoms(bare, breakTies=False, includeChirality=False)),
+        np.int16,
+    )
 
 
 def graph(smiles):
@@ -80,21 +115,39 @@ def graph(smiles):
     order = np.argsort(list(Chem.CanonicalRankAtoms(mol, breakTies=True)))
     new = np.empty_like(order)
     new[order] = np.arange(len(order))
-    bonds = np.array([(new[b.GetBeginAtomIdx()], new[b.GetEndAtomIdx()], BOND_TYPE[b.GetBondType()]) for b in mol.GetBonds()
-                      if b.GetBondType() in BOND_TYPE], dtype=np.int16).reshape(-1, 3)
+    bonds = np.array(
+        [
+            (
+                new[b.GetBeginAtomIdx()],
+                new[b.GetEndAtomIdx()],
+                BOND_TYPE[b.GetBondType()],
+            )
+            for b in mol.GetBonds()
+            if b.GetBondType() in BOND_TYPE
+        ],
+        dtype=np.int16,
+    ).reshape(-1, 3)
     fragment = np.zeros(len(order), np.int16)
     for k, atoms in enumerate(Chem.GetMolFrags(mol)):
         fragment[new[list(atoms)]] = k
 
     return {
         "x": np.stack([atom_features(mol.GetAtomWithIdx(int(i))) for i in order]),
-        "element": np.array([mol.GetAtomWithIdx(int(i)).GetAtomicNum() for i in order], np.int16),
-        "h": np.array([mol.GetAtomWithIdx(int(i)).GetTotalNumHs() for i in order], np.int16),
-        "q": np.array([mol.GetAtomWithIdx(int(i)).GetFormalCharge() for i in order], np.int16),
+        "element": np.array(
+            [mol.GetAtomWithIdx(int(i)).GetAtomicNum() for i in order], np.int16
+        ),
+        "h": np.array(
+            [mol.GetAtomWithIdx(int(i)).GetTotalNumHs() for i in order], np.int16
+        ),
+        "q": np.array(
+            [mol.GetAtomWithIdx(int(i)).GetFormalCharge() for i in order], np.int16
+        ),
         "bonds": bonds,
         "fragment": fragment,
         # atoms with equal rank are equivalent
-        "symmetry": np.array(list(Chem.CanonicalRankAtoms(mol, breakTies=False)), np.int16)[order],
+        "symmetry": np.array(
+            list(Chem.CanonicalRankAtoms(mol, breakTies=False)), np.int16
+        )[order],
         "skeleton": skeleton_classes(mol)[order],
         "maps": maps[order],
     }
@@ -121,15 +174,38 @@ def featurise(row, max_atoms=(200, 130)):
     """
     reactants, reagents, product = row["original_rxn"].split(">")
     a, b = graph(".".join(s for s in (reactants, reagents) if s)), graph(product)
-    too_big = max_atoms is not None and (len(a["x"]) > max_atoms[0] or len(b["x"]) > max_atoms[1]) if a and b else False
+    too_big = (
+        max_atoms is not None
+        and (len(a["x"]) > max_atoms[0] or len(b["x"]) > max_atoms[1])
+        if a and b
+        else False
+    )
     if a is None or b is None or too_big:
         return None
 
-    out = {"a": a, "b": b, "target": None, "edits": None, "label": row["label"], "split": row["split"], "id": row["id"], "smiles": row["rxn"]}
+    out = {
+        "a": a,
+        "b": b,
+        "target": None,
+        "edits": None,
+        "label": row["label"],
+        "split": row["split"],
+        "id": row["id"],
+        "smiles": row["rxn"],
+    }
     maps_a, maps_b = a.pop("maps"), b.pop("maps")
     where = {m: j for j, m in enumerate(maps_a) if m}
-    clean = len(where) == (maps_a > 0).sum() and (maps_b > 0).all() and len(set(maps_b)) == len(maps_b) and all(m in where for m in maps_b)
-    if not clean or len(a["x"]) > MAX_PRECURSOR_ATOMS or len(b["x"]) > MAX_PRODUCT_ATOMS:
+    clean = (
+        len(where) == (maps_a > 0).sum()
+        and (maps_b > 0).all()
+        and len(set(maps_b)) == len(maps_b)
+        and all(m in where for m in maps_b)
+    )
+    if (
+        not clean
+        or len(a["x"]) > MAX_PRECURSOR_ATOMS
+        or len(b["x"]) > MAX_PRODUCT_ATOMS
+    ):
         return out
 
     # target maps every product atom to its precursor atom
@@ -157,6 +233,29 @@ def featurise(row, max_atoms=(200, 130)):
     return out
 
 
+def _plain(smiles):
+    """The canonical SMILES without atom map numbers, None if RDKit cannot read it."""
+    mol = Chem.MolFromSmiles(smiles)
+
+    return None if mol is None else Chem.MolToSmiles(_without_maps(mol))
+
+
+def reaction(smiles, label=0, split="", id=0, max_atoms=(200, 130)):
+    """One reaction from its SMILES, precursors>>product or reactants>reagents>product, atom map numbers removed so
+    that every target comes from the net. None if RDKit cannot read it or a side exceeds max_atoms.
+    """
+    parts = [_plain(part) for part in smiles.strip().split(">")]
+    if len(parts) not in (2, 3) or any(part is None for part in parts):
+        return None
+
+    rxn = f"{'.'.join(part for part in parts[:-1] if part)}>>{parts[-1]}"
+
+    return featurise(
+        {"original_rxn": rxn, "rxn": rxn, "label": label, "split": split, "id": id},
+        max_atoms,
+    )
+
+
 def build(tsv="data/schneider50k.tsv", out="data/schneider50k.pkl"):
     """Schneider 50k with its 50 reaction classes. Prints how often the valence P-invariant holds in the records."""
     rows = list(csv.DictReader(open(tsv), delimiter="\t"))
@@ -171,11 +270,17 @@ def build(tsv="data/schneider50k.tsv", out="data/schneider50k.pkl"):
     mapped = [d for d in data if d["target"] is not None]
     n_edits = np.array([len(d["edits"]) for d in mapped])
     atoms_ok = np.concatenate([d["conserved"] for d in mapped])
-    print(f"{len(data)}/{len(rows)} reactions parsed, {len(mapped)} with a clean atom mapping and <= {MAX_PRECURSOR_ATOMS}/{MAX_PRODUCT_ATOMS} atoms")
-    print(f"valence P-invariant (bond orders + H - charge) conserved for {atoms_ok.mean():.4f} of product atoms, "
-          f"for every atom in {np.mean([d['conserved'].all() for d in mapped]):.4f} of reactions")
-    print(f"atoms: precursors {np.mean([len(d['a']['x']) for d in mapped]):.1f}, product {np.mean([len(d['b']['x']) for d in mapped]):.1f}; "
-          f"edits per reaction: mean {n_edits.mean():.2f}, median {np.median(n_edits):.0f}, max {n_edits.max()}")
+    print(
+        f"{len(data)}/{len(rows)} reactions parsed, {len(mapped)} with a clean atom mapping and <= {MAX_PRECURSOR_ATOMS}/{MAX_PRODUCT_ATOMS} atoms"
+    )
+    print(
+        f"valence P-invariant (bond orders + H - charge) conserved for {atoms_ok.mean():.4f} of product atoms, "
+        f"for every atom in {np.mean([d['conserved'].all() for d in mapped]):.4f} of reactions"
+    )
+    print(
+        f"atoms: precursors {np.mean([len(d['a']['x']) for d in mapped]):.1f}, product {np.mean([len(d['b']['x']) for d in mapped]):.1f}; "
+        f"edits per reaction: mean {n_edits.mean():.2f}, median {np.median(n_edits):.0f}, max {n_edits.max()}"
+    )
 
 
 def _featurise_mit(args):
@@ -185,7 +290,13 @@ def _featurise_mit(args):
     plain = lambda smi: Chem.MolToSmiles(_without_maps(Chem.MolFromSmiles(smi)))
 
     try:
-        row = {"original_rxn": f"{precursors}>>{product}", "label": 0, "split": split, "id": k, "rxn": f"{plain(precursors)}>>{plain(product)}"}
+        row = {
+            "original_rxn": f"{precursors}>>{product}",
+            "label": 0,
+            "split": split,
+            "id": k,
+            "rxn": f"{plain(precursors)}>>{plain(product)}",
+        }
         return featurise(row)
     except Exception:
         return None
@@ -201,17 +312,31 @@ def _without_maps(mol):
 def build_uspto_mit(folder="data/uspto_mit/data", out="data/uspto_mit.pkl"):
     """USPTO-MIT of Jin et al. 2017, the standard forward prediction benchmark with 409k, 30k and 40k reactions."""
     jobs = []
-    for split, name in (("train", "train.txt"), ("val", "valid.txt"), ("test", "test.txt")):
-        jobs += [(line, split, len(jobs) + k) for k, line in enumerate(open(Path(folder) / name)) if line.strip()]
+    for split, name in (
+        ("train", "train.txt"),
+        ("val", "valid.txt"),
+        ("test", "test.txt"),
+    ):
+        jobs += [
+            (line, split, len(jobs) + k)
+            for k, line in enumerate(open(Path(folder) / name))
+            if line.strip()
+        ]
 
     with Pool(12) as pool:
-        data = [d for d in pool.map(_featurise_mit, jobs, chunksize=512) if d is not None]
+        data = [
+            d for d in pool.map(_featurise_mit, jobs, chunksize=512) if d is not None
+        ]
 
-    Path(out).write_bytes(pickle.dumps({"reactions": data, "classes": ["-"]}, protocol=4))
+    Path(out).write_bytes(
+        pickle.dumps({"reactions": data, "classes": ["-"]}, protocol=4)
+    )
 
     for split in ("train", "val", "test"):
         rs = [d for d in data if d["split"] == split]
-        print(f"{split}: {len(rs)} parsed, {sum(d['target'] is not None for d in rs)} with clean mapping and size <= {MAX_PRECURSOR_ATOMS}/{MAX_PRODUCT_ATOMS}")
+        print(
+            f"{split}: {len(rs)} parsed, {sum(d['target'] is not None for d in rs)} with clean mapping and size <= {MAX_PRECURSOR_ATOMS}/{MAX_PRODUCT_ATOMS}"
+        )
 
 
 def load(path="data/schneider50k.pkl"):
@@ -221,16 +346,28 @@ def load(path="data/schneider50k.pkl"):
 def collate(reactions, device):
     """Pad a list of reactions into dense tensors. edits holds 0 for unchanged and k + 1 for new bond type k."""
     B = len(reactions)
-    na, nb = max(len(r["a"]["x"]) for r in reactions), max(len(r["b"]["x"]) for r in reactions)
+    na, nb = max(len(r["a"]["x"]) for r in reactions), max(
+        len(r["b"]["x"]) for r in reactions
+    )
     out = {
-        "xa": np.zeros((B, na, N_ATOM_FEAT), np.float32), "xb": np.zeros((B, nb, N_ATOM_FEAT), np.float32),
-        "ba": np.zeros((B, na, na), np.int64), "bb": np.zeros((B, nb, nb), np.int64),
-        "mask_a": np.zeros((B, na), bool), "mask_b": np.zeros((B, nb), bool),
-        "el_a": np.zeros((B, na), np.int64), "el_b": np.full((B, nb), -1, np.int64),
-        "frag_a": np.full((B, na), -1, np.int64), "sym_a": np.full((B, na), -1, np.int64), "sym_b": np.full((B, nb), -2, np.int64),
-        "h_a": np.zeros((B, na), np.float32), "cap_a": np.zeros((B, na), np.float32),
-        "h_b": np.zeros((B, nb), np.float32), "q_a": np.zeros((B, na), np.float32), "q_b": np.zeros((B, nb), np.float32),
-        "target": np.full((B, nb), -1, np.int64), "edits": np.zeros((B, na, na), np.int64),
+        "xa": np.zeros((B, na, N_ATOM_FEAT), np.float32),
+        "xb": np.zeros((B, nb, N_ATOM_FEAT), np.float32),
+        "ba": np.zeros((B, na, na), np.int64),
+        "bb": np.zeros((B, nb, nb), np.int64),
+        "mask_a": np.zeros((B, na), bool),
+        "mask_b": np.zeros((B, nb), bool),
+        "el_a": np.zeros((B, na), np.int64),
+        "el_b": np.full((B, nb), -1, np.int64),
+        "frag_a": np.full((B, na), -1, np.int64),
+        "sym_a": np.full((B, na), -1, np.int64),
+        "sym_b": np.full((B, nb), -2, np.int64),
+        "h_a": np.zeros((B, na), np.float32),
+        "cap_a": np.zeros((B, na), np.float32),
+        "h_b": np.zeros((B, nb), np.float32),
+        "q_a": np.zeros((B, na), np.float32),
+        "q_b": np.zeros((B, nb), np.float32),
+        "target": np.full((B, nb), -1, np.int64),
+        "edits": np.zeros((B, na, na), np.int64),
         "label": np.array([r["label"] for r in reactions], np.int64),
         "labelled": np.array([r.get("labelled", True) for r in reactions], bool),
     }
@@ -246,9 +383,20 @@ def collate(reactions, device):
         out["ba"][k, :n, :n], out["bb"][k, :m, :m] = dense_bonds(a), dense_bonds(b)
         out["mask_a"][k, :n], out["mask_b"][k, :m] = True, True
         out["el_a"][k, :n], out["el_b"][k, :m] = a["element"], b["element"]
-        out["frag_a"][k, :n], out["sym_a"][k, :n], out["sym_b"][k, :m] = a["fragment"], a["skeleton"], b["skeleton"]
-        out["h_a"][k, :n], out["h_b"][k, :m], out["q_a"][k, :n], out["q_b"][k, :m] = a["h"], b["h"], a["q"], b["q"]
-        out["cap_a"][k, :n] = [EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]] + np.maximum(-a["q"], 0)
+        out["frag_a"][k, :n], out["sym_a"][k, :n], out["sym_b"][k, :m] = (
+            a["fragment"],
+            a["skeleton"],
+            b["skeleton"],
+        )
+        out["h_a"][k, :n], out["h_b"][k, :m], out["q_a"][k, :n], out["q_b"][k, :m] = (
+            a["h"],
+            b["h"],
+            a["q"],
+            b["q"],
+        )
+        out["cap_a"][k, :n] = [
+            EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]
+        ] + np.maximum(-a["q"], 0)
 
         if r["target"] is not None:
             out["target"][k, :m] = r["target"]
@@ -258,4 +406,42 @@ def collate(reactions, device):
             out["edits"][k, i, j] = t + 1
             out["edits"][k, j, i] = t + 1
 
+    # several firing vectors per reaction that are all correct (targets of the net), in the layout of edits.
+    # n_set counts the real ones, a reaction without a set has its edits as the only one
+    if any(r.get("edits_set") is not None for r in reactions):
+        sets = [
+            r["edits_set"] if r.get("edits_set") is not None else [r["edits"]]
+            for r in reactions
+        ]
+        out["edits_set"] = np.zeros((B, max(map(len, sets)), na, na), np.int8)
+        out["n_set"] = np.array([len(s) for s in sets], np.int64)
+
+        for k, vectors in enumerate(sets):
+            for s, e in enumerate(vectors):
+                if e is not None and len(e):
+                    i, j, t = np.asarray(e).T.astype(np.int64)
+                    out["edits_set"][k, s, i, j] = t + 1
+                    out["edits_set"][k, s, j, i] = t + 1
+
     return {k: torch.as_tensor(v, device=device) for k, v in out.items()}
+
+
+def batch_indices(reactions, size, rng=None):
+    """Index batches of similar size (less padding), shuffled if an rng is given."""
+    idx = np.arange(len(reactions)) if rng is None else rng.permutation(len(reactions))
+    out = []
+
+    for s in range(0, len(idx), size * 50):
+        chunk = sorted(
+            idx[s : s + size * 50], key=lambda i: len(reactions[i]["a"]["x"])
+        )
+        out += [chunk[k : k + size] for k in range(0, len(chunk), size)]
+
+    if rng is not None:
+        rng.shuffle(out)
+
+    return out
+
+
+def batches(reactions, size, rng=None):
+    return [[reactions[i] for i in b] for b in batch_indices(reactions, size, rng)]

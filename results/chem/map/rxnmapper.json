@@ -1,8 +1,0 @@
-{
- "reactions_same_firing_vector": 0.8570816370259268,
- "no_complete_mapping": 0.0,
- "disagree_ours_moves_fewer_tokens": 0.08356545961002786,
- "disagree_equal": 0.0503535461752732,
- "disagree_ours_moves_more_tokens": 0.00899935718877223,
- "n": 4667
-}

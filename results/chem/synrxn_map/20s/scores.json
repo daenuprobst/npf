@@ -1,0 +1,18 @@
+{
+ "recon3d": {
+  "reactions": 382,
+  "npf": 57.33,
+  "rxn_mapper": 48.69,
+  "graphormer": 34.82,
+  "local_mapper": 50.79,
+  "rdt": 54.97
+ },
+ "ecoli": {
+  "reactions": 273,
+  "npf": 73.63,
+  "rxn_mapper": 72.53,
+  "graphormer": 42.12,
+  "local_mapper": 69.96,
+  "rdt": 78.02
+ }
+}

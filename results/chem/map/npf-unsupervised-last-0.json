@@ -1,9 +1,0 @@
-{
- "task": "map",
- "model": "npf-unsupervised",
- "seed": 0,
- "n_train": 36876,
- "params": 3629405,
- "train_seconds": 3010.2627024650574,
- "recorded_map_agreement_val": 0.69
-}

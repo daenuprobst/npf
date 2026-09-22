@@ -1,4 +1,5 @@
 """Forward reaction prediction as a firing sequence of the valence net."""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,44 +14,44 @@ class TokenGame(nn.Module):
 
     A transition re-types one bond place B_ij. It moves tokens between B_ij and the slack places S_i and S_j, so the
     valence of every atom is a P-invariant. enabling False is the ablation without the valence capacities.
-    hops above zero adds the distance of i and j in the current marking as a pair feature.
     """
 
-    def __init__(self, d=128, rounds=6, attention=4, max_steps=12, enabling=True, hops=0, composites=0):
+    def __init__(self, d=128, rounds=6, attention=4, max_steps=12, enabling=True):
         super().__init__()
         self.max_steps, self.enabling = max_steps, enabling
-        self.hops = hops
-
-        # a substitution fires a break on B_ij and a formation on B_jk at once. the tokens the break leaves on the
-        # slack place of the shared atom j are the ones the formation takes, so the composite column is
-        # delta (e_Bjk - e_Bij - e_Si + e_Sk) and the central atom needs no free valence. every composite is an
-        # enabled sequence of the elementary net, so it adds no reachable marking and validity carries over
-        self.composites = composites
         self.encoder = Encoder(d, rounds, attention, n_extra=8)
-        self.pair = mlp(2 * d + N_BOND + 2 + (hops + 1 if hops else 0), 2 * d, N_BOND)
-
-        if composites:
-            self.centre = mlp(3 * d + 2 * N_BOND, 2 * d, 1)
-
+        self.pair = mlp(2 * d + N_BOND + 2, 2 * d, N_BOND)
         self.stop = mlp(d, d, 1)
 
-        # a constant added to the log rate of STOP when decoding, fitted on validation reactions. it is part of
-        # the rate law, so the model stays the same stochastic net, and it is not a trained parameter
+        # a constant added to the log rate of STOP when decoding, zero in every reported run. it is part of the rate
+        # law, so the model stays the same stochastic net, and it is not a trained parameter
         self.stop_bias = 0.0
         self.register_buffer("order", torch.tensor(BOND_ORDER, dtype=torch.float32))
 
-    def rates(self, b, cur, fired, extra=False):
+    def rates(self, b, cur, fired):
         """Log rates [B, N, N, types] of all transitions, the enabling mask and the log rate of STOP [B]."""
         # marking of the slack places. every token that entered a bond place of atom i left S_i
         hydrogens = b["h_a"] - (self.order[cur] - self.order[b["ba"]]).sum(2)
         touched = fired.any(2, keepdim=True).float()
-        x = torch.cat([b["xa"], F.one_hot((hydrogens.round().long() + 2).clamp(0, 6), 7).float(), touched], -1)
+        x = torch.cat(
+            [
+                b["xa"],
+                F.one_hot((hydrogens.round().long() + 2).clamp(0, 6), 7).float(),
+                touched,
+            ],
+            -1,
+        )
         h = self.encoder(x, cur, b["mask_a"])
-        same_fragment = (b["frag_a"][:, :, None] == b["frag_a"][:, None, :]).float()[..., None]
-        z = [h[:, :, None] + h[:, None, :], h[:, :, None] * h[:, None, :], F.one_hot(cur, N_BOND).float(), same_fragment, fired.float()[..., None]]
-
-        if self.hops:
-            z.append(F.one_hot(self.distance(cur), self.hops + 1).float())
+        same_fragment = (b["frag_a"][:, :, None] == b["frag_a"][:, None, :]).float()[
+            ..., None
+        ]
+        z = [
+            h[:, :, None] + h[:, None, :],
+            h[:, :, None] * h[:, None, :],
+            F.one_hot(cur, N_BOND).float(),
+            same_fragment,
+            fired.float()[..., None],
+        ]
 
         z = torch.cat(z, -1)
         logits = self.pair(z)
@@ -61,134 +62,111 @@ class TokenGame(nn.Module):
         # aromatic bonds count 1.5, so markings are multiples of one half and the capacity gets half a token of slack
         gain = self.order[None, None, None, :] - self.order[cur][..., None]
         room = hydrogens + b["cap_a"] + 0.5
-        enabled = (gain <= room[:, :, None, None]) & (gain <= room[:, None, :, None]) if self.enabling else torch.ones_like(gain, dtype=torch.bool)
-        valid = (b["mask_a"][:, :, None] & b["mask_a"][:, None, :] & ~fired
-                 & torch.triu(torch.ones(n, n, dtype=torch.bool, device=cur.device), 1))[..., None] & ~F.one_hot(cur, N_BOND).bool()
-        stop = self.stop((h * b["mask_a"][..., None]).sum(1)).squeeze(-1) + (0.0 if self.training else self.stop_bias)
-
-        if extra:
-            return logits.masked_fill(~valid, -1e4), enabled, stop, h, room
+        enabled = (
+            (gain <= room[:, :, None, None]) & (gain <= room[:, None, :, None])
+            if self.enabling
+            else torch.ones_like(gain, dtype=torch.bool)
+        )
+        valid = (
+            b["mask_a"][:, :, None]
+            & b["mask_a"][:, None, :]
+            & ~fired
+            & torch.triu(torch.ones(n, n, dtype=torch.bool, device=cur.device), 1)
+        )[..., None] & ~F.one_hot(cur, N_BOND).bool()
+        stop = self.stop((h * b["mask_a"][..., None]).sum(1)).squeeze(-1) + (
+            0.0 if self.training else self.stop_bias
+        )
 
         return logits.masked_fill(~valid, -1e4), enabled, stop
 
-    def substitutions(self, b, cur, fired, logits, enabled, h, room, width):
-        """Rates of the substitutions built from the most probable breaks and every formation at the shared atom.
-
-        A substitution breaks B_ij and forms B_jk. The break is enabled whenever the place holds tokens, and the
-        formation needs room on S_j and S_k, but the break has just put its tokens on S_j, so S_j only has to hold
-        what the two firings do not cancel. Returns the log rates [B, width, N, types] and the breaks (i, j).
-        """
-        n = cur.shape[1]
-        masked = logits.masked_fill(~enabled, -1e4)
-
-        # breaks, a marked bond place re-typed to order zero
-        break_score = masked[..., 0].masked_fill(cur == 0, -1e4)
-        best = break_score.flatten(1).topk(min(width, n * n), 1)
-        bi, bj = best.indices // n, best.indices % n
-        rows = torch.arange(len(cur), device=cur.device)[:, None]
-        broken = self.order[cur[rows, bi, bj]][..., None, None]
-
-        # formations on any pair that shares the atom j of the break, to any type the elementary rate allows
-        form = masked[rows, bj]
-        gain = self.order[None, None, None, :] - self.order[cur[rows, bj]][..., None]
-        allowed = (gain <= room[:, None, :, None]) & (gain <= room[rows, bj][..., None, None] + broken)
-
-        if not self.enabling:
-            allowed = torch.ones_like(gain, dtype=torch.bool)
-
-        centre = torch.cat([h[rows, bi][:, :, None].expand(-1, -1, n, -1),
-                            h[rows, bj][:, :, None].expand(-1, -1, n, -1),
-                            h[:, None].expand(-1, bi.shape[1], -1, -1),
-                            F.one_hot(cur[rows, bi, bj], N_BOND).float()[:, :, None].expand(-1, -1, n, -1),
-                            F.one_hot(cur[rows, bj], N_BOND).float()], -1)
-
-        # the composite carries its own rate, it is not the product of the two halves
-        score = form + self.centre(centre)
-        atoms = torch.arange(n, device=cur.device)
-        same = (bj[..., None] == atoms) | (bi[..., None] == atoms)
-        bad = ~allowed | (form <= -1e3) | same[..., None] | (best.values <= -1e3)[..., None, None]
-
-        return score.masked_fill(bad, -1e4), bi, bj
-
     def events(self, b, cur, fired):
-        """Log rates of every event at a marking, as one flat vector per reaction.
+        """Log rates of every event at a marking, as one flat vector per reaction, [N * N * types firings, STOP]."""
+        logits, enabled, stop = self.rates(b, cur, fired)
+        flat = torch.cat(
+            [logits.masked_fill(~enabled, -1e4).flatten(1), stop[:, None]], 1
+        )
 
-        An event is an elementary firing, a substitution that fires two at once, or STOP. The layout is
-        [N * N * types elementary, width * N * types substitutions, one STOP], so an index decodes to the firings
-        it performs.
+        return flat, logits, enabled
+
+    @staticmethod
+    def apply_event(index, n):
+        """The firing (i, j, type) of every event index, as a list per reaction, empty for STOP."""
+        return [
+            (
+                [(ix // (n * N_BOND), (ix // N_BOND) % n, ix % N_BOND)]
+                if ix < n * n * N_BOND
+                else []
+            )
+            for ix in index.tolist()
+        ]
+
+    @staticmethod
+    def continuations(options, real, edits, fired, allowed):
+        """The firings still to come [B, K, N, N, types] of every vector of a set [B, K, N, N] that contains the fired
+        part of edits, and which vectors those are [B, K]. real marks the vectors that are not padding.
         """
-        if not self.composites:
-            logits, enabled, stop = self.rates(b, cur, fired)
-            flat = torch.cat([logits.masked_fill(~enabled, -1e4).flatten(1), stop[:, None]], 1)
-            return flat, logits, enabled, None, None, None
+        # a vector continues the fired part when it fires every fired place the same way
+        agree = real & ((options == edits[:, None]) | ~fired[:, None]).flatten(2).all(2)
+        live = (options > 0) & ~fired[:, None] & agree[..., None, None]
 
-        logits, enabled, stop, h, room = self.rates(b, cur, fired, extra=True)
-        sub, bi, bj = self.substitutions(b, cur, fired, logits, enabled, h, room, self.composites)
-        flat = torch.cat([logits.masked_fill(~enabled, -1e4).flatten(1), sub.flatten(1), stop[:, None]], 1)
-
-        return flat, logits, enabled, sub, bi, bj
-
-    def apply_event(self, index, cur, fired, bi, bj):
-        """The firings that an event index performs, as a list of (i, j, type) per reaction."""
-        n = cur.shape[1]
-        elementary = n * n * N_BOND
-        out = []
-        for r, ix in enumerate(index.tolist()):
-            if ix < elementary:
-                out.append([(ix // (n * N_BOND), (ix // N_BOND) % n, ix % N_BOND)])
-            elif bi is not None and ix < elementary + bi.shape[1] * n * N_BOND:
-                c = ix - elementary
-                w, k, t = c // (n * N_BOND), (c // N_BOND) % n, c % N_BOND
-                i, j = int(bi[r, w]), int(bj[r, w])
-                out.append([(i, j, 0), (j, k, t)])
-            else:
-                out.append([])
-
-        return out
-
-    def distance(self, cur):
-        """Number of marked bond places on the shortest path between two atoms, from 1 to hops. 0 if farther apart or not connected."""
-        adj = (cur > 0).float()
-        reach, dist = adj.clone(), (cur > 0).long()
-        for k in range(2, self.hops + 1):
-            reach = ((reach @ adj) > 0).float()
-            dist = torch.where((dist == 0) & (reach > 0), torch.full_like(dist, k), dist)
-
-        eye = torch.eye(cur.shape[1], dtype=torch.bool, device=cur.device)
-
-        return dist.masked_fill(eye, 0)
+        return (
+            torch.stack(
+                [
+                    (options == t + 1) & live & allowed[:, None, ..., t]
+                    for t in range(N_BOND)
+                ],
+                -1,
+            ),
+            agree,
+        )
 
     def loss(self, b):
         # the record gives a firing vector but no order, and sequences with the same firing vector reach the same
         # marking. so a random part of the firing vector is fired and any remaining enabled firing is a correct next
-        # step. the loss is -log sum_t P(t | m_A + C sigma_F) over these firings, or -log P(STOP) if none remains
-        true = b["edits"] > 0
-        keep = torch.rand(len(true), 1, 1, device=true.device)
-        draw = torch.rand(true.shape, device=true.device)
+        # step. the loss is -log sum_t P(t | m_A + C sigma_F) over these firings, or -log P(STOP) if none remains.
+        # the net can give a set of firing vectors instead (edits_set). one of them is drawn, a firing is correct when
+        # it continues a vector of the set that contains the fired part, STOP when the fired part is a whole vector
+        edits, options = b["edits"], b.get("edits_set")
+        keep = torch.rand(len(edits), 1, 1, device=edits.device)
+        draw = torch.rand(edits.shape, device=edits.device)
         draw = torch.triu(draw, 1)
         draw = draw + draw.transpose(1, 2)
+
+        if options is None:
+            options, real = edits[:, None], torch.ones(
+                len(edits), 1, dtype=torch.bool, device=edits.device
+            )
+        else:
+            rows = torch.arange(len(edits), device=edits.device)
+            edits = options[
+                rows, (torch.rand(len(edits), device=edits.device) * b["n_set"]).long()
+            ].long()
+            real = (
+                torch.arange(options.shape[1], device=edits.device)
+                < b["n_set"][:, None]
+            )
+
+        true = edits > 0
         fired = true & (draw < keep)
-        cur = torch.where(fired, b["edits"] - 1, b["ba"])
-        flat, logits, enabled, sub, bi, bj = self.events(b, cur, fired)
-        n = cur.shape[1]
-        remaining = F.one_hot((b["edits"] - 1).clamp(min=0), N_BOND).bool() & (true & ~fired)[..., None] & (logits > -1e3)
+        cur = torch.where(fired, edits - 1, b["ba"])
+        flat, logits, enabled = self.events(b, cur, fired)
+        live, agree = self.continuations(options, real, edits, fired, logits > -1e3)
+        remaining = live.any(1)
         target = remaining & enabled
+        hit = [logits.masked_fill(~target, -1e4).flatten(1)]
+        found = target.flatten(1).any(1)
 
-        # a noisy record can leave no enabled firing, then any remaining one is accepted
-        target = torch.where(target.flatten(1).any(1)[:, None, None, None], target, remaining)
-        hit = [logits.masked_fill(~enabled & ~target, -1e4).masked_fill(~target, -1e4).flatten(1)]
-
-        if sub is not None:
-            # a substitution is a correct next event when both of its firings are still to come
-            rows = torch.arange(len(cur), device=cur.device)[:, None]
-            breaks = remaining[rows, bi, bj, 0]
-            forms = remaining[rows, bj]
-            hit.append(sub.masked_fill(~(forms & breaks[..., None, None]), -1e4).flatten(1))
-
-        done = ~remaining.flatten(1).any(1)
+        # STOP is correct when a vector of the set has no firing left
+        done = (agree & ~live.flatten(2).any(2)).any(1)
+        hit.append(flat[:, -1:].masked_fill(~done[:, None], -1e4))
         log_z = torch.logsumexp(flat, 1)
+        per_state = log_z - torch.logsumexp(torch.cat(hit, 1), 1)
 
-        return (log_z - torch.where(done, flat[:, -1], torch.logsumexp(torch.cat(hit, 1), 1))).mean()
+        # a noisy record can leave firings to come of which none is enabled. such a state has no correct next event,
+        # so it is left out. scoring the disabled firings instead, which are not in log_z, leaves the loss unbounded
+        usable = done | found
+
+        return (per_state * usable).sum() / usable.sum().clamp(min=1)
 
     @torch.no_grad()
     def forward(self, b):
@@ -196,13 +174,13 @@ class TokenGame(nn.Module):
         cur, fired = b["ba"].clone(), torch.zeros_like(b["ba"], dtype=torch.bool)
         active = torch.ones(len(cur), dtype=torch.bool, device=cur.device)
         for _ in range(self.max_steps):
-            flat, _, _, _, bi, bj = self.events(b, cur, fired)
+            flat, _, _ = self.events(b, cur, fired)
             best, where = flat[:, :-1].max(1)
             fire = active & (best > flat[:, -1])
             if not fire.any():
                 break
 
-            for r, firings in enumerate(self.apply_event(where, cur, fired, bi, bj)):
+            for r, firings in enumerate(self.apply_event(where, cur.shape[1])):
                 if not fire[r]:
                     continue
 
@@ -220,7 +198,13 @@ class TokenGame(nn.Module):
         # hypotheses are keyed by their firing vector. sequences that differ only in the order of their firings
         # reach the same marking by the state equation, so they merge and their probabilities add
         n = b["ba"].shape[1]
-        beams, finished = {frozenset(): (0.0, b["ba"].clone(), torch.zeros_like(b["ba"], dtype=torch.bool))}, {}
+        beams, finished = {
+            frozenset(): (
+                0.0,
+                b["ba"].clone(),
+                torch.zeros_like(b["ba"], dtype=torch.bool),
+            )
+        }, {}
         for _ in range(self.max_steps):
             if not beams:
                 break
@@ -228,27 +212,40 @@ class TokenGame(nn.Module):
             keys = list(beams)
             cur = torch.cat([beams[k][1] for k in keys])
             fired = torch.cat([beams[k][2] for k in keys])
-            rep = {k: v.expand(len(keys), *v.shape[1:]) for k, v in b.items() if torch.is_tensor(v)}
-            flat, _, _, _, bi, bj = self.events(rep, cur, fired)
+            rep = {
+                k: v.expand(len(keys), *v.shape[1:])
+                for k, v in b.items()
+                if torch.is_tensor(v)
+            }
+            flat, _, _ = self.events(rep, cur, fired)
             logp = torch.log_softmax(flat, 1)
             top_lp, top_ix = logp.topk(width, 1)
             grown = {}
             for r, key in enumerate(keys):
-                firings = self.apply_event(top_ix[r], cur[r:r + 1].expand(width, -1, -1), fired, bi[r:r + 1].expand(width, -1) if bi is not None else None,
-                                           bj[r:r + 1].expand(width, -1) if bj is not None else None)
+                firings = self.apply_event(top_ix[r], n)
                 for lp, event in zip(top_lp[r].tolist(), firings):
+                    # a transition that is not enabled has probability zero, it can reach the top k only when fewer than k
+                    # events are enabled
+                    if lp < -1e3:
+                        continue
+
                     total = beams[key][0] + lp
 
                     # an event with no firing is STOP
                     if not event:
-                        finished[key] = float(np.logaddexp(finished.get(key, -np.inf), total))
+                        finished[key] = float(
+                            np.logaddexp(finished.get(key, -np.inf), total)
+                        )
                         continue
 
                     new_key = key | set(event)
                     if new_key in grown:
-                        grown[new_key] = (float(np.logaddexp(grown[new_key][0], total)), *grown[new_key][1:])
+                        grown[new_key] = (
+                            float(np.logaddexp(grown[new_key][0], total)),
+                            *grown[new_key][1:],
+                        )
                     else:
-                        c, f = cur[r:r + 1].clone(), fired[r:r + 1].clone()
+                        c, f = cur[r : r + 1].clone(), fired[r : r + 1].clone()
                         for i, j, k in event:
                             c[0, i, j] = c[0, j, i] = k
                             f[0, i, j] = f[0, j, i] = True
@@ -259,7 +256,91 @@ class TokenGame(nn.Module):
 
         ranked = sorted(finished.items(), key=lambda kv: -kv[1])[:width]
 
-        return [(np.array(sorted(key), dtype=np.int64).reshape(-1, 3), lp) for key, lp in ranked]
+        return [
+            (np.array(sorted(key), dtype=np.int64).reshape(-1, 3), lp)
+            for key, lp in ranked
+        ]
+
+    @torch.no_grad()
+    def beam_search_batch(self, b, width=5):
+        """beam_search for a batch of reactions at once, one ranked list per reaction.
+
+        The hypotheses of all reactions share one evaluation of the rate law per step. Their markings stay on the host
+        and go to the device once per step, so extending a hypothesis launches no device work.
+        """
+        device, batch = b["ba"].device, b["ba"].shape[0]
+        start = b["ba"].cpu().numpy()
+        untouched = np.zeros(start.shape[1:], bool)
+        beams = [{frozenset(): (0.0, start[r], untouched)} for r in range(batch)]
+        finished = [{} for _ in range(batch)]
+        static = {
+            k: v
+            for k, v in b.items()
+            if torch.is_tensor(v) and v.dim() and v.shape[0] == batch
+        }
+        for _ in range(self.max_steps):
+            rows = [(r, key) for r in range(batch) for key in beams[r]]
+            if not rows:
+                break
+
+            item = torch.tensor([r for r, _ in rows], device=device)
+            rep = {k: v[item] for k, v in static.items()}
+            cur = torch.from_numpy(np.stack([beams[r][key][1] for r, key in rows])).to(
+                device
+            )
+            fired = torch.from_numpy(
+                np.stack([beams[r][key][2] for r, key in rows])
+            ).to(device)
+            flat, _, _ = self.events(rep, cur, fired)
+            top_lp, top_ix = torch.log_softmax(flat, 1).topk(width, 1)
+            top_lp, top_ix = top_lp.cpu(), top_ix.cpu()
+            grown = [{} for _ in range(batch)]
+            for h, (r, key) in enumerate(rows):
+                base, c0, f0 = beams[r][key]
+                firings = self.apply_event(top_ix[h], cur.shape[1])
+                for lp, event in zip(top_lp[h].tolist(), firings):
+                    # a transition that is not enabled has probability zero, it can reach the top k only when fewer than k
+                    # events are enabled
+                    if lp < -1e3:
+                        continue
+
+                    total = base + lp
+
+                    # an event with no firing is STOP
+                    if not event:
+                        finished[r][key] = float(
+                            np.logaddexp(finished[r].get(key, -np.inf), total)
+                        )
+                        continue
+
+                    new_key = key | set(event)
+                    if new_key in grown[r]:
+                        grown[r][new_key] = (
+                            float(np.logaddexp(grown[r][new_key][0], total)),
+                        ) + grown[r][new_key][1:]
+                    else:
+                        c, f = c0.copy(), f0.copy()
+                        for i, j, k in event:
+                            c[i, j] = c[j, i] = k
+                            f[i, j] = f[j, i] = True
+
+                        grown[r][new_key] = (total, c, f)
+
+            beams = [
+                dict(sorted(g.items(), key=lambda kv: -kv[1][0])[:width]) for g in grown
+            ]
+
+        out = []
+        for r in range(batch):
+            ranked = sorted(finished[r].items(), key=lambda kv: -kv[1])[:width]
+            out.append(
+                [
+                    (np.array(sorted(key), dtype=np.int64).reshape(-1, 3), lp)
+                    for key, lp in ranked
+                ]
+            )
+
+        return out
 
     @staticmethod
     def decode(edits, b, reactions):

@@ -1,8 +1,9 @@
 # Neural Petri Flow
 
-A neural network that is a Petri net rather than one that runs on a Petri net. The only learned object is the rate
-law. Conservation, enabling and the state equation are parameter-free layers, so for every value of the weights the
-outputs are markings of the given net and firing counts that satisfy its state equation.
+A neural network that is a Petri net rather than one that runs on a Petri net. The learned parts are the rate law and,
+for classification, a readout of the firing. Conservation, enabling and the state equation are parameter-free layers,
+so for every value of the weights the outputs are markings of the given net and firing counts that satisfy its state
+equation.
 
 A chemical reaction is written as a firing sequence of a valence net. Bond places hold bond orders, slack places hold
 free valence, transitions make and break bonds. Forward prediction, atom mapping and reaction classification become
@@ -40,12 +41,16 @@ Models and data live in the package, one model per file. Everything that produce
 | `src/npf/chem/token_game.py` | forward prediction as a firing sequence with enabling |
 | `src/npf/chem/one_shot.py` | one-shot counterpart of the token game |
 | `src/npf/chem/classifier.py` | state-equation readout, and the explicit firing vector |
-| `src/npf/chem/mapper.py` | atom mapping as an equilibrium, Sinkhorn with a slack row |
-| `src/npf/chem/exact.py` | exact minimum firing vector as an integer program |
+| `src/npf/chem/targets.py` | training targets from the net, and the scoring of a marking against the recorded product |
+| `src/npf/chem/mapping.py` | the maps of the exact mapper as SMILES with map numbers |
+| `src/npf/chem/api.py` | train, validate, test and use the models on your own reactions, with PyTorch Lightning |
+| `src/npf/chem/exact.py` | the atom mapper, the exact minimum firing vector as an integer program, and all its ties |
 | `src/npf/chem/open_net.py` | source transitions for reactions whose reactants the record omits |
-| `src/npf/chem/minimise.py` | older branch and bound, superseded by `exact.py` |
+| `src/npf/chem/minimise.py` | the feasible seating the integer program starts from |
 | `src/npf/chem/orders.py` | enabled linearisations of a firing vector |
 | `src/npf/chem/verifier.py` | re-ranker for token game candidates, no gain, kept for the record |
+| `src/npf/chem/arrows.py` | a mechanistic step as a net of electron pairs, arrows as transitions, the octet rule as enabling |
+| `src/npf/chem/arrow_game.py` | elementary steps as firing sequences of that net |
 
 ### Benchmarks
 
@@ -58,56 +63,132 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/synthetic/equilibrium.py` | equilibria of unseen reversible nets |
 | `benchmarks/synthetic/learned_incidence.py`, `coloured.py` | extensions |
 | `benchmarks/chemistry/build_data.py` | Schneider 50k and USPTO-MIT to `data/` |
-| `benchmarks/chemistry/experiment.py` | forward, map and classify, all datasets |
+| `benchmarks/chemistry/experiment.py` | forward and classify, all datasets |
 | `benchmarks/chemistry/care.py` | EC number classification on CARE task 2 |
-| `benchmarks/chemistry/exact_map.py` | the learning-free mapper on a data set |
+| `benchmarks/chemistry/exact_map.py` | the mapper on a data set, and the maps the classifier reads |
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
+| `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
+| `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark |
 | `benchmarks/chemistry/exact_ties.py` | the mappings the net cannot tell apart |
-| `benchmarks/chemistry/tie_breaker.py` | a learned rate law that orders those ties |
 | `benchmarks/chemistry/balance.py` | balanced equations from the open net |
 | `benchmarks/chemistry/golden.py` | the Golden atom mapping set |
 | `benchmarks/chemistry/errors.py` | where the token game fails |
 | `benchmarks/chemistry/decoding_rules.py`, `calibrate.py`, `ensemble.py`, `verify.py` | decoding and ranking |
-| `benchmarks/chemistry/unsupervised_map.py`, `net_maps.py` | mapping without recorded maps |
-| `benchmarks/chemistry/insights.py`, `invariance.py`, `figures.py`, `review.py` | analyses and figures |
+| `benchmarks/chemistry/net_targets.py` | forward training targets from the net, every minimum firing vector that reaches the product |
+| `benchmarks/chemistry/insights.py`, `invariance.py`, `figures.py` | analyses and figures |
 | `benchmarks/chemistry/baselines/molecular_transformer.py` | the baseline, trained here |
 | `benchmarks/checks/paper_checks.py` | numerical check of every proposition, exits non-zero on failure |
 | `benchmarks/checks/data_facts.py` | the facts about the data that the paper quotes |
 | `benchmarks/report.py` | `results/*.json` to `results/REPORT.md` |
-| `benchmarks/paper_tables.py` | `results/REPORT.md` to `paper/tables/appendix_tables.tex` |
-| `tests/` | unit tests, and equivalence tests against the code that produced earlier results |
+| `benchmarks/paper_tables.py` | `results/REPORT.md` to `paper/tables/appendix_tables.tex` (chemistry) and `paper/tables/synthetic_tables.tex` |
+| `tests/` | unit tests and end-to-end runs of the experiment scripts |
 
 ## Reproduce
 
-Tests and the proofs checked numerically.
+Tests, the propositions checked numerically, and the facts about the data that the text quotes.
 
     uv run pytest -q
     uv run python -m benchmarks.checks.paper_checks
+    uv run python -m benchmarks.checks.data_facts
 
-Synthetic nets.
+Synthetic nets (Appendix E). The `npf-kl` rows come from `benchmarks.synthetic.experiment` with `--model npf-kl` on every
+regime of the sweep.
 
-    uv run python -m benchmarks.synthetic.sweep --task transitions
-    uv run python -m benchmarks.synthetic.sweep --task next --iters 3000
+    uv run python -m benchmarks.synthetic.sweep --task transitions --workers 10
+    uv run python -m benchmarks.synthetic.sweep --task next --iters 3000 --workers 10
     uv run python -m benchmarks.synthetic.paper_protocol
+    uv run python -m benchmarks.synthetic.locality
+    uv run python -m benchmarks.synthetic.equilibrium
+    uv run python -m benchmarks.synthetic.learned_incidence
+    uv run python -m benchmarks.synthetic.coloured
 
-Chemistry. The first two commands write `data/schneider50k.pkl` and `data/uspto_mit.pkl`.
+Data. The Golden set is the RDF of Lin et al. (2022).
 
-    uv run python -m benchmarks.chemistry.build_data
-    uv run python -m benchmarks.chemistry.build_data uspto-mit
-    uv run python -m benchmarks.chemistry.experiment --task classify --model npf --seed 0
-    uv run python -m benchmarks.chemistry.experiment --task forward --model npf --seed 0 \
-        --dataset uspto_mit --width 256 --rounds 8 --attention 8 --amp
+    uv run python -m benchmarks.chemistry.build_data                    # data/schneider50k.pkl
+    uv run python -m benchmarks.chemistry.build_data uspto-mit          # data/uspto_mit.pkl
+    uv run python -m benchmarks.chemistry.golden prepare <golden.rdf>   # data/golden.pkl, data/golden_unmapped.txt
 
-Atom mapping with no learning and no recorded map, then the comparison with RXNMapper.
+Atom mapping. The mapper on the Golden set with the chosen cost and its alternatives, the 200 dev reactions on which the
+cost was chosen, the ties, the open net, and RXNMapper on the same reactions, which runs in an environment of its own.
 
-    uv run python -m benchmarks.chemistry.exact_map --data golden --no-labile-h --ch-places
+    uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py
+    uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
+    uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-ch-places
+    uv run python -m benchmarks.chemistry.exact_map --data golden-dev
+    uv run python -m benchmarks.chemistry.exact_map --data golden --secondary 0,0,0 --labile-h --no-ch-places
+    uv run python -m benchmarks.chemistry.exact_map --data golden --labile-h --no-ch-places
+    uv run python -m benchmarks.chemistry.exact_map --data golden --no-ch-places
+    uv run python -m benchmarks.chemistry.exact_map --data golden
+    uv run python -m benchmarks.chemistry.exact_ties
+    uv run python -m benchmarks.chemistry.balance --data golden
+    uv run python -m benchmarks.chemistry.balance --data schneider50k
     uv run python -m benchmarks.chemistry.balance "CC(=O)Cl.NCCN>>CC(=O)NCCNC(C)=O"
 
-EC numbers on CARE task 2. Download `CARE_datasets.zip` from the Zenodo record of the CARE benchmark and unpack it.
+Targets of the net. The maps that classification reads, and the firing vectors that forward prediction trains on.
 
-    uv run python -m benchmarks.chemistry.care prepare <CARE_datasets>
-    uv run python -m benchmarks.chemistry.care train --model npf --seed 0
+    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --deterministic 3 --processes 18 --write data/exact_maps_schneider50k.pkl
+    uv run python -m benchmarks.chemistry.net_targets --dataset schneider50k
+    uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit --subset 40900
+    uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit
 
+Classification on Schneider 50k. Seeds 0 to 4 for the three models of the main table, 0 to 2 elsewhere.
+
+    C="uv run python -m benchmarks.chemistry.experiment --task classify"
+    $C --model npf --seed 0                                          # also npf-sigma, pgnn-sigma, pgnn, npf-nogate, drfp
+    $C --model npf --size-split --seed 0                             # also npf-nogate, pgnn
+    $C --model npf --labels 1000 --select last --seed 0              # also 250 labels; pgnn, npf-sigma, pgnn-sigma, drfp
+    $C --model npf --firing --labels 1000 --select last --seed 0     # also 250 labels; pgnn
+    uv run python -m benchmarks.chemistry.ensemble npf-sigma         # also npf
+    uv run python -m benchmarks.chemistry.invariance
+    uv run python -m benchmarks.chemistry.insights
+
+Forward prediction on Schneider 50k, seeds 0 and 1.
+
+    F="uv run python -m benchmarks.chemistry.experiment --task forward --net-targets data/net_targets_schneider50k.pkl"
+    $F --model npf --seed 0                       # also npf-noenabling, npf-oneshot --matched, pgnn --matched
+    $F --model npf --limit 2000 --seed 0          # also 8000; npf-noenabling, pgnn --matched
+    uv run python -m benchmarks.chemistry.beam_width
+    uv run python -m benchmarks.chemistry.figures tokengame 14440
+    uv run python -m benchmarks.chemistry.figures attribution
+    uv run python -m benchmarks.chemistry.figures loadbearing
+
+Forward prediction on USPTO-MIT, seeds 0 and 1, and the Molecular Transformer baseline on the same subsets.
+
+    M="uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit --amp"
+    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --net-targets data/net_targets_uspto_mit.pkl --seed 0
+    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0                              # recorded maps
+    $M --subset 40900 --net-targets data/net_targets_uspto_mit-sub40900.pkl --seed 0                    # also --single-target, --subset 4090, recorded maps
+    uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
+    uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 40900    # then train 40900 --steps 30000 and score 40900; also 4090
+
+The report and the tables of the paper.
+
+    uv run python -m benchmarks.report > results/REPORT.md && uv run python -m benchmarks.paper_tables
+
+## Your own reactions
+
+The models train on reaction SMILES without atom maps. A file holds one reaction per line, `precursors>>product`, with
+an optional tab separated class label. The exact mapper computes the targets once per file, a few CPU seconds per
+reaction, and caches them next to it.
+
+    from npf.chem import api
+
+    data = api.ReactionData("train.txt", "val.txt", "test.txt")
+    model = api.ForwardModel()                                 # width=256, rounds=8, attention=8 is the USPTO-MIT model
+    trainer = api.trainer(model, epochs=60)
+    trainer.fit(model, data)
+    trainer.test(model, data, ckpt_path="best")
+    api.predict(model, ["CC(=O)Cl.NCC"])               # ranked products with probabilities
+    api.map_reaction("CC(=O)Cl.NCC>>CC(=O)NCC")        # the reaction with atom map numbers
+
+    data = api.ReactionData("train.txt", "val.txt", "test.txt", task="classify")
+    model = api.ClassifierModel(data.n_classes, sigma=True)   # the classifier of the paper, reads the mapper's firing vector
+    api.classify(model, ["CC(=O)Cl.NCC>>CC(=O)NCC"], data.classes)
+
+`api.trainer` is a Lightning trainer with the settings of the paper, AdamW, a one-cycle schedule, gradient clipping and
+the best epoch kept. Any Lightning trainer works, and `ForwardModel.load_from_checkpoint` reloads a run. Without
+`sigma` the classifier is the state-equation readout, which needs no mapper at test time. `map_reaction` and the
+training targets use the exact mapper of the paper with its chosen cost.
 
 ## Conventions
 
@@ -117,9 +198,29 @@ folders.
 
 ## Changelog
 
-Since commit 6fb91ef.
+Since commit 9d3986f.
 
-- CARE task 2 keeps every reaction and scores all 393 test reactions of the easy split. `featurise` takes
-  `max_atoms`, whose default leaves the USPTO and Schneider results unchanged.
-- `care.py --hierarchy` adds heads for EC levels 1 to 3, and every run is also decoded with the marginal and
-  hierarchy rules.
+- Mechanism prediction on the FlowER benchmark with the arrow net, in `arrows.py`, `arrow_game.py` and `mechanism.py`.
+- The learning-free mapper on the five SynRXN sets, in `synrxn_map.py`.
+- `paper_tables.py` writes chemistry and synthetic tables to separate files. `report.py` uses the names of the paper and
+  lists the run without the enabling mask.
+- `paper_checks.py` numbers the propositions as the paper does. The Sinkhorn check and a valence check that could not
+  fail are gone.
+- One atom mapper. The learned assignment net, its unsupervised variant, the tie-breaker, the older heuristic search as a
+  mapper and the review package are removed. The heuristic survives as the feasible start of the integer program.
+- Forward prediction trains on targets of the net (`net_targets.py`, `--net-targets`), with a loss over the whole set of
+  minimum firing vectors. The loss leaves out states in which no correct firing is enabled, where it was unbounded.
+- Classification reads the maps of the exact mapper everywhere (`--maps`), and `--select last` keeps the last epoch
+  without looking at validation labels.
+- Forward results carry `product_major`, the largest molecule made against the recorded main product.
+- The Golden scorer matches RXNMapper's molecules as graphs when double-bond stereo reorders the atoms.
+- The one-shot repair uses the valence rule of the token game. The substitution events of the token game are removed.
+- Old-code equivalence tests are removed with the old code, the end-to-end tests run the current scripts alone.
+- On USPTO-MIT both kinds of targets share the size caps and the validation reactions. The mapper, the ties and the open
+  net run on a budget in deterministic time with interleaved solver workers, so their maps do not depend on the load of the
+  machine, and `exact_map` defaults to the chosen cost.
+- An API for your own reactions, `npf.chem.api`, on PyTorch Lightning. The targets of the net, the scoring and the
+  mapped SMILES moved into the package (`targets.py`, `mapping.py`), the benchmark scripts read them from there.
+- The Molecular Transformer is scored by exact match, by the largest molecule and under the rule of the token game.
+  `report.py` follows the new run names and reports the mapper with the chosen cost. `data_facts` reads the targets of
+  the net and the USPTO-MIT test facts. RXNMapper's run on the Golden set has a script, `baselines/rxnmapper_golden.py`.
