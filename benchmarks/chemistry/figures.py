@@ -48,7 +48,7 @@ SYMBOL = {5: "B", 6: "C", 7: "N", 8: "O", 9: "F", 16: "S", 17: "Cl", 35: "Br", 5
 DETACH = 1.45
 
 # a placed leaving atom keeps this distance from every other atom, from a label and from the area of a ring
-CLEAR, LABEL, RING = 1.15, 1.0, 2.2
+CLEAR, LABEL, RING, STEM = 1.15, 1.0, 2.2, 0.55
 
 
 def touched_atoms(r):
@@ -84,6 +84,14 @@ def precursor_mol(a, bonds, atoms, slack_change=None):
                     mol.GetAtomWithIdx(index[int(k)]).SetIsAromatic(True)
 
     return mol, index
+
+
+def to_segment(points, p, q):
+    """Distance from every point to the segment p q, so a long bond does not cross what is already drawn."""
+    d = q - p
+    t = np.clip(((points - p) @ d) / max(float(d @ d), 1e-9), 0.0, 1.0)
+
+    return np.linalg.norm(points - (p + t[:, None] * d), axis=1)
 
 
 def layout(r, atoms):
@@ -148,17 +156,18 @@ def layout(r, atoms):
             continue
 
         x, c = anchor[0]
-        others = np.array([p for k, p in pos.items() if k != c] + rings)
+        kept = [k for k in pos if k != c]
+        others = np.array([pos[k] for k in kept] + rings)
 
         # room for a label like NH2, and for the whole area of a ring around its centre
         margin = np.array(
-            [
-                LABEL if (a["h"][k] > 0 and a["element"][k] != 6) else 0.0
-                for k in pos
-                if k != c
-            ]
+            [LABEL if (a["h"][k] > 0 and a["element"][k] != 6) else 0.0 for k in kept]
             + [RING] * len(rings)
         )
+
+        # the bond drawn to the group is tested against atoms only, a ring centre lies within a bond of its atoms
+        near = np.array([np.linalg.norm(pos[k] - pos[c]) > 1.1 for k in kept])
+        away = np.array([pos[k] for k in kept])[near]
         rel = np.array([old[y] - old[c] for y in group])
         old_dir = (old[x] - old[c]) / np.linalg.norm(old[x] - old[c])
 
@@ -172,13 +181,13 @@ def layout(r, atoms):
 
             return pos[c] + (rel @ rot.T) * DETACH + push * new_dir
 
-        # smallest distance of the placed group to everything that is already there
+        # smallest distance to everything already there, of the placed group and of the bond drawn to it
         def clearance(t, push):
             placed = placed_at(t, push)
+            atoms = np.linalg.norm(others[None] - placed[:, None], axis=2) - margin[None]
+            stem = to_segment(away, pos[c], placed[group.index(x)]) - STEM
 
-            return (
-                np.linalg.norm(others[None] - placed[:, None], axis=2) - margin[None]
-            ).min()
+            return min(atoms.min(), stem.min() if len(away) else np.inf)
 
         # the shortest push at which some direction keeps the group clear, else the roomiest placement there is
         turns = np.linspace(0, 2 * np.pi, 144, endpoint=False)

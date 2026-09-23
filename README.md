@@ -161,6 +161,21 @@ Forward prediction on USPTO-MIT, seeds 0 to 2, and the Molecular Transformer bas
     uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 40900    # then train 40900 --steps 30000 and score 40900; also 4090
 
+Elementary steps on the FlowER mechanism benchmark, seeds 0 to 2.
+
+Both models are token games. Given the reactants of one elementary step they fire arrows until STOP, and the marking
+reached is the predicted products. The arrow net moves an electron pair per firing, so its transitions are the curly
+arrows of arrow pushing and the octet rule is what enables them. The electron net moves one electron, so a fishhook is
+a transition of weight one, radical steps become expressible, and the arrow net is its sub-net of weight two.
+
+The download stage fetches the published split from figshare and checks it, so a fresh machine needs nothing else.
+Each net keeps its own prepared data, weights and results.
+
+    uv run python -m benchmarks.chemistry.mechanism download
+    uv run python -m benchmarks.chemistry.mechanism prepare --net electron --processes 20
+    uv run python -m benchmarks.chemistry.mechanism train --net electron --seed 0 --epochs 12 --budget 2000000
+    uv run python -m benchmarks.chemistry.mechanism evaluate --net electron --seed 0 --beam 10
+
 The report and the tables of the paper.
 
     uv run python -m benchmarks.report > results/REPORT.md && uv run python -m benchmarks.paper_tables

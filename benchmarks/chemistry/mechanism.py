@@ -10,6 +10,7 @@ arrow net cannot express, which are wrong by construction.
 The electron net of electron.py moves single electrons as well, so it expresses the radical steps too. It is chosen
 with --net electron and keeps its own prepared data, weights and results.
 
+    uv run python -m benchmarks.chemistry.mechanism download              # data/flower/2025/data/flower_dataset/
     uv run python -m benchmarks.chemistry.mechanism prepare               # data/flower/npf/{train,val,test}/
     uv run python -m benchmarks.chemistry.mechanism train --seed 0        # results/mechanism/npf-0.pt
     uv run python -m benchmarks.chemistry.mechanism evaluate --seed 0     # results/mechanism/npf-0.json
@@ -19,11 +20,14 @@ with --net electron and keeps its own prepared data, weights and results.
 """
 
 import argparse
+import hashlib
 import json
 import os
 import pickle
 import random
 import time
+import urllib.request
+import zipfile
 from collections import Counter, defaultdict
 from multiprocessing import Pool
 from pathlib import Path
@@ -37,6 +41,12 @@ from npf.chem.electron_game import KINDS, ElectronGame
 
 SOURCE = Path("data/flower/2025/data/flower_dataset")
 RESULTS = Path("results/mechanism")
+
+# the published data of Joung et al., figshare 10.6084/m9.figshare.28359407, MIT licence
+FIGSHARE = "https://api.figshare.com/v2/articles/28359407/files"
+ARCHIVE = "https://ndownloader.figshare.com/files/55904909"
+ARCHIVE_SHA = "8e2333563bdf94051181898b4a77adf3e34bf696a6c33e03823f5ea77aa23ee5"
+SPLIT_LINES = {"train": 1445189, "val": 15744, "test": 162002}
 OK, RADICAL, UNCOVERED, FAILED = 0, 1, 2, 3
 TABLES = {}
 
@@ -72,6 +82,56 @@ def net():
 
 def data_folder():
     return NET["data"]
+
+
+def download(args):
+    """Fetch and unpack the published split, so a fresh machine needs nothing but this repository."""
+    if all((SOURCE / f"{name}.txt").exists() for name in SPLIT_LINES):
+        print(f"{SOURCE} is already there")
+    else:
+        root = SOURCE.parent.parent
+        root.mkdir(parents=True, exist_ok=True)
+        archive = root / "data.zip"
+
+        if not archive.exists() or _digest(archive) != ARCHIVE_SHA:
+            url = ARCHIVE
+
+            # the file id may change, the article does not
+            try:
+                with urllib.request.urlopen(FIGSHARE, timeout=60) as f:
+                    listed = json.load(f)
+
+                url = next(x["download_url"] for x in listed if x["name"] == "data.zip")
+            except Exception as error:
+                print(f"figshare listing failed ({error}), using the recorded link")
+
+            print(f"downloading {url} to {archive}, 238 MB", flush=True)
+            urllib.request.urlretrieve(url, archive)
+
+        got = _digest(archive)
+        assert got == ARCHIVE_SHA, f"checksum of {archive} is {got}, expected {ARCHIVE_SHA}"
+
+        # the archive also carries the 2026 re-release, which the published numbers are not on
+        with zipfile.ZipFile(archive) as z:
+            wanted = [n for n in z.namelist() if "flower_dataset/" in n and "new" not in n]
+            print(f"unpacking {len(wanted)} files", flush=True)
+            z.extractall(root, members=wanted)
+
+    for name, expected in SPLIT_LINES.items():
+        path = SOURCE / f"{name}.txt"
+        n = sum(1 for _ in path.open())
+        assert n == expected, f"{path} has {n} lines, expected {expected}"
+        print(f"{path} {n} steps")
+
+
+def _digest(path, chunk=1 << 20):
+    h = hashlib.sha256()
+
+    with path.open("rb") as f:
+        while block := f.read(chunk):
+            h.update(block)
+
+    return h.hexdigest()
 
 
 def _stats(lines):
@@ -609,7 +669,7 @@ def run_evaluation(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=["prepare", "train", "evaluate"])
+    ap.add_argument("stage", choices=["download", "prepare", "train", "evaluate"])
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument(
         "--net",
@@ -654,7 +714,13 @@ def main():
     global NET
     NET = NETS[args.net]
     args.name = args.name or NET["name"]
-    {"prepare": prepare, "train": train, "evaluate": run_evaluation}[args.stage](args)
+    stages = {
+        "download": download,
+        "prepare": prepare,
+        "train": train,
+        "evaluate": run_evaluation,
+    }
+    stages[args.stage](args)
 
 
 if __name__ == "__main__":
