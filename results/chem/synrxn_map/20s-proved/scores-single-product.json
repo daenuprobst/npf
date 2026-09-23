@@ -1,0 +1,42 @@
+{
+ "golden": {
+  "reactions": 1712,
+  "npf": 85.81,
+  "rxn_mapper": 87.38,
+  "graphormer": 89.49,
+  "local_mapper": 89.19,
+  "rdt": 82.24
+ },
+ "natcomm": {
+  "reactions": 472,
+  "npf": 88.98,
+  "rxn_mapper": 87.5,
+  "graphormer": 93.01,
+  "local_mapper": 92.8,
+  "rdt": 84.11
+ },
+ "uspto_3k": {
+  "reactions": 2920,
+  "npf": 91.3,
+  "rxn_mapper": 93.39,
+  "graphormer": 95.0,
+  "local_mapper": 97.74,
+  "rdt": 90.68
+ },
+ "recon3d": {
+  "reactions": 47,
+  "npf": 74.47,
+  "rxn_mapper": 70.21,
+  "graphormer": 53.19,
+  "local_mapper": 65.96,
+  "rdt": 74.47
+ },
+ "ecoli": {
+  "reactions": 20,
+  "npf": 80.0,
+  "rxn_mapper": 85.0,
+  "graphormer": 55.0,
+  "local_mapper": 80.0,
+  "rdt": 75.0
+ }
+}

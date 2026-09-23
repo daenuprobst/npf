@@ -11,6 +11,12 @@ every number comes from one scorer.
     uv run python -m benchmarks.chemistry.synrxn_map map --seconds 60                   # results/chem/synrxn_map/60s/<set>.csv
     uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --seconds 60   # .../60s/scores.json
     uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --single-product
+
+With --retries the budget doubles until optimality is proved, and the maps land in <seconds>s-proved. The stopping rule
+is the proof, not an accuracy, and it applies to every set alike.
+
+    uv run python -m benchmarks.chemistry.synrxn_map map --seconds 20 --retries 4
+    uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --seconds 20 --retries 4
 """
 
 import argparse
@@ -93,6 +99,7 @@ def prepare(root, out=DATA):
 def work(job):
     k, reaction, options = job
     start = time.time()
+    retries = options.pop("retries", 0)
 
     try:
         if open_net.deficit(reaction).any():
@@ -107,6 +114,16 @@ def work(job):
             )
     except Exception:
         mapping, cost, proved = None, None, False
+
+    # the stopping rule is a proof of optimality, so a solve that runs out of budget is repeated with twice as much
+    if retries and not proved and mapping is not None:
+        doubled = options | dict(
+            seconds=2 * options["seconds"],
+            deterministic=2 * options["deterministic"],
+            retries=retries - 1,
+        )
+
+        return work((k, reaction, doubled)) | {"seconds": time.time() - start}
 
     known = (
         mapping is not None and reaction["target"] is not None and (mapping >= 0).all()
@@ -126,19 +143,19 @@ def work(job):
     }
 
 
-def folder(seconds):
+def folder(seconds, retries=0):
     """Every time limit keeps its own maps and scores."""
-    return OUT / f"{seconds:g}s"
+    return OUT / (f"{seconds:g}s-proved" if retries else f"{seconds:g}s")
 
 
-def run(sets, seconds, processes, workers, limit=None):
+def run(sets, seconds, processes, workers, limit=None, retries=0):
     rows = pickle.loads(DATA.read_bytes())
 
     # the chosen cost and a budget in deterministic time, so the maps do not depend on the load of the machine
     options = exact.CHOSEN | dict(
-        seconds=4 * seconds, deterministic=seconds, workers=workers
+        seconds=4 * seconds, deterministic=seconds, workers=workers, retries=retries
     )
-    out = folder(seconds)
+    out = folder(seconds, retries)
     out.mkdir(parents=True, exist_ok=True)
 
     for name in sets:
@@ -184,7 +201,7 @@ def run(sets, seconds, processes, workers, limit=None):
         )
 
 
-def score(sets, seconds, columns=("npf",) + BASELINES, single=False):
+def score(sets, seconds, columns=("npf",) + BASELINES, single=False, retries=0):
     """Accuracy of ours and of the four mappers under the SynRXN metric, SynKit's AAMValidator with its defaults. The
     mappers' outputs do not depend on our time limit, so a second limit needs only our column. single scores the
     reactions with one product molecule alone."""
@@ -204,7 +221,7 @@ def score(sets, seconds, columns=("npf",) + BASELINES, single=False):
         ]
         ours = {
             r["r_id"]: r["npf"]
-            for r in csv.DictReader(open(folder(seconds) / f"{name}.csv"))
+            for r in csv.DictReader(open(folder(seconds, retries) / f"{name}.csv"))
         }
         if len(ours) < len(rs):
             print(
@@ -234,7 +251,8 @@ def score(sets, seconds, columns=("npf",) + BASELINES, single=False):
         print(name, json.dumps(result[name]), flush=True)
 
     (
-        folder(seconds) / ("scores-single-product.json" if single else "scores.json")
+        folder(seconds, retries)
+        / ("scores-single-product.json" if single else "scores.json")
     ).write_text(json.dumps(result, indent=1))
 
 
@@ -248,6 +266,12 @@ def main():
     ap.add_argument("--seconds", type=float, default=20.0)
     ap.add_argument("--processes", type=int, default=6)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument(
+        "--retries",
+        type=int,
+        default=0,
+        help="map, repeat a solve that did not prove optimality with twice the budget, this many times",
+    )
     ap.add_argument(
         "--limit",
         type=int,
@@ -269,9 +293,15 @@ def main():
     if args.phase == "prepare":
         prepare(args.root)
     elif args.phase == "map":
-        run(sets, args.seconds, args.processes, args.workers, args.limit)
+        run(sets, args.seconds, args.processes, args.workers, args.limit, args.retries)
     else:
-        score(sets, args.seconds, args.columns.split(","), args.single_product)
+        score(
+            sets,
+            args.seconds,
+            args.columns.split(","),
+            args.single_product,
+            args.retries,
+        )
 
 
 if __name__ == "__main__":

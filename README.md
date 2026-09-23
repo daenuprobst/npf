@@ -68,7 +68,7 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/chemistry/exact_map.py` | the mapper on a data set, and the maps the classifier reads |
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
-| `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark |
+| `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark, `--net arrow` or `--net electron` |
 | `benchmarks/chemistry/exact_ties.py` | the mappings the net cannot tell apart |
 | `benchmarks/chemistry/balance.py` | balanced equations from the open net |
 | `benchmarks/chemistry/golden.py` | the Golden atom mapping set |
@@ -142,7 +142,7 @@ Classification on Schneider 50k. Seeds 0 to 4 for the three models of the main t
     uv run python -m benchmarks.chemistry.invariance
     uv run python -m benchmarks.chemistry.insights
 
-Forward prediction on Schneider 50k, seeds 0 and 1.
+Forward prediction on Schneider 50k, seeds 0 to 2.
 
     F="uv run python -m benchmarks.chemistry.experiment --task forward --net-targets data/net_targets_schneider50k.pkl"
     $F --model npf --seed 0                       # also npf-noenabling, npf-oneshot --matched, pgnn --matched
@@ -152,7 +152,7 @@ Forward prediction on Schneider 50k, seeds 0 and 1.
     uv run python -m benchmarks.chemistry.figures attribution
     uv run python -m benchmarks.chemistry.figures loadbearing
 
-Forward prediction on USPTO-MIT, seeds 0 and 1, and the Molecular Transformer baseline on the same subsets.
+Forward prediction on USPTO-MIT, seeds 0 to 2, and the Molecular Transformer baseline on the same subsets.
 
     M="uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit --amp"
     $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --net-targets data/net_targets_uspto_mit.pkl --seed 0
@@ -201,7 +201,13 @@ folders.
 Since commit 9d3986f.
 
 - Mechanism prediction on the FlowER benchmark with the arrow net, in `arrows.py`, `arrow_game.py` and `mechanism.py`.
-- The learning-free mapper on the five SynRXN sets, in `synrxn_map.py`.
+- The electron net, `electron.py` and `electron_game.py`, one electron as the token instead of one pair, so a fishhook
+  arrow is a transition of weight one and radical steps are expressible. The arrow net is its sub-net of weight two.
+  Chosen with `--net electron`, which keeps its own prepared data, weights and results.
+- The tail of an arrow keeps its electron count, so `arrows.Orders.delta` no longer moves the shell of the tail. Every
+  test step of the FlowER split now has an enabled order, 44 of them had none.
+- The learning-free mapper on the five SynRXN sets, in `synrxn_map.py`, with `--retries` to double the solver budget
+  until optimality is proved.
 - `paper_tables.py` writes chemistry and synthetic tables to separate files. `report.py` uses the names of the paper and
   lists the run without the enabling mask.
 - `paper_checks.py` numbers the propositions as the paper does. The Sinkhorn check and a valence check that could not

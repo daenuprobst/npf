@@ -1,5 +1,5 @@
 {
- "recorded_mapping_changes_more_places": 0.07970859224341119,
+ "recorded_mapping_changes_more_places": 0.08013713306192415,
  "by_class": [
   [
    "1.2.4",
@@ -31,7 +31,7 @@
   ],
   [
    "1.2.5",
-   13
+   12
   ]
  ],
  "examples": [
@@ -56,7 +56,7 @@
   {
    "reaction": "CC(=O)C(=NO)C(=O)c1ccccc1.CC(=O)C(=NOC(=O)Cl)C(=O)c1ccccc1.CC(C)(C)O.O.O=C(Cl)Cl.c1ccccc1.c1ccncc1>>CC(=O)C(=NOC(=O)OC(C)(C)C)C(=O)c1ccccc1",
    "class": "2.6.1",
-   "places_exact": 4,
+   "places_exact": 2,
    "places_recorded": 15
   },
   {
@@ -70,6 +70,12 @@
    "class": "10.4.2",
    "places_exact": 3,
    "places_recorded": 12
+  },
+  {
+   "reaction": "CCOC(=O)C[C@H](Cc1cc(Br)c(N)c(C)c1COC(C)=O)C(=O)OCC.COC(=O)C[C@H](Cc1ccc2[nH]ncc2c1CO)C(=O)OC>>COC(=O)C[C@H](Cc1cc(Br)c2[nH]ncc2c1CO)C(=O)OC",
+   "class": "10.1.1",
+   "places_exact": 3,
+   "places_recorded": 11
   },
   {
    "reaction": "CCc1cnc(CC)c(NC2c3ccsc3CCC2C)n1.CCc1nc(N[C@@H]2c3ccccc3C[C@@H]2O)c(CC)nc1Br>>CCc1nc(NC2c3ccsc3CCC2C)c(CC)nc1Br",
@@ -86,12 +92,6 @@
   {
    "reaction": "CCOC(C)=O.CI.CN(C)C=O.COc1ccc2ncc(=O)n(CCN3CCC(N(Cc4nc5c(cc4Cl)SCC(=O)N5)C(=O)OC(C)(C)C)CC3)c2c1.Cc1ccccc1.O.[H-].[Na+]>>COc1ccc2ncc(=O)n(CCN3CCC(N(Cc4nc5c(cc4Cl)SCC(=O)N5C)C(=O)OC(C)(C)C)CC3)c2c1",
    "class": "1.2.4",
-   "places_exact": 2,
-   "places_recorded": 10
-  },
-  {
-   "reaction": "Fc1cnc(Cl)nc1Cl.Fc1cnc(Cl)nc1Nc1ccc2c(c1)OCCO2.NCc1ccco1>>Fc1cnc(Cl)nc1NCc1ccco1",
-   "class": "1.3.7",
    "places_exact": 2,
    "places_recorded": 10
   }

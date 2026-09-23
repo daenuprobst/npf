@@ -47,6 +47,9 @@ rgb = lambda h: tuple(int(h[k : k + 2], 16) / 255 for k in (1, 3, 5))
 SYMBOL = {5: "B", 6: "C", 7: "N", 8: "O", 9: "F", 16: "S", 17: "Cl", 35: "Br", 53: "I"}
 DETACH = 1.45
 
+# a placed leaving atom keeps this distance from every other atom, from a label and from the area of a ring
+CLEAR, LABEL, RING = 1.15, 1.0, 2.2
+
 
 def touched_atoms(r):
     """Atoms of the precursor molecules that take part in a firing (spectators are not drawn)."""
@@ -147,46 +150,58 @@ def layout(r, atoms):
         x, c = anchor[0]
         others = np.array([p for k, p in pos.items() if k != c] + rings)
 
-        # room for labels like NH2
+        # room for a label like NH2, and for the whole area of a ring around its centre
         margin = np.array(
             [
-                0.9 if (a["h"][k] > 0 and a["element"][k] != 6) else 0.0
+                LABEL if (a["h"][k] > 0 and a["element"][k] != 6) else 0.0
                 for k in pos
                 if k != c
             ]
-            + [1.6] * len(rings)
+            + [RING] * len(rings)
         )
         rel = np.array([old[y] - old[c] for y in group])
+        old_dir = (old[x] - old[c]) / np.linalg.norm(old[x] - old[c])
 
-        # smallest distance of the rotated group to everything that is already placed
-        def clearance(t):
-            new_dir, old_dir = np.array([np.cos(t), np.sin(t)]), (
-                old[x] - old[c]
-            ) / np.linalg.norm(old[x] - old[c])
+        def placed_at(t, push):
+            """The group turned so its old bond points along t, then pushed that far further out."""
+            new_dir = np.array([np.cos(t), np.sin(t)])
             ang = np.arctan2(new_dir[1], new_dir[0]) - np.arctan2(
                 old_dir[1], old_dir[0]
             )
             rot = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
-            placed = pos[c] + (rel @ rot.T) * DETACH
+
+            return pos[c] + (rel @ rot.T) * DETACH + push * new_dir
+
+        # smallest distance of the placed group to everything that is already there
+        def clearance(t, push):
+            placed = placed_at(t, push)
 
             return (
                 np.linalg.norm(others[None] - placed[:, None], axis=2) - margin[None]
             ).min()
 
-        best = max(np.linspace(0, 2 * np.pi, 72, endpoint=False), key=clearance)
-        new_dir, old_dir = np.array([np.cos(best), np.sin(best)]), (
-            old[x] - old[c]
-        ) / np.linalg.norm(old[x] - old[c])
-        angle = np.arctan2(new_dir[1], new_dir[0]) - np.arctan2(old_dir[1], old_dir[0])
-        R = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
-        for y in group:
-            # leaving groups are drawn slightly detached
-            pos[y] = pos[c] + R @ (old[y] - old[c]) * DETACH
+        # the shortest push at which some direction keeps the group clear, else the roomiest placement there is
+        turns = np.linspace(0, 2 * np.pi, 144, endpoint=False)
+        best = max(
+            ((t, 0.0) for t in turns), key=lambda tp: clearance(*tp)
+        )
+        for push in np.arange(0.0, 3.01, 0.15):
+            angle = max(turns, key=lambda t: clearance(t, push))
+            if clearance(angle, push) >= CLEAR:
+                best = (angle, push)
+                break
+
+            if clearance(angle, push) > clearance(*best):
+                best = (angle, push)
+
+        for y, p in zip(group, placed_at(*best)):
+            # leaving groups are drawn detached, far enough out not to sit on what stays
+            pos[y] = p
 
     return pos
 
 
-def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400)):
+def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400), scale=4):
     """PNG of one marking, bonds as in `bonds`, the transition that fires next highlighted, free tokens as dots."""
     a = r["a"]
     mol, index = precursor_mol(a, bonds, atoms)
@@ -206,9 +221,10 @@ def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400)):
 
     mol.RemoveAllConformers()
     mol.AddConformer(conf)
-    drawer = rdMolDraw2D.MolDraw2DCairo(*size)
+    drawer = rdMolDraw2D.MolDraw2DCairo(size[0] * scale, size[1] * scale)
     opts = drawer.drawOptions()
-    opts.bondLineWidth, opts.padding, opts.fixedBondLength = 2, 0.08, 34
+    opts.bondLineWidth = 2 * scale
+    opts.padding, opts.fixedBondLength = 0.08, 34 * scale
     opts.clearBackground, opts.highlightBondWidthMultiplier = True, 14
     opts.useBWAtomPalette()
     highlight_bonds, colours = [], {}
@@ -354,7 +370,9 @@ def tokengame(reaction_id, weights="results/chem/forward/npf-nettargets-0.pt"):
         ax = fig.add_subplot(grid[0, col])
         ax.axis("off")
         nxt = firings[order[col]] if col < len(order) else None
-        ax.imshow(draw_marking(r, atoms, pos, bonds, nxt, slack))
+        ax.imshow(
+            draw_marking(r, atoms, pos, bonds, nxt, slack), interpolation="antialiased"
+        )
         probs, enabled, p_stop = step(done)
 
         if nxt is not None:

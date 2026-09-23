@@ -171,8 +171,9 @@ class Orders:
         dl, ds, dq, db = Counter(), Counter(), Counter(), Counter()
         for (kind, i, j), c in (Counter(self.arrows) - Counter(rest)).items():
             sign = c if kind == A else -c
+
+            # the tail trades a lone pair for a bond order, so only the head of an arrow changes its shell
             dl[i] -= sign
-            ds[i] += sign
             ds[j] += sign
             dq[i] += sign
             dq[j] -= sign

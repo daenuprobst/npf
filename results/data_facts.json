@@ -19,23 +19,19 @@
  },
  "schneider50k_training_sample": {
   "reactions": 5000,
-  "recorded_firings_decode_to_the_product": 0.9914,
-  "states": 4999,
-  "negative_slack": 0.06861372274454891,
-  "below_half_token": 0.06841368273654731
+  "targets": "net",
+  "recorded_firings_decode_to_the_product": 0.9942,
+  "mean_firings": 1.9648,
+  "states": 5000,
+  "negative_slack": 0.071,
+  "below_half_token": 0.0708
  },
- "candidates": {
-  "reactions": 36876,
-  "cheapest_firing_vector_unique": 0.5009220088946741,
-  "search_exhaustive": 0.971797374986441
- },
- "mapper_row_sums": {
-  "reactions": 640,
-  "product_atoms": 14615,
-  "mean": 0.9665296673774719,
-  "sd": 0.019870763644576073,
-  "min": 0.8178304433822632,
-  "max": 1.1518433094024658,
-  "share_within_0.1_of_one": 0.9985631200821075
+ "uspto_mit": {
+  "test_lines": 40000,
+  "test_parsed": 39994,
+  "test_without_usable_recorded_map": 795,
+  "train_parsed": 409006,
+  "train_within_size_caps": 401102,
+  "train_with_usable_recorded_map": 401023
  }
 }
