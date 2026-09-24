@@ -1,5 +1,7 @@
 {
  "data": "golden",
+ "solver": "search",
+ "third_level": false,
  "secondary": [
   1,
   1,
@@ -8,17 +10,17 @@
  "all_orders": false,
  "labile_h": false,
  "ch_places": true,
- "seconds": 80.0,
- "deterministic": 20.0,
+ "seconds": 60.0,
+ "deterministic": null,
  "reactions": 1760,
  "seated": 1.0,
  "scored": 1760,
- "correct": 0.8375,
- "proved": 0.9988636363636364,
- "correct_when_proved": 0.8378839590443686,
- "correct_when_not_proved": 0.5,
- "median_seconds": 0.20842313766479492,
- "mean_seconds": 0.6772953850301829,
+ "correct": 0.8392045454545455,
+ "proved": 1.0,
+ "correct_when_proved": 0.8392045454545455,
+ "correct_when_not_proved": null,
+ "median_seconds": 0.009588837623596191,
+ "mean_seconds": 0.05410772453654896,
  "correct_held_out": 0.8365384615384616,
  "held_out": 1560
 }

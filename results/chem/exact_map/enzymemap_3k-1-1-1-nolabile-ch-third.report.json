@@ -1,0 +1,80 @@
+{
+ "rows": "results/chem/exact_map/enzymemap_3k-1-1-1-nolabile-ch-third.pkl",
+ "data": "enzymemap_3k",
+ "all": {
+  "reactions": 2888,
+  "exact_net_mapper": 0.8743074792243767,
+  "exact_net_mapper_ci95": [
+   0.8621883656509696,
+   0.8864265927977839
+  ],
+  "rxnmapper": 0.7763157894736842,
+  "rxnmapper_ci95": [
+   0.7610803324099723,
+   0.7915512465373962
+  ],
+  "either": 0.8888504155124654,
+  "only_ours": 325,
+  "only_rxnmapper": 42,
+  "sign_test_p": 2.46237575128862e-55,
+  "proved": 0.9996537396121884,
+  "exact_net_mapper_when_proved": 0.8742639418081053
+ },
+ "by_places": [
+  {
+   "places": "1 to 2",
+   "reactions": 2359,
+   "exact_net_mapper": 0.9084357778719796,
+   "rxnmapper": 0.7994913098770665,
+   "curated_not_minimal": 0.07079270877490462,
+   "proved": 0.9995760915642221,
+   "only_ours": 269,
+   "only_rxnmapper": 12,
+   "sign_test_p": 2.147719755489311e-64
+  },
+  {
+   "places": "3 to 4",
+   "reactions": 481,
+   "exact_net_mapper": 0.7276507276507277,
+   "rxnmapper": 0.6756756756756757,
+   "curated_not_minimal": 0.14760914760914762,
+   "proved": 1.0,
+   "only_ours": 52,
+   "only_rxnmapper": 27,
+   "sign_test_p": 0.006553297670283778
+  },
+  {
+   "places": "5 to 6",
+   "reactions": 22,
+   "exact_net_mapper": 0.5909090909090909,
+   "rxnmapper": 0.5909090909090909,
+   "curated_not_minimal": 0.2727272727272727,
+   "proved": 1.0,
+   "only_ours": 2,
+   "only_rxnmapper": 2,
+   "sign_test_p": 1.0
+  },
+  {
+   "places": "7 or more",
+   "reactions": 8,
+   "exact_net_mapper": 0.125,
+   "rxnmapper": 0.125,
+   "curated_not_minimal": 0.75,
+   "proved": 1.0,
+   "only_ours": 1,
+   "only_rxnmapper": 1,
+   "sign_test_p": 1.0
+  },
+  {
+   "places": "5 or more",
+   "reactions": 30,
+   "exact_net_mapper": 0.4666666666666667,
+   "rxnmapper": 0.4666666666666667,
+   "curated_not_minimal": 0.4,
+   "proved": 1.0,
+   "only_ours": 3,
+   "only_rxnmapper": 3,
+   "sign_test_p": 1.0
+  }
+ ]
+}

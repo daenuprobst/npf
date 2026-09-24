@@ -1,18 +1,19 @@
 """Training targets from the net alone, and the scoring of a marking against the recorded product.
 
-A reaction with a product but no atom map still has firing vectors, the minimum ones that the exact mapper finds.
-Every optimal mapping gives one. Those with an enabled order that move at most MAX_TOKENS tokens and decode to the
-recorded product are the targets of the token game, and the first mapping serves the classifier.
+A reaction with a product but no atom map still has firing vectors, the minimum ones that the mapper of
+npf.chem.mapper finds. Every optimal mapping gives one. Those with an enabled order that move at most MAX_TOKENS tokens
+and decode to the recorded product are the targets of the token game, and the mapping that the third level chooses
+serves the classifier.
 """
 
 import time
 
 import numpy as np
 
-from . import exact
+from . import cost, mapper
 from .decode import canonical_product, marking_fragments
 from .featurisation import dense_bonds
-from .minimise import cost_of, feasible_start
+from .minimise import cost_of
 from .orders import count_orders
 
 # targets that move more tokens are mostly incomplete records, not trained on
@@ -65,9 +66,10 @@ def product_major(reaction, edits):
 
 
 def targets(reaction, seconds=3.0, limit=64):
-    """The first mapping of minimum cost and the firing vectors of all of them that the token game can train on. seconds
-    is the deterministic solver budget for the proof and again for listing the ties, the mapping is None when no seating
-    exists, and proved says whether the minimum was proved in time."""
+    """The mapping the third level chooses among those of minimum cost and the firing vectors of all of them that the
+    token game can train on. seconds limits the wall time of the search, the mapping is None when no seating exists,
+    and proved says whether the minimum and the listing of its ties were finished in time.
+    """
     start = time.time()
     row = {
         "id": reaction["id"],
@@ -82,23 +84,16 @@ def targets(reaction, seconds=3.0, limit=64):
         return row | {"seconds": time.time() - start}
 
     try:
-        # a feasible seating by element and environment, the solver starts from it
-        hint = feasible_start(reaction)
-        maps, row["proved"] = exact.cheapest_mappings(
-            reaction,
-            limit=limit,
-            seconds=4 * seconds,
-            hint=hint,
-            deterministic=seconds,
-            **exact.CHOSEN,
+        maps, row["proved"] = mapper.cheapest_mappings(
+            reaction, limit=limit, seconds=seconds, **cost.CHOSEN
         )
         row["mappings"], seen = len(maps), set()
 
+        if maps:
+            row["mapping"] = mapper.choose(reaction, maps).astype(np.int16)
+
         for mapping in maps:
             mapping = np.asarray(mapping, np.int64)
-
-            if row["mapping"] is None:
-                row["mapping"] = mapping.astype(np.int16)
 
             sigma = firing_vector(reaction, mapping)
             key = sigma.tobytes()

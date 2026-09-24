@@ -21,6 +21,7 @@ from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
 
 from npf import chem
+from npf.chem.cgr import cgr, same_cgr  # noqa: F401
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -80,46 +81,6 @@ def prepare(rdf, out="data/golden.pkl"):
     )
     print(
         f"{len(rows)} reactions read ({skipped} unreadable), {len(usable)} with a complete curated mapping of all product atoms"
-    )
-
-
-def cgr(reaction, mapping):
-    """Condensed graph of reaction under a product -> precursor mapping, over all precursor atoms."""
-    a, bb = reaction["a"], chem.dense_bonds(reaction["b"])
-    before = chem.dense_bonds(a)
-    after = np.zeros_like(before)
-    after[np.ix_(mapping, mapping)] = bb
-    kept = np.zeros(len(before), bool)
-    kept[mapping] = True
-    g = nx.Graph()
-    for i, el in enumerate(a["element"]):
-        g.add_node(i, label=(int(el), bool(kept[i])))
-
-    for i, j in zip(*np.nonzero(np.triu((before > 0) | (after > 0), 1))):
-        # bonds between two atoms that both leave are not part of the product, their fate is not recorded
-        new = (
-            int(after[i, j])
-            if (kept[i] and kept[j])
-            else (0 if (kept[i] or kept[j]) else int(before[i, j]))
-        )
-        g.add_edge(int(i), int(j), label=(int(before[i, j]), new))
-
-    return g
-
-
-def same_cgr(reaction, mapping, reference):
-    g1, g2 = cgr(reaction, mapping), cgr(reaction, reference)
-    centre = lambda g: sorted(
-        d["label"] for _, _, d in g.edges(data=True) if d["label"][0] != d["label"][1]
-    )
-    if centre(g1) != centre(g2):
-        return False
-
-    return nx.is_isomorphic(
-        g1,
-        g2,
-        node_match=lambda x, y: x["label"] == y["label"],
-        edge_match=lambda x, y: x["label"] == y["label"],
     )
 
 

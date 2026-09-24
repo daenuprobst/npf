@@ -1,10 +1,11 @@
 """Forward training targets from the net alone, with no recorded atom map anywhere.
 
-For a training reaction exact.cheapest_mappings lists every mapping of minimum cost, and each gives a firing vector
-with m_B = m_A + C sigma. A vector is kept when it moves at most MAX_TOKENS tokens, has an enabled order and decodes
-to the recorded product, so the target set is a function of the precursors, the product and the net. Vectors that
-differ by a symmetry are all kept and the loss sums over the set. Without a proof in time the cheapest vector found
-stands alone.
+For a training reaction mapper.cheapest_mappings lists every mapping of minimum cost, found and proved without a
+solver, and each gives a firing vector with m_B = m_A + C sigma. A vector is kept when it moves at most MAX_TOKENS
+tokens, has an enabled order and decodes to the recorded product, so the target set is a function of the precursors,
+the product and the net. Vectors that differ by a symmetry are all kept and the loss sums over the set. Without a proof
+in time the cheapest vector found stands alone. The target files of the paper were built with the integer program of
+npf.chem.exact, which lists the same minimum, before the search replaced it.
 
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit --subset 40900   # data/net_targets_uspto_mit-sub40900.pkl
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit                  # data/net_targets_uspto_mit.pkl
@@ -48,7 +49,7 @@ def main():
         "--seconds",
         type=float,
         default=3.0,
-        help="deterministic solver time for the proof and again for listing the ties",
+        help="limit on wall time of the search per reaction",
     )
     ap.add_argument(
         "--limit",
@@ -96,8 +97,21 @@ def main():
     }
 
     def save():
-        if not args.sample:
-            out.write_bytes(pickle.dumps(done | {"config": config}))
+        if args.sample:
+            return
+
+        # a temporary file renamed over the old one, so a power cut leaves either the old or the new file, never a
+        # broken one
+        tmp = out.with_suffix(".tmp")
+        with open(tmp, "wb") as f:
+            f.write(pickle.dumps(done | {"config": config}))
+            f.flush()
+            os.fsync(f.fileno())
+
+        os.replace(tmp, out)
+        folder = os.open(out.parent, os.O_RDONLY)
+        os.fsync(folder)
+        os.close(folder)
 
     for k, row in enumerate(
         pool.imap_unordered(
@@ -117,7 +131,8 @@ def main():
                 flush=True,
             )
 
-        if (k + 1) % 20000 == 0:
+        # about five minutes of solving between two saves
+        if (k + 1) % 2000 == 0:
             save()
 
     pool.close()

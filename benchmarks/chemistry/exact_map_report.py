@@ -118,16 +118,31 @@ def main(rows_file, rxnmapper_json="results/chem/rxnmapper_golden.json"):
     proved = np.array([x["proved"] for x in rows])
     report["by_places"] = []
 
-    for low, high in BINS:
+    bins = [
+        (f"{low} to {high}" if high else f"{low} or more", low, high)
+        for low, high in BINS
+    ]
+    bins.append((f"{BINS[-2][0]} or more", BINS[-2][0], None))
+
+    for label, low, high in bins:
         part = (curated >= low) & (curated <= (high or curated.max()))
+        only_ours = int((ours & ~theirs)[part].sum())
+        only_theirs = int((theirs & ~ours)[part].sum())
         report["by_places"].append(
             {
-                "places": f"{low} to {high}" if high else f"{low} or more",
+                "places": label,
                 "reactions": int(part.sum()),
                 "exact_net_mapper": float(ours[part].mean()),
                 "rxnmapper": float(theirs[part].mean()),
                 "curated_not_minimal": float((curated > found)[part].mean()),
                 "proved": float(proved[part].mean()),
+                "only_ours": only_ours,
+                "only_rxnmapper": only_theirs,
+                "sign_test_p": (
+                    float(binomtest(only_ours, only_ours + only_theirs, 0.5).pvalue)
+                    if only_ours + only_theirs
+                    else 1.0
+                ),
             }
         )
 

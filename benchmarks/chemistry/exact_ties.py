@@ -12,48 +12,22 @@ import pickle
 from multiprocessing import Pool
 from pathlib import Path
 
-import networkx as nx
 import numpy as np
 
-from npf import chem
-from npf.chem import exact
+from npf.chem import exact, mapper
+from npf.chem.cgr import key
 
 from .exact_map import golden_dev, load
-from .golden import cgr, same_cgr
-
-
-def key(reaction, mapping):
-    """A cheap invariant of the condensed graph, equal for isomorphic graphs."""
-    g = cgr(reaction, mapping)
-    for _, data in g.nodes(data=True):
-        data["text"] = str(data["label"])
-
-    for _, _, data in g.edges(data=True):
-        data["text"] = str(data["label"])
-
-    return nx.weisfeiler_lehman_graph_hash(
-        g, node_attr="text", edge_attr="text", iterations=3
-    )
+from .golden import same_cgr
 
 
 def work(job):
     reaction, seconds, limit = job
 
+    # the listing of the search, whose proof also covers that every class was listed
     try:
-        hint = chem.feasible_start(reaction)
-    except Exception:
-        hint = None
-
-    # a budget in deterministic time and one worker, so the ties do not depend on the load of the machine
-    try:
-        maps, proved = exact.cheapest_mappings(
-            reaction,
-            limit=limit,
-            seconds=4 * seconds,
-            hint=hint,
-            deterministic=seconds,
-            workers=4,
-            **exact.CHOSEN,
+        maps, proved = mapper.cheapest_mappings(
+            reaction, limit=limit, seconds=seconds, expand=False, **exact.CHOSEN
         )
     except Exception:
         maps, proved = [], False
@@ -85,7 +59,12 @@ def work(job):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="golden")
-    ap.add_argument("--seconds", type=float, default=20.0)
+    ap.add_argument(
+        "--seconds",
+        type=float,
+        default=60.0,
+        help="limit on wall time of the search per reaction",
+    )
     ap.add_argument("--limit", type=int, default=512)
     ap.add_argument("--processes", type=int, default=6)
     args = ap.parse_args()

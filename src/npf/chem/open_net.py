@@ -16,7 +16,6 @@ import numpy as np
 from rdkit import Chem
 from scipy.sparse.csgraph import connected_components
 
-from . import exact
 from .decode import molecule
 from .featurisation import BOND_ORDER, dense_bonds
 
@@ -85,6 +84,9 @@ def solve_open(reaction, **options):
     """Cheapest mapping of a reaction that may lack reactants. Returns the mapping, its cost, whether it is proved,
     and the reaction as it was solved, whose precursors hold the copies that were offered. A seat of -1 marks a
     product atom that no written molecule supplies."""
+    # the integer program is imported here, so that the solver-free mapper can use this module without it
+    from . import exact
+
     if not deficit(reaction).any():
         return (*exact.solve(reaction, **options), reaction)
 

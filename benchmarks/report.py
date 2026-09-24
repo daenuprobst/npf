@@ -95,7 +95,8 @@ def cell(values, decimals):
     if not values:
         return "-"
 
-    mean, std = np.mean(values), np.std(values)
+    # the spread over seeds is the sample standard deviation, the population one understates it with few seeds
+    mean, std = np.mean(values), np.std(values, ddof=1) if len(values) > 1 else 0.0
     if abs(mean) < 10**-decimals and mean != 0:
         return f"{mean:.0e}"
 
@@ -690,6 +691,7 @@ def benchmarks_with_published_protocols(root="results"):
                 if not any(c["secondary"])
                 else ", then tokens on kept bonds" + hydrogen(c) + " and charge"
             )
+            + (", then redox, aromatic and sink" if c.get("third_level") else "")
         )
 
         exact = sorted(exact, key=lambda x: x[0]["all"]["exact_net_mapper"])
@@ -700,14 +702,18 @@ def benchmarks_with_published_protocols(root="results"):
                 f"{h['exact_net_mapper']:.4f} | {a['proved']:.4f} | {a['exact_net_mapper_when_proved']:.4f} | {c['median_seconds']:.2f} |"
             )
 
-        # the cost of the mapper was chosen on the dev reactions, the comparison with RXNMapper is reported for it
-        chosen = [
-            x
-            for x in exact
-            if tuple(x[1]["secondary"]) == tuple(CHOSEN["secondary"])
-            and x[1]["labile_h"] == CHOSEN["labile_h"]
-            and x[1]["ch_places"] == CHOSEN["ch_places"]
-        ] or exact[-1:]
+        # the cost of the mapper was chosen on the dev reactions, the comparison with RXNMapper is reported for it, with
+        # the third level when it was run
+        chosen = sorted(
+            [
+                x
+                for x in exact
+                if tuple(x[1]["secondary"]) == tuple(CHOSEN["secondary"])
+                and x[1]["labile_h"] == CHOSEN["labile_h"]
+                and x[1]["ch_places"] == CHOSEN["ch_places"]
+            ],
+            key=lambda x: not x[1].get("third_level", False),
+        ) or exact[-1:]
         a, h = chosen[0][0]["all"], chosen[0][0]["held_out"]
         print(
             f"| RXNMapper, same reactions and scorer | {a['rxnmapper']:.4f} | {a['rxnmapper_ci95'][0]:.3f} to {a['rxnmapper_ci95'][1]:.3f} | "
@@ -757,7 +763,7 @@ def benchmarks_with_published_protocols(root="results"):
                     "curated map among the optima (ceiling of a tie-breaker)",
                 ),
                 ("uniform_choice", "uniform choice among the classes"),
-                ("first_optimum", "the mapping the solver returns"),
+                ("first_optimum", "the first optimum of the search"),
                 (
                     "curated_among_optima_when_tied",
                     "of the tied reactions, curated map among the optima",

@@ -1,17 +1,19 @@
 """Atom maps as exact minimum firing vectors of the valence net, with no learning and no recorded map.
 
 The cost is lexicographic, first the bond places a firing empties or fills, then the tokens that move on places that
-stay marked, on hydrogen and on charge, and an integer program finds and proves the minimum. The second level was
-chosen on 200 Golden reactions, the other 1,560 are held out and reported apart, since the recorded maps of Schneider
-50k often swap the two oxygens of an acid. The defaults are exact.CHOSEN and a budget in deterministic time with
-interleaved workers, so the maps do not depend on the load of the machine.
+stay marked, on hydrogen and on charge, and the branch and bound of npf.chem.search finds and proves the minimum with
+no solver. With --third-level the classes of optimal mappings are ranked by npf.chem.third_level, the mapper of the
+paper. The second and third levels were chosen on 200 Golden reactions, the other 1,560 are held out and reported
+apart, since the recorded maps of Schneider 50k often swap the two oxygens of an acid. --solver cp-sat runs the
+integer program of npf.chem.exact instead, with a budget in deterministic time, and marks its files -cpsat.
 
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --secondary 0,0,0 --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-ch-places     # the three alternatives
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev                   # the chosen cost
     uv run python -m benchmarks.chemistry.exact_map --data golden                       # results/chem/exact_map/
-    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --deterministic 3 --processes 18 \\
+    uv run python -m benchmarks.chemistry.exact_map --data golden --third-level         # the mapper of the paper
+    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --third-level --processes 12 \\
         --write data/exact_maps_schneider50k.pkl                                        # the maps classification reads
 """
 
@@ -25,7 +27,7 @@ from pathlib import Path
 import numpy as np
 
 from npf import chem
-from npf.chem import exact
+from npf.chem import exact, mapper
 
 from .golden import same_cgr
 
@@ -88,10 +90,22 @@ def work(job):
         except Exception:
             hint = None
 
+    options = dict(options)
+    solver, third = options.pop("solver"), options.pop("third")
+
     try:
-        mapping, cost, proved = exact.solve(
-            reaction, hint=None if hint is None else hint.astype(np.int64), **options
-        )
+        if third:
+            mapping, levels, proved = mapper.best_mapping(
+                reaction, seconds=options["seconds"]
+            )
+            cost = None if levels is None else levels[0]
+        else:
+            solve = exact.solve if solver == "cp-sat" else mapper.solve
+            mapping, cost, proved = solve(
+                reaction,
+                hint=None if hint is None else hint.astype(np.int64),
+                **options,
+            )
     except Exception:
         mapping, cost, proved = None, None, False
 
@@ -99,6 +113,7 @@ def work(job):
         reaction["target"] is not None
         and mapping is not None
         and (np.asarray(reaction["target"]) >= 0).all()
+        and (np.asarray(mapping) >= 0).all()
     )
     correct = known and same_cgr(reaction, mapping, reaction["target"].astype(np.int64))
 
@@ -141,15 +156,26 @@ if __name__ == "__main__":
         help="hydrogen on carbon on the second level, not as a bond place of the first",
     )
     ap.add_argument(
+        "--solver",
+        choices=("search", "cp-sat"),
+        default="search",
+        help="the branch and bound of npf.chem.search, or the integer program of npf.chem.exact",
+    )
+    ap.add_argument(
+        "--third-level",
+        action="store_true",
+        help="rank the optimal mappings by npf.chem.third_level, only with the chosen cost",
+    )
+    ap.add_argument(
         "--deterministic",
         type=float,
         default=20.0,
-        help="budget in deterministic time per solve",
+        help="cp-sat, budget in deterministic time per solve",
     )
     ap.add_argument(
         "--seconds",
         type=float,
-        help="limit on wall time per solve, four times the budget by default",
+        help="limit on wall time per solve, 60 s for the search, four times the budget for cp-sat",
     )
     ap.add_argument("--processes", type=int, default=6)
     ap.add_argument(
@@ -172,14 +198,28 @@ if __name__ == "__main__":
     reactions = load(args.data)
     hints = pickle.loads(Path(args.hints).read_bytes()) if args.hints else {}
     fits = lambda r: r["id"] in hints and len(hints[r["id"]]) == len(r["b"]["x"])
+    search = args.solver == "search"
+    if args.third_level and (
+        not search
+        or secondary != exact.CHOSEN["secondary"]
+        or args.labile_h
+        or args.no_ch_places
+    ):
+        ap.error(
+            "--third-level ranks the optima of the chosen cost and needs the search"
+        )
+
+    # the search runs under a limit on wall time, which only the slowest proofs reach
     options = dict(
         secondary=secondary,
-        seconds=args.seconds or 4 * args.deterministic,
+        seconds=args.seconds or (60.0 if search else 4 * args.deterministic),
         workers=args.workers,
         all_orders=args.all_orders,
-        deterministic=args.deterministic,
+        deterministic=None if search else args.deterministic,
         labile_h=args.labile_h,
         ch_places=not args.no_ch_places,
+        solver=args.solver,
+        third=args.third_level,
     )
     jobs = [(r, options, hints[r["id"]] if fits(r) else None) for r in reactions]
     start = time.time()
@@ -223,12 +263,14 @@ if __name__ == "__main__":
     mean = lambda xs: float(np.mean(xs)) if len(xs) else None
     summary = {
         "data": args.data,
+        "solver": args.solver,
+        "third_level": args.third_level,
         "secondary": secondary,
         "all_orders": args.all_orders,
         "labile_h": args.labile_h,
         "ch_places": not args.no_ch_places,
         "seconds": options["seconds"],
-        "deterministic": args.deterministic,
+        "deterministic": options["deterministic"],
         "reactions": len(rows),
         "seated": mean([x["mapping"] is not None for x in rows]),
         "scored": len(scored),
@@ -256,6 +298,8 @@ if __name__ == "__main__":
         + ("-all" if args.all_orders else "")
         + ("-nolabile" if not args.labile_h else "")
         + ("-ch" if not args.no_ch_places else "")
+        + ("-third" if args.third_level else "")
+        + ("-cpsat" if not search else "")
     )
     (out / f"{stem}.json").write_text(json.dumps(summary, indent=1))
     (out / f"{stem}.pkl").write_bytes(pickle.dumps(rows))

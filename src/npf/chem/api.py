@@ -1,8 +1,9 @@
 """Train, validate, test and use the models on reactions of your own, with PyTorch Lightning.
 
 A reaction file holds one reaction SMILES per line, precursors>>product, with an optional tab separated class label.
-No atom map is needed. The exact mapper computes the targets of every reaction once, a few CPU seconds each, and
-caches them next to the file.
+No atom map is needed. The mapper of npf.chem.mapper, the minimum firing vector of the valence net found without a
+solver, computes the targets of every reaction once, milliseconds each for most reactions, and caches them next to the
+file. map_reaction writes its map as map numbers.
 
     from npf.chem import api
     data = api.ReactionData("train.txt", "val.txt", "test.txt")
@@ -369,7 +370,7 @@ def predict(model, precursors, width=5, batch=16):
 @torch.no_grad()
 def classify(model, reactions, classes, seconds=3.0, batch=32):
     """The class of every reaction SMILES, None where RDKit cannot read it. A model with sigma seats the product
-    atoms with the exact mapper first."""
+    atoms with the mapper first."""
     net, out = model.net.eval(), []
     for k in range(0, len(reactions), batch):
         rs = [

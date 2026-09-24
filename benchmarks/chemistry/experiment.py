@@ -175,7 +175,11 @@ def use_predicted_firing(
         mapping = maps[r["id"]].astype(np.int64)
 
         # product atoms without a precursor, an incomplete record with no firing vector
-        if len(mapping) != len(r["b"]["x"]):
+        if (
+            len(mapping) != len(r["b"]["x"])
+            or (mapping < 0).any()
+            or (mapping >= len(r["a"]["x"])).any()
+        ):
             r["target"], r["edits"] = np.full(len(r["b"]["x"]), -1, np.int16), np.zeros(
                 (0, 3), np.int16
             )

@@ -1,15 +1,15 @@
 {
  "data": "golden",
  "reactions": 1760,
- "enumerated": 0.9988636363636364,
- "complete": 0.9931740614334471,
- "mappings_per_reaction": 14.796928327645052,
- "classes_per_reaction": 1.1427758816837315,
- "true_tie": 0.11945392491467577,
- "curated_among_optima": 0.897042093287827,
- "uniform_choice": 0.8390595373530527,
- "first_optimum": 0.8407281001137656,
- "curated_among_optima_when_tied": 0.919047619047619,
- "uniform_choice_when_tied": 0.4336507936507936,
- "uniform_choice_held_out": 0.8396876337184425
+ "enumerated": 1.0,
+ "complete": 1.0,
+ "mappings_per_reaction": 1.5568181818181819,
+ "classes_per_reaction": 1.2346590909090909,
+ "true_tie": 0.18636363636363637,
+ "curated_among_optima": 0.9380681818181819,
+ "uniform_choice": 0.8462811147186147,
+ "first_optimum": 0.8426136363636364,
+ "curated_among_optima_when_tied": 0.926829268292683,
+ "uniform_choice_when_tied": 0.4343132984901277,
+ "uniform_choice_held_out": 0.8452167277167276
 }

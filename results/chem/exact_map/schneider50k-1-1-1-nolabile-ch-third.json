@@ -1,0 +1,24 @@
+{
+ "data": "schneider50k",
+ "solver": "search",
+ "third_level": true,
+ "secondary": [
+  1,
+  1,
+  1
+ ],
+ "all_orders": false,
+ "labile_h": false,
+ "ch_places": true,
+ "seconds": 60.0,
+ "deterministic": null,
+ "reactions": 49920,
+ "seated": 1.0,
+ "scored": 46672,
+ "correct": 0.7568135070277683,
+ "proved": 0.9999799679487179,
+ "correct_when_proved": 0.7568135070277683,
+ "correct_when_not_proved": null,
+ "median_seconds": 0.019042253494262695,
+ "mean_seconds": 0.08193146237291586
+}

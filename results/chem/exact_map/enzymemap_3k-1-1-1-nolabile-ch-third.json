@@ -1,0 +1,24 @@
+{
+ "data": "enzymemap_3k",
+ "solver": "search",
+ "third_level": true,
+ "secondary": [
+  1,
+  1,
+  1
+ ],
+ "all_orders": false,
+ "labile_h": false,
+ "ch_places": true,
+ "seconds": 60.0,
+ "deterministic": null,
+ "reactions": 3000,
+ "seated": 1.0,
+ "scored": 2888,
+ "correct": 0.8743074792243767,
+ "proved": 0.9996666666666667,
+ "correct_when_proved": 0.8742639418081053,
+ "correct_when_not_proved": 1.0,
+ "median_seconds": 0.013252615928649902,
+ "mean_seconds": 0.18538284810384115
+}

@@ -42,11 +42,16 @@ Models and data live in the package, one model per file. Everything that produce
 | `src/npf/chem/one_shot.py` | one-shot counterpart of the token game |
 | `src/npf/chem/classifier.py` | state-equation readout, and the explicit firing vector |
 | `src/npf/chem/targets.py` | training targets from the net, and the scoring of a marking against the recorded product |
-| `src/npf/chem/mapping.py` | the maps of the exact mapper as SMILES with map numbers |
+| `src/npf/chem/mapper.py` | the atom mapper, the minimum firing vector without a solver, all its ties, and the third level that chooses among them |
+| `src/npf/chem/search.py` | the branch and bound behind the mapper, bounded by linear assignments on the places of the net |
+| `src/npf/chem/third_level.py` | the three counts that rank maps of equal cost, oxidation state of carbon, aromatic bonds, electron sinks |
+| `src/npf/chem/cost.py` | the two levels of the cost of a mapping |
+| `src/npf/chem/cgr.py` | the condensed graph of reaction, which merges maps into classes and scores a map against a reference |
+| `src/npf/chem/mapping.py` | the maps of the mapper as SMILES with map numbers |
 | `src/npf/chem/api.py` | train, validate, test and use the models on your own reactions, with PyTorch Lightning |
-| `src/npf/chem/exact.py` | the atom mapper, the exact minimum firing vector as an integer program, and all its ties |
+| `src/npf/chem/exact.py` | the same minimum as an integer program with CP-SAT, the first version of the mapper, kept as the reference the search is checked against |
 | `src/npf/chem/open_net.py` | source transitions for reactions whose reactants the record omits |
-| `src/npf/chem/minimise.py` | the feasible seating the integer program starts from |
+| `src/npf/chem/minimise.py` | a heuristic seating, the start of the integer program |
 | `src/npf/chem/orders.py` | enabled linearisations of a firing vector |
 | `src/npf/chem/verifier.py` | re-ranker for token game candidates, no gain, kept for the record |
 | `src/npf/chem/arrows.py` | a mechanistic step as a net of electron pairs, arrows as transitions, the octet rule as enabling |
@@ -80,7 +85,7 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/checks/paper_checks.py` | numerical check of every proposition, exits non-zero on failure |
 | `benchmarks/checks/data_facts.py` | the facts about the data that the paper quotes |
 | `benchmarks/report.py` | `results/*.json` to `results/REPORT.md` |
-| `benchmarks/paper_tables.py` | `results/REPORT.md` to `paper/tables/appendix_tables.tex` (chemistry) and `paper/tables/synthetic_tables.tex` |
+| `benchmarks/paper_tables.py` | `results/REPORT.md` to `paper_v2/tables/appendix_tables.tex` (chemistry) and `paper_v2/tables/synthetic_tables.tex` |
 | `tests/` | unit tests and end-to-end runs of the experiment scripts |
 
 ## Reproduce
@@ -108,10 +113,15 @@ Data. The Golden set is the RDF of Lin et al. (2022).
     uv run python -m benchmarks.chemistry.build_data uspto-mit          # data/uspto_mit.pkl
     uv run python -m benchmarks.chemistry.golden prepare <golden.rdf>   # data/golden.pkl, data/golden_unmapped.txt
 
-Atom mapping. The mapper on the Golden set with the chosen cost and its alternatives, the 200 dev reactions on which the
-cost was chosen, the ties, the open net, and RXNMapper on the same reactions, which runs in an environment of its own.
+Atom mapping. The mapper of the paper on the Golden set and on EnzymeMap, with its third level, then the chosen cost and
+its alternatives, the 200 dev reactions on which the cost was chosen, the ties, the five SynRXN sets, the open net, and
+RXNMapper on the same reactions, which runs in an environment of its own. Add `--solver cp-sat` to `exact_map` or
+`synrxn_map` for the integer program of the first version.
 
     uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py
+    uv run python -m benchmarks.chemistry.exact_map --data golden --third-level
+    uv run python -m benchmarks.chemistry.exact_map --data enzymemap_3k --third-level
+    uv run python -m benchmarks.chemistry.exact_map_report results/chem/exact_map/enzymemap_3k-1-1-1-nolabile-ch-third.pkl results/chem/rxnmapper_enzymemap_3k.json
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev
@@ -120,13 +130,15 @@ cost was chosen, the ties, the open net, and RXNMapper on the same reactions, wh
     uv run python -m benchmarks.chemistry.exact_map --data golden --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden
     uv run python -m benchmarks.chemistry.exact_ties
+    uv run python -m benchmarks.chemistry.synrxn_map map --seconds 60
+    uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --seconds 60
     uv run python -m benchmarks.chemistry.balance --data golden
     uv run python -m benchmarks.chemistry.balance --data schneider50k
     uv run python -m benchmarks.chemistry.balance "CC(=O)Cl.NCCN>>CC(=O)NCCNC(C)=O"
 
 Targets of the net. The maps that classification reads, and the firing vectors that forward prediction trains on.
 
-    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --deterministic 3 --processes 18 --write data/exact_maps_schneider50k.pkl
+    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --third-level --processes 12 --write data/exact_maps_schneider50k.pkl
     uv run python -m benchmarks.chemistry.net_targets --dataset schneider50k
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit --subset 40900
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit
@@ -183,8 +195,8 @@ The report and the tables of the paper.
 ## Your own reactions
 
 The models train on reaction SMILES without atom maps. A file holds one reaction per line, `precursors>>product`, with
-an optional tab separated class label. The exact mapper computes the targets once per file, a few CPU seconds per
-reaction, and caches them next to it.
+an optional tab separated class label. The mapper computes the targets once per file, milliseconds per reaction for
+most reactions, and caches them next to it.
 
     from npf.chem import api
 
@@ -203,7 +215,9 @@ reaction, and caches them next to it.
 `api.trainer` is a Lightning trainer with the settings of the paper, AdamW, a one-cycle schedule, gradient clipping and
 the best epoch kept. Any Lightning trainer works, and `ForwardModel.load_from_checkpoint` reloads a run. Without
 `sigma` the classifier is the state-equation readout, which needs no mapper at test time. `map_reaction` and the
-training targets use the exact mapper of the paper with its chosen cost.
+training targets use the mapper of the paper, `npf.chem.mapper`, the minimum firing vector of the chosen cost, found and
+proved by a branch and bound without a solver, with a third level that chooses among its ties. The integer program of
+`npf.chem.exact` gives the same minimum and stays as a reference, and the benchmark scripts run it with `--solver cp-sat`.
 
 ## Conventions
 
@@ -215,6 +229,17 @@ folders.
 
 Since commit 9d3986f.
 
+- The mapper without a solver, `mapper.py`, `search.py`, `third_level.py`. A branch and bound, bounded by linear
+  assignments on the places of the net, finds and proves the same minimum as the integer program on every Golden and
+  SynRXN reaction, 20 to 60 times faster, and lists all ties completely. The listing of the integer program could stop
+  at its budget and still report a proof. A third level, the change of oxidation state of carbon, bonds switched
+  between aromatic carbon and heteroatoms, and exchanges at electron sinks, chooses among the ties, and the class with
+  the smallest graph hash breaks what remains, so the map does not depend on atom order. On the Golden set it maps
+  88.8 % against 85.6 % for RXNMapper, before 83.8 %. The cost moved to `cost.py` and the condensed graph to `cgr.py`,
+  `exact.py` re-exports them. `exact_map.py`, `exact_ties.py` and `synrxn_map.py` use the search by default and write
+  the integer program's results with `-cpsat` or into their old folders. The training targets of `targets.py`, the
+  API and the maps the classifier reads use the new mapper, and the classification runs were repeated on them. The
+  forward targets of the paper's runs were built with the integer program.
 - Mechanism prediction on the FlowER benchmark with the arrow net, in `arrows.py`, `arrow_game.py` and `mechanism.py`.
 - The electron net, `electron.py` and `electron_game.py`, one electron as the token instead of one pair, so a fishhook
   arrow is a transition of weight one and radical steps are expressible. The arrow net is its sub-net of weight two.
