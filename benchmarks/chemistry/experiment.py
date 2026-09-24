@@ -6,8 +6,10 @@
 Models. npf uses the Petri semantics, pgnn is the same message passing with a generic readout, drfp is DRFP with an
 MLP for classification, and the npf-no... variants remove one Petri component each.
 
-Maps. Classification reads the maps of the exact mapper with --maps, forward prediction trains on the firing vectors
-of the net with --net-targets from benchmarks.chemistry.net_targets, and no recorded map is read where avoidable.
+Maps. Every map and target comes from the mapper of npf.chem.mapper, no recorded map is read where avoidable.
+Classification reads its maps with --maps. Forward prediction trains on the firing vectors of the mapper in
+data/net_targets_<dataset>[-sub<n>].pkl, which benchmarks.chemistry.net_targets builds when the file is missing, or in
+the file of --net-targets, and --recorded-maps trains on the recorded atom maps instead, the ablation of the paper.
 
 Splits. classify uses the published split of Schneider 50k with 200 training and 800 test reactions per class. On
 Schneider 50k, forward uses a fixed random 80/10/10 split of the reactions with a clean atom mapping, an internal
@@ -159,7 +161,7 @@ def attach_firing_histograms(train, *others, n_types=300):
 def use_predicted_firing(
     *splits_, path="data/exact_maps_schneider50k.pkl", blank_missing=False
 ):
-    """Replace the recorded mapping and edits of every reaction by those of the exact mapper in a file written by
+    """Replace the recorded mapping and edits of every reaction by those of the mapper in a file written by
     benchmarks.chemistry.exact_map --write."""
     maps = pickle.loads(Path(path).read_bytes())
     for r in (r for rs in splits_ for r in rs):
@@ -590,13 +592,18 @@ def main():
     ap.add_argument(
         "--maps",
         default="data/exact_maps_schneider50k.pkl",
-        help="classify, the atom maps of the exact mapper from exact_map --write that the gate, "
+        help="classify, the atom maps of the mapper from exact_map --write that the gate, "
         "the firing histograms and the explicit firing vector read",
     )
     ap.add_argument(
         "--net-targets",
-        help="forward, train on the sets of firing vectors that benchmarks.chemistry.net_targets wrote to "
-        "this file, no recorded atom map is read",
+        help="forward, the sets of firing vectors of the mapper to train on, by default "
+        "data/net_targets_<dataset>[-sub<n>].pkl, built by benchmarks.chemistry.net_targets when missing",
+    )
+    ap.add_argument(
+        "--recorded-maps",
+        action="store_true",
+        help="forward, train on the recorded atom maps of the data set instead of the firing vectors of the mapper",
     )
     ap.add_argument(
         "--single-target",
@@ -629,6 +636,24 @@ def main():
     )
     args = ap.parse_args()
 
+    # forward models train on the firing vectors of the mapper unless the recorded maps are asked for, and a missing
+    # target file is built before anything else starts
+    if args.task == "forward" and args.recorded_maps:
+        args.net_targets = None
+    elif args.task == "forward" and not args.net_targets:
+        from .net_targets import build, built_by_search, path
+
+        default = path(args.dataset, args.subset)
+        if not default.exists():
+            print(f"building {default} with the mapper", flush=True)
+            build(args.dataset, args.subset)
+        elif not built_by_search(default):
+            raise SystemExit(
+                f"{default} was not built by the mapper, pass --net-targets or rebuild it"
+            )
+
+        args.net_targets = str(default)
+
     # maps and targets are data files outside version control, their digests say which ones a run read
     for name, used in (
         ("maps", args.task == "classify"),
@@ -659,7 +684,7 @@ def main():
         train = use_net_targets(train, args.net_targets, single=args.single_target)
         args.tag += "-nettargets" + ("-single" if args.single_target else "")
 
-    # every head that reads atom maps reads those of the exact mapper, on test reactions too, so no recorded map enters
+    # every head that reads atom maps reads those of the mapper, on test reactions too, so no recorded map enters
     if args.task == "classify":
         use_predicted_firing(train, val, test, path=args.maps, blank_missing=True)
 

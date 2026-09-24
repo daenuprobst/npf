@@ -138,6 +138,9 @@ mapper of the paper, with its third level, and `--no-third-level` keeps the firs
     uv run python -m benchmarks.chemistry.balance "CC(=O)Cl.NCCN>>CC(=O)NCCNC(C)=O"
 
 Targets of the net. The maps that classification reads, and the firing vectors that forward prediction trains on.
+`experiment --task forward` builds a missing target file itself, so these commands only build ahead of time. The
+forward runs of the paper trained on the files of the integer program, kept as `data/net_targets_<name>-cpsat.pkl`,
+pass them with `--net-targets` to reproduce those numbers.
 
     uv run python -m benchmarks.chemistry.exact_map --data schneider50k --third-level --processes 12 --write data/exact_maps_schneider50k.pkl
     uv run python -m benchmarks.chemistry.net_targets --dataset schneider50k
@@ -157,7 +160,7 @@ Classification on Schneider 50k. Seeds 0 to 4 for the three models of the main t
 
 Forward prediction on Schneider 50k, seeds 0 to 2.
 
-    F="uv run python -m benchmarks.chemistry.experiment --task forward --net-targets data/net_targets_schneider50k.pkl"
+    F="uv run python -m benchmarks.chemistry.experiment --task forward"
     $F --model npf --seed 0                       # also npf-noenabling, npf-oneshot --matched, pgnn --matched
     $F --model npf --limit 2000 --seed 0          # also 8000; npf-noenabling, pgnn --matched
     uv run python -m benchmarks.chemistry.beam_width
@@ -168,9 +171,9 @@ Forward prediction on Schneider 50k, seeds 0 to 2.
 Forward prediction on USPTO-MIT, seeds 0 to 2, and the Molecular Transformer baseline on the same subsets.
 
     M="uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit --amp"
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --net-targets data/net_targets_uspto_mit.pkl --seed 0
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0                              # recorded maps
-    $M --subset 40900 --net-targets data/net_targets_uspto_mit-sub40900.pkl --seed 0                    # also --single-target, --subset 4090, recorded maps
+    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
+    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --recorded-maps --seed 0
+    $M --subset 40900 --seed 0                                            # also --single-target, --subset 4090, --recorded-maps
     uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 40900    # then train 40900 --steps 30000 and score 40900; also 4090
 
