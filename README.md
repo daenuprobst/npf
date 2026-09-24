@@ -115,8 +115,9 @@ Data. The Golden set is the RDF of Lin et al. (2022).
 
 Atom mapping. The mapper of the paper on the Golden set and on EnzymeMap, with its third level, then the chosen cost and
 its alternatives, the 200 dev reactions on which the cost was chosen, the ties, the five SynRXN sets, the open net, and
-RXNMapper on the same reactions, which runs in an environment of its own. Add `--solver cp-sat` to `exact_map` or
-`synrxn_map` for the integer program of the first version.
+RXNMapper on the same reactions, which runs in an environment of its own. With the chosen cost `exact_map` runs the
+mapper of the paper, with its third level, and `--no-third-level` keeps the first optimum. Add `--solver cp-sat` to
+`exact_map` or `synrxn_map` for the integer program of the first version, the only path that loads OR-tools.
 
     uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py
     uv run python -m benchmarks.chemistry.exact_map --data golden --third-level
@@ -124,11 +125,11 @@ RXNMapper on the same reactions, which runs in an environment of its own. Add `-
     uv run python -m benchmarks.chemistry.exact_map_report results/chem/exact_map/enzymemap_3k-1-1-1-nolabile-ch-third.pkl results/chem/rxnmapper_enzymemap_3k.json
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-ch-places
-    uv run python -m benchmarks.chemistry.exact_map --data golden-dev
+    uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-third-level
     uv run python -m benchmarks.chemistry.exact_map --data golden --secondary 0,0,0 --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden --no-ch-places
-    uv run python -m benchmarks.chemistry.exact_map --data golden
+    uv run python -m benchmarks.chemistry.exact_map --data golden --no-third-level
     uv run python -m benchmarks.chemistry.exact_ties
     uv run python -m benchmarks.chemistry.synrxn_map map --seconds 60
     uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --seconds 60

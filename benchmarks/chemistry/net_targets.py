@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 from npf import chem
-from npf.chem import exact
+from npf.chem import cost
 
 from .experiment import splits, subset_lines
 
@@ -90,7 +90,7 @@ def main():
         flush=True,
     )
     start, config = time.time(), {
-        "options": exact.CHOSEN,
+        "options": cost.CHOSEN,
         "seconds": args.seconds,
         "limit": args.limit,
         "max_vectors": chem.MAX_VECTORS,

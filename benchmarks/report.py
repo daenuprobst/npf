@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from npf.chem.exact import CHOSEN
+from npf.chem.cost import CHOSEN
 
 ORDER = [
     "se-only",
@@ -704,16 +704,19 @@ def benchmarks_with_published_protocols(root="results"):
 
         # the cost of the mapper was chosen on the dev reactions, the comparison with RXNMapper is reported for it, with
         # the third level when it was run
-        chosen = sorted(
-            [
-                x
-                for x in exact
-                if tuple(x[1]["secondary"]) == tuple(CHOSEN["secondary"])
-                and x[1]["labile_h"] == CHOSEN["labile_h"]
-                and x[1]["ch_places"] == CHOSEN["ch_places"]
-            ],
-            key=lambda x: not x[1].get("third_level", False),
-        ) or exact[-1:]
+        chosen = (
+            sorted(
+                [
+                    x
+                    for x in exact
+                    if tuple(x[1]["secondary"]) == tuple(CHOSEN["secondary"])
+                    and x[1]["labile_h"] == CHOSEN["labile_h"]
+                    and x[1]["ch_places"] == CHOSEN["ch_places"]
+                ],
+                key=lambda x: not x[1].get("third_level", False),
+            )
+            or exact[-1:]
+        )
         a, h = chosen[0][0]["all"], chosen[0][0]["held_out"]
         print(
             f"| RXNMapper, same reactions and scorer | {a['rxnmapper']:.4f} | {a['rxnmapper_ci95'][0]:.3f} to {a['rxnmapper_ci95'][1]:.3f} | "

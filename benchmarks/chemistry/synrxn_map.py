@@ -34,7 +34,7 @@ import numpy as np
 from rdkit import Chem, RDLogger
 
 from npf import chem
-from npf.chem import exact, mapper, open_net
+from npf.chem import cost, mapper, open_net
 from npf.chem.mapping import mapped_smiles
 
 from .golden import mapping_from_smiles, same_cgr
@@ -109,25 +109,28 @@ def work(job):
             mapping, levels, proved = mapper.best_mapping(
                 reaction, seconds=options["seconds"]
             )
-            cost = None if levels is None else levels[0]
+            places = None if levels is None else levels[0]
         except Exception:
-            mapping, cost, proved = None, None, False
+            mapping, places, proved = None, None, False
 
-        return scored(k, reaction, mapping, cost, proved, start)
+        return scored(k, reaction, mapping, places, proved, start)
 
     try:
         if open_net.deficit(reaction).any():
             # seats on the copies the open net adds do not exist in the written reaction and stay unmapped
-            mapping, cost, proved, _ = open_net.solve_open(reaction, **options)
+            mapping, places, proved, _ = open_net.solve_open(reaction, **options)
         else:
+            # the integer program, and with it OR-tools, is loaded only when asked for
+            from npf.chem import exact
+
             hint = chem.feasible_start(reaction)
-            mapping, cost, proved = exact.solve(
+            mapping, places, proved = exact.solve(
                 reaction,
                 hint=None if hint is None else hint.astype(np.int64),
                 **options,
             )
     except Exception:
-        mapping, cost, proved = None, None, False
+        mapping, places, proved = None, None, False
 
     # the stopping rule is a proof of optimality, so a solve that runs out of budget is repeated with twice as much
     if retries and not proved and mapping is not None:
@@ -139,10 +142,10 @@ def work(job):
 
         return work((k, reaction, doubled)) | {"seconds": time.time() - start}
 
-    return scored(k, reaction, mapping, cost, proved, start)
+    return scored(k, reaction, mapping, places, proved, start)
 
 
-def scored(k, reaction, mapping, cost, proved, start):
+def scored(k, reaction, mapping, places, proved, start):
     known = (
         mapping is not None and reaction["target"] is not None and (mapping >= 0).all()
     )
@@ -153,7 +156,7 @@ def scored(k, reaction, mapping, cost, proved, start):
     return {
         "k": k,
         "mapping": mapping,
-        "cost": cost,
+        "cost": places,
         "proved": bool(proved),
         "scored": bool(known),
         "correct": correct,
@@ -173,7 +176,7 @@ def run(sets, seconds, processes, workers, limit=None, retries=0, solver="search
     rows = pickle.loads(DATA.read_bytes())
 
     # the chosen cost and a budget in deterministic time, so the maps do not depend on the load of the machine
-    options = exact.CHOSEN | dict(
+    options = cost.CHOSEN | dict(
         seconds=4 * seconds, deterministic=seconds, workers=workers, retries=retries
     )
 

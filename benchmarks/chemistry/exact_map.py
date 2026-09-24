@@ -2,18 +2,18 @@
 
 The cost is lexicographic, first the bond places a firing empties or fills, then the tokens that move on places that
 stay marked, on hydrogen and on charge, and the branch and bound of npf.chem.search finds and proves the minimum with
-no solver. With --third-level the classes of optimal mappings are ranked by npf.chem.third_level, the mapper of the
-paper. The second and third levels were chosen on 200 Golden reactions, the other 1,560 are held out and reported
+no solver. With the chosen cost the classes of optimal mappings are then ranked by npf.chem.third_level, the mapper
+of the paper, and --no-third-level keeps the first optimum of the search. The second and third levels were chosen on 200 Golden reactions, the other 1,560 are held out and reported
 apart, since the recorded maps of Schneider 50k often swap the two oxygens of an acid. --solver cp-sat runs the
 integer program of npf.chem.exact instead, with a budget in deterministic time, and marks its files -cpsat.
 
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --secondary 0,0,0 --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-ch-places     # the three alternatives
-    uv run python -m benchmarks.chemistry.exact_map --data golden-dev                   # the chosen cost
-    uv run python -m benchmarks.chemistry.exact_map --data golden                       # results/chem/exact_map/
-    uv run python -m benchmarks.chemistry.exact_map --data golden --third-level         # the mapper of the paper
-    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --third-level --processes 12 \\
+    uv run python -m benchmarks.chemistry.exact_map --data golden-dev --no-third-level  # the chosen cost, first optimum
+    uv run python -m benchmarks.chemistry.exact_map --data golden --no-third-level      # results/chem/exact_map/
+    uv run python -m benchmarks.chemistry.exact_map --data golden                       # the mapper of the paper
+    uv run python -m benchmarks.chemistry.exact_map --data schneider50k --processes 12 \\
         --write data/exact_maps_schneider50k.pkl                                        # the maps classification reads
 """
 
@@ -27,7 +27,7 @@ from pathlib import Path
 import numpy as np
 
 from npf import chem
-from npf.chem import exact, mapper
+from npf.chem import cost, mapper
 
 from .golden import same_cgr
 
@@ -83,31 +83,38 @@ def work(job):
     reaction, options, hint = job
     start = time.time()
 
+    options = dict(options)
+    solver, third = options.pop("solver"), options.pop("third")
+
     # a feasible seating by element and environment, the solver starts from it and never returns worse
-    if hint is None:
+    if hint is None and not third:
         try:
             hint = chem.feasible_start(reaction)
         except Exception:
             hint = None
-
-    options = dict(options)
-    solver, third = options.pop("solver"), options.pop("third")
 
     try:
         if third:
             mapping, levels, proved = mapper.best_mapping(
                 reaction, seconds=options["seconds"]
             )
-            cost = None if levels is None else levels[0]
+            places = None if levels is None else levels[0]
         else:
-            solve = exact.solve if solver == "cp-sat" else mapper.solve
-            mapping, cost, proved = solve(
+            solve = mapper.solve
+
+            if solver == "cp-sat":
+                # the integer program, and with it OR-tools, is loaded only when asked for
+                from npf.chem import exact
+
+                solve = exact.solve
+
+            mapping, places, proved = solve(
                 reaction,
                 hint=None if hint is None else hint.astype(np.int64),
                 **options,
             )
     except Exception:
-        mapping, cost, proved = None, None, False
+        mapping, places, proved = None, None, False
 
     known = (
         reaction["target"] is not None
@@ -120,7 +127,7 @@ def work(job):
     return {
         "id": reaction["id"],
         "mapping": mapping,
-        "cost": cost,
+        "cost": places,
         "proved": bool(proved),
         "correct": bool(correct),
         "scored": bool(known),
@@ -137,7 +144,7 @@ if __name__ == "__main__":
     )
     ap.add_argument(
         "--secondary",
-        default=",".join(map(str, exact.CHOSEN["secondary"])),
+        default=",".join(map(str, cost.CHOSEN["secondary"])),
         help="weights of bond order tokens, hydrogen moves and charge moves below the connectivity cost",
     )
     ap.add_argument(
@@ -163,8 +170,10 @@ if __name__ == "__main__":
     )
     ap.add_argument(
         "--third-level",
-        action="store_true",
-        help="rank the optimal mappings by npf.chem.third_level, only with the chosen cost",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="rank the optimal mappings by npf.chem.third_level, the mapper of the paper, on by default with the chosen "
+        "cost and the search, --no-third-level keeps the first optimum",
     )
     ap.add_argument(
         "--deterministic",
@@ -199,15 +208,18 @@ if __name__ == "__main__":
     hints = pickle.loads(Path(args.hints).read_bytes()) if args.hints else {}
     fits = lambda r: r["id"] in hints and len(hints[r["id"]]) == len(r["b"]["x"])
     search = args.solver == "search"
-    if args.third_level and (
-        not search
-        or secondary != exact.CHOSEN["secondary"]
-        or args.labile_h
-        or args.no_ch_places
-    ):
+    chosen = (
+        search
+        and secondary == cost.CHOSEN["secondary"]
+        and not args.labile_h
+        and not args.no_ch_places
+    )
+    if args.third_level and not chosen:
         ap.error(
             "--third-level ranks the optima of the chosen cost and needs the search"
         )
+
+    third = chosen if args.third_level is None else args.third_level
 
     # the search runs under a limit on wall time, which only the slowest proofs reach
     options = dict(
@@ -219,7 +231,7 @@ if __name__ == "__main__":
         labile_h=args.labile_h,
         ch_places=not args.no_ch_places,
         solver=args.solver,
-        third=args.third_level,
+        third=third,
     )
     jobs = [(r, options, hints[r["id"]] if fits(r) else None) for r in reactions]
     start = time.time()
@@ -264,7 +276,7 @@ if __name__ == "__main__":
     summary = {
         "data": args.data,
         "solver": args.solver,
-        "third_level": args.third_level,
+        "third_level": third,
         "secondary": secondary,
         "all_orders": args.all_orders,
         "labile_h": args.labile_h,
@@ -298,7 +310,7 @@ if __name__ == "__main__":
         + ("-all" if args.all_orders else "")
         + ("-nolabile" if not args.labile_h else "")
         + ("-ch" if not args.no_ch_places else "")
-        + ("-third" if args.third_level else "")
+        + ("-third" if third else "")
         + ("-cpsat" if not search else "")
     )
     (out / f"{stem}.json").write_text(json.dumps(summary, indent=1))

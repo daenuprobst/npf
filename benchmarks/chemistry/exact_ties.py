@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 
-from npf.chem import exact, mapper
+from npf.chem import cost, mapper
 from npf.chem.cgr import key
 
 from .exact_map import golden_dev, load
@@ -27,7 +27,7 @@ def work(job):
     # the listing of the search, whose proof also covers that every class was listed
     try:
         maps, proved = mapper.cheapest_mappings(
-            reaction, limit=limit, seconds=seconds, expand=False, **exact.CHOSEN
+            reaction, limit=limit, seconds=seconds, expand=False, **cost.CHOSEN
         )
     except Exception:
         maps, proved = [], False

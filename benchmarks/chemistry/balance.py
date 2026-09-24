@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from npf import chem
-from npf.chem import exact, open_net
+from npf.chem import cost, mapper, open_net
 
 
 def work(job):
@@ -23,12 +23,11 @@ def work(job):
     start = time.time()
 
     try:
-        mapping, cost, proved, solved = open_net.solve_open(
+        mapping, places, proved, solved = mapper.solve_open(
             reaction,
             seconds=4 * seconds,
             deterministic=seconds,
-            workers=4,
-            **exact.CHOSEN,
+            **cost.CHOSEN,
         )
     except Exception:
         mapping = None
@@ -37,13 +36,13 @@ def work(job):
         return {"id": reaction["id"], "solved": False}
 
     out = open_net.balance(solved, mapping)
-    copies = exact.entered(solved, mapping) - len(out["entered"])
+    copies = cost.entered(solved, mapping) - len(out["entered"])
 
     return {
         "id": reaction["id"],
         "solved": True,
         "proved": bool(proved),
-        "cost": cost,
+        "cost": places,
         "copies": copies,
         "atoms": len(out["entered"]),
         "balanced": out["balanced"],
@@ -55,12 +54,12 @@ def one(smiles, seconds):
     r = chem.featurise(
         {"original_rxn": smiles, "rxn": smiles, "label": 0, "split": "test", "id": 0}
     )
-    mapping, cost, proved, solved = open_net.solve_open(
-        r, seconds=4 * seconds, deterministic=seconds, workers=4, **exact.CHOSEN
+    mapping, places, proved, solved = mapper.solve_open(
+        r, seconds=4 * seconds, deterministic=seconds, **cost.CHOSEN
     )
     out = open_net.balance(solved, mapping)
     print(
-        f"places that change   {cost}  ({'proved minimal' if proved else 'not proved'})"
+        f"places that change   {places}  ({'proved minimal' if proved else 'not proved'})"
     )
     print(f"equivalents          {out['equivalents']}")
     print(f"by-products          {out['by_products']}")

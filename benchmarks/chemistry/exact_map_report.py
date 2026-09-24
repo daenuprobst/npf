@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import binomtest
 
-from npf.chem import exact
+from npf.chem import cost
 
 from .exact_map import golden_dev, load
 from .golden import mapping_from_smiles, same_cgr
@@ -105,13 +105,13 @@ def main(rows_file, rxnmapper_json="results/chem/rxnmapper_golden.json"):
     # by the number of places that the curated map changes, a proxy for one-pot and multi-step reactions
     curated = np.array(
         [
-            exact.cost_levels(r, r["target"].astype(np.int64), **options)[0]
+            cost.cost_levels(r, r["target"].astype(np.int64), **options)[0]
             for r in reactions
         ]
     )
     found = np.array(
         [
-            exact.cost_levels(r, x["mapping"], **options)[0]
+            cost.cost_levels(r, x["mapping"], **options)[0]
             for r, x in zip(reactions, rows)
         ]
     )

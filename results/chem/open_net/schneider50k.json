@@ -3,9 +3,9 @@
  "reactions": 49994,
  "lack_atoms": 426,
  "solved": 426,
- "proved": 0.9741784037558685,
- "atoms only": 0.7769953051643192,
- "copies only": 0.19718309859154928,
- "copies and atoms": 0.025821596244131457,
- "median_seconds": 2.4573382139205933
+ "proved": 1.0,
+ "copies only": 0.6197183098591549,
+ "atoms only": 0.3591549295774648,
+ "copies and atoms": 0.02112676056338028,
+ "median_seconds": 0.05685615539550781
 }

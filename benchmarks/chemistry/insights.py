@@ -22,7 +22,7 @@ import torch
 from scipy.sparse.csgraph import shortest_path
 
 from npf import chem
-from npf.chem import exact
+from npf.chem import cost
 
 from .experiment import batches, splits
 
@@ -201,16 +201,21 @@ def attribution_insights(data, n=3000):
 
 
 def mapping_audit(data, maps="data/exact_maps_schneider50k.pkl"):
-    """Test reactions whose recorded mapping makes and breaks more bonds than the minimum firing vector of the exact
-    mapper, the first level of its cost (chem.exact)."""
+    """Test reactions whose recorded mapping makes and breaks more bonds than the minimum firing vector of the mapper,
+    the first level of its cost (chem.cost)."""
     _, _, test = splits(data, "forward")
     exact_maps, more, examples = pickle.loads(Path(maps).read_bytes()), Counter(), []
     for r in test:
-        if r["id"] not in exact_maps or len(exact_maps[r["id"]]) != len(r["b"]["x"]):
+        # a map that seats a product atom on no written precursor atom, from the open net, has no cost on this net
+        if (
+            r["id"] not in exact_maps
+            or len(exact_maps[r["id"]]) != len(r["b"]["x"])
+            or (exact_maps[r["id"]] < 0).any()
+        ):
             continue
 
         ours, recorded = (
-            exact.cost_levels(r, m.astype(np.int64), **exact.CHOSEN)[0]
+            cost.cost_levels(r, m.astype(np.int64), **cost.CHOSEN)[0]
             for m in (exact_maps[r["id"]], r["target"])
         )
         if recorded > ours:
