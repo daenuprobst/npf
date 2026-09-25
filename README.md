@@ -74,6 +74,7 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
 | `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark, `--net arrow` or `--net electron` |
+| `benchmarks/chemistry/mechanism_validity.py` | untrained arrow and electron nets, with and without the octet rule, end only in valid molecules |
 | `benchmarks/chemistry/exact_ties.py` | the mappings the net cannot tell apart |
 | `benchmarks/chemistry/balance.py` | balanced equations from the open net |
 | `benchmarks/chemistry/golden.py` | the Golden atom mapping set |
@@ -183,14 +184,25 @@ Both models are token games. Given the reactants of one elementary step they fir
 reached is the predicted products. The arrow net moves an electron pair per firing, so its transitions are the curly
 arrows of arrow pushing and the octet rule is what enables them. The electron net moves one electron, so a fishhook is
 a transition of weight one, radical steps become expressible, and the arrow net is its sub-net of weight two.
+Molecules are Kekulé structures: tokens are electrons, and an aromatic bond of order 3/2 would hold three, half a pair.
+Products are compared after aromaticity is perceived again, so the Kekulé structure chosen does not change the score.
 
 The download stage fetches the published split from figshare and checks it, so a fresh machine needs nothing else.
-Each net keeps its own prepared data, weights and results.
+Each net keeps its own prepared data, weights and results. The results in `results/mechanism` are seeds 0 to 2 of both
+nets, seed 0 evaluated with a beam of 10 and seeds 1 and 2 with a beam of 5.
 
     uv run python -m benchmarks.chemistry.mechanism download
     uv run python -m benchmarks.chemistry.mechanism prepare --net electron --processes 20
-    uv run python -m benchmarks.chemistry.mechanism train --net electron --seed 0 --epochs 12 --budget 2000000
-    uv run python -m benchmarks.chemistry.mechanism evaluate --net electron --seed 0 --beam 10
+    for seed in 0 1 2; do
+      uv run python -m benchmarks.chemistry.mechanism train --net electron --seed $seed --epochs 12 --budget 2000000
+      uv run python -m benchmarks.chemistry.mechanism evaluate --net electron --seed $seed --beam 10
+    done
+    uv run python -m benchmarks.chemistry.mechanism prepare --processes 20          # the arrow net, the same stages
+
+Validity for all weights, untrained games of both nets with and without the octet rule as enabling, on 1,000 test
+steps and 3 seeds.
+
+    uv run python -m benchmarks.chemistry.mechanism_validity                      # results/mechanism/validity.json
 
 The report and the tables of the paper.
 
@@ -233,6 +245,10 @@ folders.
 
 Since commit 9d3986f.
 
+- The electron net ends a step only with whole pairs on every bond place, so an untrained game can no longer stop on a
+  one-electron bond. No recorded FlowER step ends on one. `mechanism_validity.py` checks validity for all weights.
+- The octet capacities of the arrow net are in pairs. The tables halved the shell, which the arrow net already counts in
+  pairs, so C, N and O had a capacity of 2 and 6.8 % of the test steps had no enabled order; now none has.
 - The mapper without a solver, `mapper.py`, `search.py`, `third_level.py`. A branch and bound, bounded by linear
   assignments on the places of the net, finds and proves the same minimum as the integer program on every Golden and
   SynRXN reaction, 20 to 60 times faster, and lists all ties completely. The listing of the integer program could stop

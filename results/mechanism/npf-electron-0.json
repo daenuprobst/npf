@@ -1,0 +1,98 @@
+{
+ "benchmark": "FlowER flower_dataset, elementary steps",
+ "model": "npf-electron",
+ "seed": 0,
+ "params": 8195589,
+ "n_train": 1445076,
+ "n_test": 162002,
+ "epoch": 11,
+ "train_seconds": 5581.464493513107,
+ "eval_seconds": 15828.483758926392,
+ "beam": 10,
+ "curve": [
+  {
+   "epoch": 0,
+   "loss": 0.8472454043939558,
+   "val_top1_greedy": 0.8493333333333334,
+   "seconds": 576.213538646698
+  },
+  {
+   "epoch": 1,
+   "loss": 0.19372571062006427,
+   "val_top1_greedy": 0.8693333333333333,
+   "seconds": 1031.0845744609833
+  },
+  {
+   "epoch": 2,
+   "loss": 0.16776830639011373,
+   "val_top1_greedy": 0.8803333333333333,
+   "seconds": 1484.809514760971
+  },
+  {
+   "epoch": 3,
+   "loss": 0.15293283017640594,
+   "val_top1_greedy": 0.8833333333333333,
+   "seconds": 1938.8206181526184
+  },
+  {
+   "epoch": 4,
+   "loss": 0.14218676906958527,
+   "val_top1_greedy": 0.8926666666666667,
+   "seconds": 2393.952752828598
+  },
+  {
+   "epoch": 5,
+   "loss": 0.1326767264316894,
+   "val_top1_greedy": 0.9003333333333333,
+   "seconds": 2847.273932695389
+  },
+  {
+   "epoch": 6,
+   "loss": 0.12561040258436235,
+   "val_top1_greedy": 0.902,
+   "seconds": 3301.106424331665
+  },
+  {
+   "epoch": 7,
+   "loss": 0.11806463812283921,
+   "val_top1_greedy": 0.905,
+   "seconds": 3757.66007399559
+  },
+  {
+   "epoch": 8,
+   "loss": 0.11244452930157306,
+   "val_top1_greedy": 0.908,
+   "seconds": 4213.714448451996
+  },
+  {
+   "epoch": 9,
+   "loss": 0.10716480050184211,
+   "val_top1_greedy": 0.9106666666666666,
+   "seconds": 4668.738878965378
+  },
+  {
+   "epoch": 10,
+   "loss": 0.1033707526455356,
+   "val_top1_greedy": 0.9103333333333333,
+   "seconds": 5125.73418879509
+  },
+  {
+   "epoch": 11,
+   "loss": 0.1017512227730583,
+   "val_top1_greedy": 0.911,
+   "seconds": 5581.46387052536
+  }
+ ],
+ "metrics": {
+  "step_top1": 0.905229565067098,
+  "step_top2": 0.9793829705806101,
+  "step_top3": 0.991666769546055,
+  "step_top5": 0.9962469599140751,
+  "step_top10": 0.9971358378291626,
+  "step_top1_covered": 0.9052345679012346,
+  "step_top5_covered": 0.9962530864197531,
+  "valid_smiles_top1": 1.0,
+  "share_single_electron": 0.0,
+  "share_no_enabled_order": 1.2345526598437056e-05
+ }
+}

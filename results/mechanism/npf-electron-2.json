@@ -1,0 +1,97 @@
+{
+ "benchmark": "FlowER flower_dataset, elementary steps",
+ "model": "npf-electron",
+ "seed": 2,
+ "params": 8195589,
+ "n_train": 1445076,
+ "n_test": 162002,
+ "epoch": 11,
+ "train_seconds": 6662.640322685242,
+ "eval_seconds": 8165.435118675232,
+ "beam": 5,
+ "curve": [
+  {
+   "epoch": 0,
+   "loss": 0.9069938190102113,
+   "val_top1_greedy": 0.808,
+   "seconds": 730.4941432476044
+  },
+  {
+   "epoch": 1,
+   "loss": 0.19522325296385795,
+   "val_top1_greedy": 0.8726666666666667,
+   "seconds": 1423.1563246250153
+  },
+  {
+   "epoch": 2,
+   "loss": 0.16914688872765168,
+   "val_top1_greedy": 0.881,
+   "seconds": 2115.2925956249237
+  },
+  {
+   "epoch": 3,
+   "loss": 0.15389194928156028,
+   "val_top1_greedy": 0.887,
+   "seconds": 2815.6063466072083
+  },
+  {
+   "epoch": 4,
+   "loss": 0.14355369544577587,
+   "val_top1_greedy": 0.8933333333333333,
+   "seconds": 3472.4921753406525
+  },
+  {
+   "epoch": 5,
+   "loss": 0.13350319680418193,
+   "val_top1_greedy": 0.8976666666666666,
+   "seconds": 3927.509397983551
+  },
+  {
+   "epoch": 6,
+   "loss": 0.12483587584666828,
+   "val_top1_greedy": 0.901,
+   "seconds": 4382.633331298828
+  },
+  {
+   "epoch": 7,
+   "loss": 0.11848644768510445,
+   "val_top1_greedy": 0.9053333333333333,
+   "seconds": 4839.204629421234
+  },
+  {
+   "epoch": 8,
+   "loss": 0.11243813906673421,
+   "val_top1_greedy": 0.9073333333333333,
+   "seconds": 5293.510236740112
+  },
+  {
+   "epoch": 9,
+   "loss": 0.10713759605031153,
+   "val_top1_greedy": 0.9076666666666666,
+   "seconds": 5748.615812778473
+  },
+  {
+   "epoch": 10,
+   "loss": 0.10319920024967545,
+   "val_top1_greedy": 0.908,
+   "seconds": 6205.942635536194
+  },
+  {
+   "epoch": 11,
+   "loss": 0.10145730440821106,
+   "val_top1_greedy": 0.9086666666666666,
+   "seconds": 6662.63968706131
+  }
+ ],
+ "metrics": {
+  "step_top1": 0.905149319144208,
+  "step_top2": 0.9785373020086172,
+  "step_top3": 0.9907470278144714,
+  "step_top5": 0.9940247651263565,
+  "step_top1_covered": 0.9051543209876544,
+  "step_top5_covered": 0.9940246913580247,
+  "valid_smiles_top1": 1.0,
+  "share_single_electron": 0.0,
+  "share_no_enabled_order": 1.2345526598437056e-05
+ }
+}

@@ -1,0 +1,91 @@
+{
+ "benchmark": "FlowER flower_dataset, elementary steps",
+ "model": "npf",
+ "seed": 2,
+ "params": 7334531,
+ "n_train": 1419742,
+ "n_test": 162002,
+ "epoch": 10,
+ "train_seconds": 4605.709984540939,
+ "eval_seconds": 5871.693667888641,
+ "beam": 5,
+ "curve": [
+  {
+   "epoch": 0,
+   "loss": 0.805297635063272,
+   "val_top1_greedy": 0.8353333333333334,
+   "seconds": 435.97967505455017
+  },
+  {
+   "epoch": 1,
+   "loss": 0.18680693833809242,
+   "val_top1_greedy": 0.8636666666666667,
+   "seconds": 837.4755754470825
+  },
+  {
+   "epoch": 2,
+   "loss": 0.16376307279773367,
+   "val_top1_greedy": 0.8763333333333333,
+   "seconds": 1237.0680196285248
+  },
+  {
+   "epoch": 3,
+   "loss": 0.14911564918133013,
+   "val_top1_greedy": 0.8763333333333333,
+   "seconds": 1640.4146890640259
+  },
+  {
+   "epoch": 4,
+   "loss": 0.13849432018282196,
+   "val_top1_greedy": 0.8913333333333333,
+   "seconds": 2044.9123940467834
+  },
+  {
+   "epoch": 5,
+   "loss": 0.12942140191668627,
+   "val_top1_greedy": 0.8916666666666667,
+   "seconds": 2457.8296554088593
+  },
+  {
+   "epoch": 6,
+   "loss": 0.12060231498046828,
+   "val_top1_greedy": 0.898,
+   "seconds": 2864.3178412914276
+  },
+  {
+   "epoch": 7,
+   "loss": 0.11459313558378917,
+   "val_top1_greedy": 0.903,
+   "seconds": 3292.9263169765472
+  },
+  {
+   "epoch": 8,
+   "loss": 0.10857477758282844,
+   "val_top1_greedy": 0.905,
+   "seconds": 3733.055792093277
+  },
+  {
+   "epoch": 9,
+   "loss": 0.10347475324742102,
+   "val_top1_greedy": 0.9053333333333333,
+   "seconds": 4171.063480377197
+  },
+  {
+   "epoch": 10,
+   "loss": 0.09965492409888557,
+   "val_top1_greedy": 0.9073333333333333,
+   "seconds": 4605.708421945572
+  }
+ ],
+ "metrics": {
+  "step_top1": 0.8887791508746805,
+  "step_top2": 0.9612844285873013,
+  "step_top3": 0.9731731707015963,
+  "step_top5": 0.976469426303379,
+  "step_top1_covered": 0.9050076368504749,
+  "step_top5_covered": 0.9942927899331854,
+  "valid_smiles_top1": 1.0,
+  "share_single_electron": 0.017931877384229824,
+  "share_no_enabled_order": 0.0
+ }
+}
