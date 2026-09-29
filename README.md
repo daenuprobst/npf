@@ -173,9 +173,19 @@ Forward prediction on Schneider 50k, seeds 0 to 2.
 
 Forward prediction on USPTO-MIT, seeds 0 to 2, and the Molecular Transformer baseline on the same subsets.
 
-    M="uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit --amp"
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --recorded-maps --seed 0
+The full split, USPTO-480K, is run once per arm: the mapper's firing vectors as targets with and without the enabling
+rule, and the recorded maps. The targets are `data/net_targets_uspto_mit.pkl`, built by the search, SHA-256
+`b22581ce23dc4f52f6a2980b40e2ce3364fe0a6029e44f0be76507e14d9c060b`, which both of their result files record. The paper
+reports `product_top{1,3,5}_beam_official`, over all 40,000 test lines, so the 6 that RDKit cannot parse count as wrong,
+and `valence_valid`, the share of predictions whose touched fragments RDKit sanitises. The recorded-maps run was trained
+before `valence_valid` was measured with RDKit and scored again with `--evaluate-only`, which leaves its accuracy and
+beams unchanged.
+
+    M="uv run python -m benchmarks.chemistry.experiment --task forward --dataset uspto_mit --amp"
+    $M --model npf --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
+    $M --model npf-noenabling --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
+    $M --model npf --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --recorded-maps --seed 0
+    M="$M --model npf"
     $M --subset 40900 --seed 0                                            # also --single-target, --subset 4090, --recorded-maps
     uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 40900    # then train 40900 --steps 30000 and score 40900; also 4090
