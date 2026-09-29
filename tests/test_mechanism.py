@@ -1,11 +1,12 @@
 """The mechanism nets: STOP needs whole pairs on the electron net, the octet capacities of the arrow net are in pairs,
-and untrained games end only in valid molecules."""
+untrained games end only in valid molecules, and a pathway is as good as its best route."""
 from pathlib import Path
 
 import pytest
 import torch
 
 from benchmarks.chemistry import mechanism as M
+from benchmarks.chemistry.mechanism_pathways import pathway_rank
 from npf.chem import arrows
 from npf.chem.electron_game import ElectronGame
 
@@ -60,3 +61,14 @@ def test_untrained_games_end_in_valid_molecules(net, monkeypatch):
     for forced in (False, True):
         result = V.rollout(data, covered, 0, True, forced, "cpu")
         assert result["valid"] in (1.0, None) and result["octet"] in (1.0, None)
+
+
+def test_pathway_rank_is_the_best_route_by_its_worst_step():
+    # A -> B -> C costs rank 3 at its second step, A -> D -> C at most 2, C ends in its self-loop
+    steps = [("A", "B", 1), ("B", "C", 3), ("A", "D", 2), ("D", "C", 2), ("C", "C", 1)]
+    assert pathway_rank(steps) == 2
+    # a step never found sinks every route through it
+    assert pathway_rank([("A", "B", float("inf")), ("B", "B", 1)]) == float("inf")
+    # without a terminal product or with two starts the pathway counts as wrong
+    assert pathway_rank([("A", "B", 1)]) == float("inf")
+    assert pathway_rank([("A", "C", 1), ("B", "C", 1), ("C", "C", 1)]) == float("inf")

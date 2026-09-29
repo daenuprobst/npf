@@ -75,6 +75,8 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
 | `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark, `--net arrow` or `--net electron` |
 | `benchmarks/chemistry/mechanism_validity.py` | untrained arrow and electron nets, with and without the octet rule, end only in valid molecules |
+| `benchmarks/chemistry/mechanism_pathways.py` | top-k pathway accuracy on FlowER from the saved per-step ranks, FlowER's metric |
+| `benchmarks/published/` | the published numbers the paper compares with, each row with its source |
 | `benchmarks/chemistry/exact_ties.py` | the mappings the net cannot tell apart |
 | `benchmarks/chemistry/balance.py` | balanced equations from the open net |
 | `benchmarks/chemistry/golden.py` | the Golden atom mapping set |
@@ -203,6 +205,13 @@ Validity for all weights, untrained games of both nets with and without the octe
 steps and 3 seeds.
 
     uv run python -m benchmarks.chemistry.mechanism_validity                      # results/mechanism/validity.json
+
+Pathway accuracy, the metric of FlowER's `sequence_evaluation.py`: a test reaction counts at top k if some route from
+its reactants to a terminal product has every step within the top k. It reads the per-step ranks that `evaluate` saves
+next to each result, `results/mechanism/<name>-<seed>-ranks.npz`. FlowER's numbers, step and pathway accuracy and
+validity, are the Source Data of its Figure 2, in `benchmarks/published/flower_fig2.csv`.
+
+    uv run python -m benchmarks.chemistry.mechanism_pathways                      # results/mechanism/pathways.json
 
 The report and the tables of the paper.
 

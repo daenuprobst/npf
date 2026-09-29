@@ -1,0 +1,52 @@
+{
+ "npf-0": {
+  "pathways": 28049,
+  "beam": 10,
+  "pathway_top1": 0.9053442190452422,
+  "pathway_top2": 0.9424578416342828,
+  "pathway_top3": 0.9495882206139257,
+  "pathway_top5": 0.9532247138935435,
+  "pathway_top10": 0.9543655745302863
+ },
+ "npf-1": {
+  "pathways": 28049,
+  "beam": 5,
+  "pathway_top1": 0.9050233519911584,
+  "pathway_top2": 0.9409248101536597,
+  "pathway_top3": 0.9480195372384043,
+  "pathway_top5": 0.9505508217761774
+ },
+ "npf-2": {
+  "pathways": 28049,
+  "beam": 5,
+  "pathway_top1": 0.9059146493636137,
+  "pathway_top2": 0.9424578416342828,
+  "pathway_top3": 0.9488395308210631,
+  "pathway_top5": 0.9517629862027167
+ },
+ "npf-electron-0": {
+  "pathways": 28049,
+  "beam": 10,
+  "pathway_top1": 0.9470569360761525,
+  "pathway_top2": 0.9860244571999002,
+  "pathway_top3": 0.9930122285999501,
+  "pathway_top5": 0.9967913294591607,
+  "pathway_top10": 0.9977895825163108
+ },
+ "npf-electron-1": {
+  "pathways": 28049,
+  "beam": 5,
+  "pathway_top1": 0.9407822025740669,
+  "pathway_top2": 0.9822453563406895,
+  "pathway_top3": 0.9906235516417697,
+  "pathway_top5": 0.9936183108132197
+ },
+ "npf-electron-2": {
+  "pathways": 28049,
+  "beam": 5,
+  "pathway_top1": 0.9468786766016614,
+  "pathway_top2": 0.9855253306713252,
+  "pathway_top3": 0.9928339691254591,
+  "pathway_top5": 0.9952226460836393
+ }
+}
