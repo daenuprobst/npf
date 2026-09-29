@@ -33,6 +33,7 @@ import torch
 import torch.nn.functional as F
 
 from npf import chem
+from npf.chem import decode
 from npf.chem import (
     MAX_TOKENS,
     batch_indices,
@@ -321,13 +322,17 @@ def evaluate(model, task, reactions, device):
                     tuple(e) for e in true.tolist()
                 }
                 stats["product"] += product_found(r, pred)
+
+                # a touched fragment RDKit cannot sanitise is invalid chemistry, whatever the enabling rule says
+                stats["rdkit_valid"] += decode.DROPPED["touched"] == 0
+                stats["dropped"] += decode.DROPPED["touched"]
                 stats["major"] += product_major(r, pred)
                 stats["exact_sym"] += same(pred) == same(true)
                 capacity = np.array(
                     [chem.EXTRA_CAPACITY.get(int(e), 0) for e in a["element"]]
                 ) + np.maximum(-a["q"], 0)
 
-                # no hydrogen place below its capacity
+                # no hydrogen place below its capacity, the rule enabling enforces, so it cannot fail for the net
                 stats["enabled"] += bool((hydrogens >= -capacity - 0.5).all())
 
     n = stats["n"]
@@ -344,7 +349,9 @@ def evaluate(model, task, reactions, device):
         "product_major_top1": stats["major"] / n,
         "edits_exact_up_to_symmetry": stats["exact_sym"] / n,
         "edits_exact": stats["exact"] / n,
-        "valence_valid": stats["enabled"] / n,
+        "valence_valid": stats["rdkit_valid"] / n,
+        "enabling_rule_valid": stats["enabled"] / n,
+        "dropped_touched_fragments": stats["dropped"] / n,
     }
 
 
