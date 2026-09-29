@@ -243,3 +243,7 @@ superseded/
 data/flower/
 superseded*/
 locks/
+
+# enzymatic data: the atom maps of each source and the downloaded Enzyformer split, rebuilt by benchmarks.chemistry.enzymes
+data/enzyme_maps/
+data/external/

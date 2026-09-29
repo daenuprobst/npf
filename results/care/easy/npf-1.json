@@ -1,0 +1,29 @@
+{
+ "benchmark": "CARE task 2, easy split",
+ "model": "npf",
+ "seed": 1,
+ "params": 4612363,
+ "n_train": 55416,
+ "n_test": 393,
+ "n_test_official": 393,
+ "n_classes": 4874,
+ "train_seconds": 8604.561777591705,
+ "metrics": {
+  "level4": 0.6743002544529262,
+  "level4_official": 0.6743002544529262,
+  "level3": 0.8244274809160306,
+  "level3_official": 0.8244274809160306,
+  "level2": 0.8931297709923665,
+  "level2_official": 0.8931297709923665,
+  "level1": 0.9643765903307888,
+  "level1_official": 0.9643765903307888,
+  "level4_marginal": 0.6692111959287532,
+  "level4_official_marginal": 0.6692111959287532,
+  "level3_marginal": 0.821882951653944,
+  "level3_official_marginal": 0.821882951653944,
+  "level2_marginal": 0.8956743002544529,
+  "level2_official_marginal": 0.8956743002544529,
+  "level1_marginal": 0.9643765903307888,
+  "level1_official_marginal": 0.9643765903307888
+ }
+}

@@ -69,7 +69,8 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/synthetic/learned_incidence.py`, `coloured.py` | extensions |
 | `benchmarks/chemistry/build_data.py` | Schneider 50k and USPTO-MIT to `data/` |
 | `benchmarks/chemistry/experiment.py` | forward and classify, all datasets |
-| `benchmarks/chemistry/care.py` | EC number classification on CARE task 2 |
+| `benchmarks/chemistry/care.py` | EC number classification on CARE task 2 and on ECREACT in the Enzyformer split, `--maps` adds the firing vector of a map file |
+| `benchmarks/chemistry/enzymes.py` | the enzymatic data, EnzymeMap at EC level 3 and ECREACT in the Enzyformer split, and the atom maps of RXNMapper and of the record |
 | `benchmarks/chemistry/exact_map.py` | the mapper on a data set, and the maps the classifier reads |
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
@@ -160,6 +161,35 @@ Classification on Schneider 50k. Seeds 0 to 4 for the three models of the main t
     uv run python -m benchmarks.chemistry.ensemble npf-sigma         # also npf
     uv run python -m benchmarks.chemistry.invariance
     uv run python -m benchmarks.chemistry.insights
+
+EC numbers of enzymatic reactions, seeds 0 to 2, with atom maps from three sources: the mapper of the paper, RXNMapper
+and, on EnzymeMap, its curated maps. The same classifier reads the firing vector of each, against the same classifier
+without maps. EnzymeMap at EC level 3 holds out 10 % of the reactions of every class and uses the state-equation readout
+of Schneider 50k. CARE task 2 (easy split) and ECREACT in the split of Enzyformer (zenodo 18083829, downloaded and
+checked by `prepare`) use the published CARE model, the readout with the participation gate. The model without maps on
+EnzymeMap reads no map, whichever file `--maps` names. A reaction the mapper cannot prove optimal within 60 s keeps the best map
+found so far, which depends on the machine: rebuilt on CARE, 5 of 55,081 maps differed, all of them unproved. The data,
+the unmapped reactions for RXNMapper and the maps:
+
+    uv run python -m benchmarks.chemistry.care prepare <path to CARE_datasets>
+    uv run python -m benchmarks.chemistry.enzymes prepare enzymemap
+    uv run python -m benchmarks.chemistry.enzymes prepare enzyformer
+    for data in enzymemap_ec care_easy; do
+      uv run python -m benchmarks.chemistry.exact_map --data $data --third-level --processes 16 --write data/enzyme_maps/mapper_maps_$data.pkl
+      uv run python -m benchmarks.chemistry.enzymes unmapped $data
+      uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py data/enzyme_maps/${data}_unmapped.txt data/enzyme_maps/rxnmapper_$data.json
+      uv run python -m benchmarks.chemistry.enzymes convert $data                # rxnmapper_maps_$data.pkl, recorded_maps_$data.pkl
+    done
+
+Classification, `results/enzymemap_ec/classify`, `results/care/easy` and `results/ecreact/enzyformer`:
+
+    E="uv run python -m benchmarks.chemistry.experiment --task classify --dataset enzymemap_ec --batch 16"
+    $E --model npf-nogate --maps data/enzyme_maps/mapper_maps_enzymemap_ec.pkl --tag=-none --seed 0
+    $E --model npf-sigma --maps data/enzyme_maps/mapper_maps_enzymemap_ec.pkl --tag=-mapper --seed 0   # also rxnmapper, recorded
+    C="uv run python -m benchmarks.chemistry.care train"
+    $C --seed 0
+    $C --maps data/enzyme_maps/mapper_maps_care_easy.pkl --tag=-mapper --seed 0                         # also rxnmapper
+    $C --dataset ecreact_enzyformer --seed 0
 
 Forward prediction on Schneider 50k, seeds 0 to 2.
 

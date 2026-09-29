@@ -14,8 +14,9 @@ the file of --net-targets, and --recorded-maps trains on the recorded atom maps 
 Splits. classify uses the published split of Schneider 50k with 200 training and 800 test reactions per class. On
 Schneider 50k, forward uses a fixed random 80/10/10 split of the reactions with a clean atom mapping, an internal
 protocol for ablations. With uspto_mit the official split of Jin et al. is used and forward prediction is scored on
-the whole official test set. Training records whose firing vector moves more than MAX_TOKENS tokens are dropped as
-label noise, validation and test sets are never filtered.
+the whole official test set. enzymemap_ec is EnzymeMap at EC level 3 with its reactions held out per class, which
+benchmarks.chemistry.enzymes prepares, for classification only. Training records whose firing vector moves more than
+MAX_TOKENS tokens are dropped as label noise, validation and test sets are never filtered.
 """
 
 import argparse
@@ -541,7 +542,9 @@ def main():
     )
     ap.add_argument("--root", default="results")
     ap.add_argument(
-        "--dataset", choices=["schneider50k", "uspto_mit"], default="schneider50k"
+        "--dataset",
+        choices=["schneider50k", "uspto_mit", "enzymemap_ec"],
+        default="schneider50k",
     )
     ap.add_argument(
         "--evaluate-only",
