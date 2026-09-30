@@ -74,6 +74,7 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/chemistry/exact_map.py` | the mapper on a data set, and the maps the classifier reads |
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
+| `benchmarks/chemistry/synrxn_enzymemap.py` | the mapper and RXNMapper on EnzymeMap, scored against its curated maps with the validator of SynRXN |
 | `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark, `--net arrow` or `--net electron` |
 | `benchmarks/chemistry/mechanism_validity.py` | untrained arrow and electron nets, with and without the octet rule, end only in valid molecules |
 | `benchmarks/chemistry/mechanism_pathways.py` | top-k pathway accuracy on FlowER from the saved per-step ranks, FlowER's metric |
@@ -190,6 +191,11 @@ Classification, `results/enzymemap_ec/classify`, `results/care/easy` and `result
     $C --seed 0
     $C --maps data/enzyme_maps/mapper_maps_care_easy.pkl --tag=-mapper --seed 0                         # also rxnmapper
     $C --dataset ecreact_enzyformer --seed 0
+
+Atom mapping on EnzymeMap, the maps above against the curated maps of the 41,510 reactions that have one for every
+product atom, scored with the validator of SynRXN and an exact sign test between the mappers.
+
+    uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_enzymemap   # results/enzymemap_ec/synrxn_map.json
 
 Forward prediction on Schneider 50k, seeds 0 to 2.
 
