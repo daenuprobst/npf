@@ -259,7 +259,8 @@ validity, are the Source Data of its Figure 2, in `benchmarks/published/flower_f
 
     uv run python -m benchmarks.chemistry.mechanism_pathways                      # results/mechanism/pathways.json
 
-The report and the tables of the paper.
+The report and the tables of the paper. Its last section, the benchmarks of the paper, puts NPF next to the published
+numbers in `benchmarks/published`, each file with the paper and table it comes from.
 
     uv run python -m benchmarks.report > results/REPORT.md && uv run python -m benchmarks.paper_tables
 
