@@ -95,6 +95,24 @@ Models and data live in the package, one model per file. Everything that produce
 
 ## Reproduce
 
+Where each benchmark of the paper comes from. The commands are in the paragraphs below, and `benchmarks.report` gathers
+the result files into the tables of the paper.
+
+| Benchmark | Script | Results |
+|---|---|---|
+| Atom mapping, Golden set | `exact_map`, `exact_map_report` | `results/chem/exact_map/` |
+| Atom mapping, SynRXN sets | `synrxn_map` | `results/chem/synrxn_map/` |
+| Atom mapping, EnzymeMap | `enzymes`, `exact_map`, `synrxn_enzymemap` | `results/enzymemap_ec/synrxn_map.json` |
+| Reaction classes, Schneider 50k | `experiment --task classify` | `results/chem/classify/` |
+| EC numbers, CARE task 2 | `care` | `results/care/easy/` |
+| EC numbers, ECREACT (Enzyformer split) | `enzymes`, `care --dataset ecreact_enzyformer` | `results/ecreact/enzyformer/` |
+| EC numbers, EnzymeMap by map source | `enzymes`, `experiment --dataset enzymemap_ec` | `results/enzymemap_ec/classify/` |
+| Forward prediction, USPTO-480K, and its validity | `experiment --task forward --dataset uspto_mit` | `results/uspto_mit/forward/` |
+| Elementary steps, FlowER | `mechanism` | `results/mechanism/npf*-[0-2].json` |
+| Pathways, FlowER | `mechanism_pathways` | `results/mechanism/pathways.json` |
+| Validity for all weights, mechanism nets | `mechanism_validity` | `results/mechanism/validity.json` |
+| Published numbers compared with | | `benchmarks/published/` |
+
 Tests, the propositions checked numerically, and the facts about the data that the text quotes.
 
     uv run pytest -q
@@ -301,6 +319,11 @@ folders.
 
 Since commit 9d3986f.
 
+- The benchmarks of the paper are reproducible from this repository: pathway accuracy on FlowER from the saved ranks,
+  the USPTO-480K runs on the full split, EC classification on CARE, ECREACT in the Enzyformer split and EnzymeMap
+  with atom maps from each source, atom mapping on EnzymeMap under the metric of SynRXN, and the published numbers
+  they are compared with. `valence_valid` of forward prediction is measured with RDKit; the old check, which is the
+  enabling rule itself, is kept as `enabling_rule_valid`.
 - The electron net ends a step only with whole pairs on every bond place, so an untrained game can no longer stop on a
   one-electron bond. No recorded FlowER step ends on one. `mechanism_validity.py` checks validity for all weights.
 - The octet capacities of the arrow net are in pairs. The tables halved the shell, which the arrow net already counts in
