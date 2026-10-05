@@ -11,7 +11,7 @@ import time
 import numpy as np
 
 from . import cost, mapper
-from .decode import canonical_product, marking_fragments
+from .decode import NO_STEREO, canonical_product, marking_fragments, stereo_source
 from .featurisation import dense_bonds
 from .minimise import cost_of
 from .orders import count_orders
@@ -36,22 +36,30 @@ def firing_vector(reaction, mapping):
     return np.stack([i, j, after[i, j]], 1).astype(np.int16)
 
 
-def recorded_products(reaction):
-    """Every recorded product molecule, canonical and without stereochemistry, has to be predicted."""
+def recorded_products(reaction, stereo=False):
+    """Every recorded product molecule, canonical and without stereochemistry unless stereo, has to be predicted."""
     return {
-        canonical_product(smi) for smi in reaction["smiles"].split(">>")[1].split(".")
+        canonical_product(smi, stereo)
+        for smi in reaction["smiles"].split(">>")[1].split(".")
     }
 
 
-def product_found(reaction, edits):
+def product_found(reaction, edits, stereo=False):
     """The firings make the recorded major product and every recorded molecule is in the final marking, so the
-    counter-ions of salts are spectators."""
-    touched, everything = marking_fragments(reaction["a"], edits)
+    counter-ions of salts are spectators. With stereo the molecules are compared with their stereochemistry, which the
+    marking takes from the precursors where no firing touched them and leaves open at the reaction centre."""
+    source = None
+
+    # precursors whose SMILES does not give their graph lend no stereo
+    if stereo:
+        source = stereo_source(reaction["smiles"].split(">>")[0], reaction["a"]) or NO_STEREO
+
+    touched, everything = marking_fragments(reaction["a"], edits, source)
     recorded = reaction["smiles"].split(">>")[1]
 
     return (
-        canonical_product(recorded) in touched
-        and recorded_products(reaction) <= everything
+        canonical_product(recorded, stereo) in touched
+        and recorded_products(reaction, stereo) <= everything
     )
 
 
