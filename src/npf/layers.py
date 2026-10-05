@@ -82,16 +82,13 @@ def token_game_flow(d, m, b):
     )
 
 
-def kl_project_state_equation(
-    sigma, b, n_iter=30, obs_var=None, floor=0.05, low=-30.0, high=8.0
-):
+def kl_project_state_equation(sigma, b, n_iter=30, floor=0.05, low=-30.0, high=8.0):
     """Firing counts that satisfy the state equation, as the I projection of sigma onto {s >= 0, C s = dM}.
 
     The minimiser of D(s || sigma) over the fibre is s = sigma * exp(C^T nu), positive for every nu, with nu the
     minimiser of the strictly convex dual sum_t sigma_t exp((C^T nu)_t) - nu^T dM, whose Hessian is C diag(s) C^T.
     This is Birch's theorem on the transitions and the large count limit of Poisson counts conditioned on the state
-    equation. Newton from nu = 0 gives the Gaussian step as its first iterate. With obs_var the markings are noisy
-    and the dual gains a quadratic term, so it stays solvable when the fibre is empty.
+    equation. Newton from nu = 0 gives the Gaussian step as its first iterate.
     """
     G, S, Pmax, Tmax = b.pad_shape
     dm = (
@@ -108,18 +105,17 @@ def kl_project_state_equation(
     )
     C = b.C.double()
     eye = torch.eye(Pmax, dtype=torch.float64, device=sigma.device)
-    noise = 0.0 if obs_var is None else obs_var.double()
 
     def counts(nu):
         # a count forced to zero needs a large negative exponent, the floor keeps an untrained prior off zero
         return prior * torch.einsum("gsp,gpt->gst", nu, C).clamp(low, high).exp()
 
     def dual(nu):
-        return counts(nu).sum(-1) - (nu * dm).sum(-1) + 0.5 * noise * (nu * nu).sum(-1)
+        return counts(nu).sum(-1) - (nu * dm).sum(-1)
 
     def newton(nu):
         s = counts(nu)
-        gradient = torch.einsum("gst,gpt->gsp", s, C) - dm + noise * nu
+        gradient = torch.einsum("gst,gpt->gsp", s, C) - dm
         laplacian = (C[:, None] * s[:, :, None, :]) @ C.transpose(-1, -2)[:, None]
 
         # P-invariants are null directions of the Hessian and gauges of the dual, so a ridge picks the minimum norm dual
@@ -130,7 +126,7 @@ def kl_project_state_equation(
         )
 
         return (
-            -torch.linalg.solve(laplacian + (1e-6 * scale + noise) * eye, gradient),
+            -torch.linalg.solve(laplacian + 1e-6 * scale * eye, gradient),
             gradient,
         )
 
@@ -163,13 +159,13 @@ def kl_project_state_equation(
     return counts(nu + t[..., None] * direction).to(sigma.dtype).reshape(-1)[b.pad_t]
 
 
-def project_state_equation(sigma, b, weighted=True, n_iter=6, obs_var=None):
+def project_state_equation(sigma, b, weighted=True, n_iter=6):
     """Firing counts close to sigma that satisfy the state equation m_B = m_A + C sigma.
 
     With W = diag(sigma) the Poisson posterior mean given C sigma = dM is sigma + W C^T (C W C^T)^+ (dM - C sigma),
     one solve with C W C^T. The projector C^+ then removes the residual of the ridge, alternating with sigma >= 0
     and ending on the state equation. Only the component in im C^T is fixed by the data, the part in ker C stays
-    with the estimator. With obs_var the solve is the Kalman update (C W C^T + obs_var I)^-1 and nothing is forced.
+    with the estimator.
     """
     G, S, Pmax, Tmax = b.pad_shape
     dm = (
@@ -182,16 +178,12 @@ def project_state_equation(sigma, b, weighted=True, n_iter=6, obs_var=None):
     if weighted:
         C = b.C.double()[:, None]
         w = s.double() + 1e-3
-        ridge = 1e-6 if obs_var is None else obs_var.double()
-        laplacian = (C * w[:, :, None, :]) @ C.transpose(-1, -2) + ridge * torch.eye(
+        laplacian = (C * w[:, :, None, :]) @ C.transpose(-1, -2) + 1e-6 * torch.eye(
             Pmax, dtype=torch.float64, device=s.device
         )
         residual = dm.double() - torch.einsum("gst,gpt->gsp", s.double(), b.C.double())
         y = torch.linalg.solve(laplacian, residual)
         s = s + (w * torch.einsum("gsp,gpt->gst", y, b.C.double())).to(s.dtype)
-
-    if obs_var is not None:
-        return s.clamp(min=0).reshape(-1)[b.pad_t]
 
     for i in range(n_iter):
         if i:

@@ -23,29 +23,6 @@ def load_result(path):
     return result
 
 
-@pytest.mark.parametrize("task,regime,model", [("transitions", "petri", "npf"), ("transitions", "graph", "pgnn+se"), ("transitions", "petri-ode", "gnn"),
-                                               ("next", "petri-min", "npf@8"), ("next", "graph-sat", "pgnn")])
-def test_synthetic_experiment(monkeypatch, tmp_path, task, regime, model):
-    from benchmarks.synthetic import experiment
-    from npf import datasets
-
-    def fewer_nets(fn):
-        return lambda seed, n_nets, *args, **kw: fn(seed, 16 if n_nets == 300 else 3, *args, **kw)
-
-    for name in ("make_pairs", "make_flow_pairs", "make_flows"):
-        monkeypatch.setattr(datasets, name, fewer_nets(getattr(datasets, name)))
-
-    argv = ["--task", task, "--regime", regime, "--model", model, "--seed", "1", "--iters", "6", "--root", str(tmp_path)]
-    run_main(experiment, argv, monkeypatch)
-    file = tmp_path / f"{task}/{regime}/{model}-1.json"
-    first = load_result(file)
-    assert len(first["curve"]) == 1 and first["metrics"]["test"]
-
-    # a second run reads the cache that the first one wrote
-    run_main(experiment, argv, monkeypatch)
-    assert load_result(file) == first
-
-
 SMALL = ["--width", "32", "--rounds", "2", "--attention", "1"]
 CHEM_RUNS = [
     ("classify", "npf", []), ("classify", "pgnn", []), ("classify", "npf-sigma", []), ("classify", "pgnn-sigma", []),

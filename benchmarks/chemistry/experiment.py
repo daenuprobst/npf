@@ -45,6 +45,8 @@ from npf.chem import (
     recorded_products,
 )
 
+from .small_forward import SETS as SMALL_SETS
+
 EPOCHS = {"classify": 60, "forward": 60}
 BATCH = {"classify": 64, "forward": 32}
 
@@ -93,9 +95,10 @@ def splits(data, task, clean_train=True, recorded=True):
                 and tokens_moved(r, r["target"]) <= MAX_TOKENS
             ]
 
-        # models trained here are scored on the Golden set too, so no training reaction may share a main product with it
+        # models trained here are scored on the Golden set too, so no training reaction may share a main product with it,
+        # the sets of small_forward carry their name and are not scored on it
         golden = Path("data/golden.pkl")
-        if golden.exists():
+        if golden.exists() and data.get("name", "uspto_mit") == "uspto_mit":
             main = lambda r: chem.canonical_product(r["smiles"].split(">>")[1])
             banned = {main(r) for r in pickle.loads(golden.read_bytes())["reactions"]}
             n = len(train)
@@ -126,6 +129,19 @@ def splits(data, task, clean_train=True, recorded=True):
         train = [r for r in train if tokens_moved(r, r["target"]) <= MAX_TOKENS]
 
     return train, pick(order[:n]), pick(order[n : 2 * n])
+
+
+def stratified(reactions, n, seed):
+    """Indices of n reactions with n / classes of every class, drawn at random with the seed of the run, so that every
+    model of one seed trains on the same labels."""
+    rng = np.random.default_rng(seed)
+    by_class = {}
+    for k, r in enumerate(reactions):
+        by_class.setdefault(r["label"], []).append(k)
+
+    per = n // len(by_class)
+
+    return {int(k) for c in sorted(by_class) for k in rng.choice(by_class[c], per, replace=False)}
 
 
 def attach_firing_histograms(train, *others, n_types=300):
@@ -543,7 +559,7 @@ def main():
     ap.add_argument("--root", default="results")
     ap.add_argument(
         "--dataset",
-        choices=["schneider50k", "uspto_mit", "enzymemap_ec"],
+        choices=["schneider50k", "uspto_mit", "enzymemap_ec", *SMALL_SETS],
         default="schneider50k",
     )
     ap.add_argument(
@@ -635,8 +651,8 @@ def main():
     ap.add_argument(
         "--labels",
         type=int,
-        help="classify, number of training reactions whose class label is used, the rest only "
-        "contribute their firing histograms with --firing",
+        help="classify, number of training reactions whose class label is used, the same number in every class, "
+        "drawn with the seed of the run, the rest only contribute their firing histograms with --firing",
     )
     ap.add_argument(
         "--size-split",
@@ -700,16 +716,21 @@ def main():
 
     n_types = 0
 
+    # DRFP has no net for the firing task and its baseline trains on every label it is given
+    if args.model == "drfp" and args.firing:
+        raise SystemExit("--firing does not apply to drfp")
+
     if args.task == "classify" and (args.firing or args.labels):
         if args.firing:
             n_types = attach_firing_histograms(train, val, test)
 
         if args.labels:
+            chosen = stratified(train, args.labels, args.seed)
             for k, r in enumerate(train):
-                r["labelled"] = k < args.labels
+                r["labelled"] = k in chosen
 
             if not args.firing:
-                train = train[: args.labels]
+                train = [r for k, r in enumerate(train) if k in chosen]
 
         args.tag += ("-firing" if args.firing else "") + (
             f"-labels{args.labels}" if args.labels else ""
@@ -916,6 +937,13 @@ def main():
                         model, screen, device, batch=args.beam_batch
                     ).items()
                 }
+        elif args.task == "forward" and "test_lines" in data:
+            # the sets of small_forward record their test lines, a line RDKit cannot read counts as wrong too
+            metrics |= {
+                f"{k}_official": v * len(test) / data["test_lines"]
+                for k, v in metrics.items()
+                if k.startswith("product_")
+            }
 
     result = {
         "task": args.task,

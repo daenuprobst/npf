@@ -1,67 +1,31 @@
 """Figures for the paper that only the Petri formulation can draw.
 
-tokengame     A reaction as a token game on the valence net. The marking after every firing with free valence tokens
-              as dots on the atoms, the rates of the enabled transitions, the transitions that enabling forbids, and
-              the lattice of markings in which count-equivalent firing sequences merge and their probabilities add.
-attribution   Exact per-atom contributions to the state-equation readout of the classifier, which are zero beyond
-              the receptive field of the reaction centre.
-loadbearing   The ablations that show where the net is load-bearing.
+tokengame     The numbers of the token game figure, drawn in TikZ in paper_v2/figures/tokengame.tex. For one test
+              reaction the rates of the enabled transitions after every subset of its firing vector, the orders
+              that the enabling rule excludes, and the lattice in which count-equivalent orders merge.
+attribution   Panel (a) of the attribution figure, drawn in TikZ in paper_v2/figures/attribution.tex. The product of a
+              test reaction shaded by the exact contribution of every atom to the state-equation readout.
 
-    CUDA_VISIBLE_DEVICES="" uv run python -m benchmarks.chemistry.figures tokengame 14440
+    CUDA_VISIBLE_DEVICES="" uv run python -m benchmarks.chemistry.figures tokengame 28317   # results/chem/tokengame.json
+    CUDA_VISIBLE_DEVICES="" uv run python -m benchmarks.chemistry.figures attribution 956   # paper_v2/figures/attribution_mol.*
 """
 
-import io
 import itertools
+import json
 import sys
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from PIL import Image
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
-from rdkit.Geometry import Point2D, Point3D
 
 from npf import chem
 
 from .experiment import splits
 
-OUT = Path("paper/figures")
-BLUE, ORANGE, AQUA, INK, MUTED, GRID = (
-    "#2a78d6",
-    "#eb6834",
-    "#1baf7a",
-    "#0b0b0b",
-    "#52514e",
-    "#d9d8d2",
-)
-
-# a bond that loses tokens is red, not orange, because orange marks the learned parts in the overview figure
-RED = "#d1342b"
-rgb = lambda h: tuple(int(h[k : k + 2], 16) / 255 for k in (1, 3, 5))
 SYMBOL = {5: "B", 6: "C", 7: "N", 8: "O", 9: "F", 16: "S", 17: "Cl", 35: "Br", 53: "I"}
-DETACH = 1.45
-
-# a placed leaving atom keeps this distance from every other atom, from a label and from the area of a ring
-CLEAR, LABEL, RING, STEM = 1.15, 1.0, 2.2, 0.55
-
-
-def touched_atoms(r):
-    """Atoms of the precursor molecules that take part in a firing (spectators are not drawn)."""
-    a = r["a"]
-    frag = (
-        np.asarray(a["fragment"])
-        if "fragment" in a
-        else chem.collate([r], "cpu")["frag_a"][0].numpy()[: len(a["x"])]
-    )
-    keep = np.isin(frag, np.unique(frag[np.unique(r["edits"][:, :2])]))
-
-    return np.nonzero(keep)[0]
 
 
 def precursor_mol(a, bonds, atoms, slack_change=None):
@@ -86,194 +50,6 @@ def precursor_mol(a, bonds, atoms, slack_change=None):
     return mol, index
 
 
-def to_segment(points, p, q):
-    """Distance from every point to the segment p q, so a long bond does not cross what is already drawn."""
-    d = q - p
-    t = np.clip(((points - p) @ d) / max(float(d @ d), 1e-9), 0.0, 1.0)
-
-    return np.linalg.norm(points - (p + t[:, None] * d), axis=1)
-
-
-def layout(r, atoms):
-    """2D coordinates in which atoms never move, product atoms sit where the product is drawn, leaving groups stay
-    attached to their old neighbour, rotated away from the rest."""
-    a, b, target = r["a"], r["b"], r["target"].astype(int)
-    product, _ = precursor_mol(b, chem.dense_bonds(b), np.arange(len(b["x"])))
-    Chem.SanitizeMol(product)
-    AllChem.Compute2DCoords(product)
-    pos = {
-        int(target[k]): np.array(product.GetConformer().GetAtomPosition(k))[:2]
-        for k in range(len(target))
-    }
-
-    # leaving groups stay out of rings
-    rings = [
-        np.mean([pos[int(target[k])] for k in ring], 0)
-        for ring in product.GetRingInfo().AtomRings()
-    ]
-    before = chem.dense_bonds(a)
-    whole, index = precursor_mol(a, before, atoms)
-    Chem.SanitizeMol(whole)
-    AllChem.Compute2DCoords(whole)
-    old = {
-        int(i): np.array(whole.GetConformer().GetAtomPosition(index[int(i)]))[:2]
-        for i in atoms
-    }
-    leaving = [int(i) for i in atoms if int(i) not in pos]
-    groups, seen = [], set()
-
-    # connected leaving groups
-    for i in leaving:
-        if i in seen:
-            continue
-
-        group, todo = {i}, [i]
-        while todo:
-            for k in np.nonzero(before[todo.pop()])[0]:
-                if int(k) in leaving and int(k) not in group:
-                    group.add(int(k))
-                    todo.append(int(k))
-
-        seen |= group
-        groups.append(sorted(group))
-
-    for group in groups:
-        anchor = [
-            (x, int(c))
-            for x in group
-            for c in np.nonzero(before[x])[0]
-            if int(c) in pos
-        ]
-
-        # a whole molecule leaves, put it to the right
-        if not anchor:
-            shift = np.array([max(p[0] for p in pos.values()) + 3.0, 0.0]) - np.mean(
-                [old[x] for x in group], 0
-            )
-            for x in group:
-                pos[x] = old[x] + shift
-
-            continue
-
-        x, c = anchor[0]
-        kept = [k for k in pos if k != c]
-        others = np.array([pos[k] for k in kept] + rings)
-
-        # room for a label like NH2, and for the whole area of a ring around its centre
-        margin = np.array(
-            [LABEL if (a["h"][k] > 0 and a["element"][k] != 6) else 0.0 for k in kept]
-            + [RING] * len(rings)
-        )
-
-        # the bond drawn to the group is tested against atoms only, a ring centre lies within a bond of its atoms
-        near = np.array([np.linalg.norm(pos[k] - pos[c]) > 1.1 for k in kept])
-        away = np.array([pos[k] for k in kept])[near]
-        rel = np.array([old[y] - old[c] for y in group])
-        old_dir = (old[x] - old[c]) / np.linalg.norm(old[x] - old[c])
-
-        def placed_at(t, push):
-            """The group turned so its old bond points along t, then pushed that far further out."""
-            new_dir = np.array([np.cos(t), np.sin(t)])
-            ang = np.arctan2(new_dir[1], new_dir[0]) - np.arctan2(
-                old_dir[1], old_dir[0]
-            )
-            rot = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
-
-            return pos[c] + (rel @ rot.T) * DETACH + push * new_dir
-
-        # smallest distance to everything already there, of the placed group and of the bond drawn to it
-        def clearance(t, push):
-            placed = placed_at(t, push)
-            atoms = np.linalg.norm(others[None] - placed[:, None], axis=2) - margin[None]
-            stem = to_segment(away, pos[c], placed[group.index(x)]) - STEM
-
-            return min(atoms.min(), stem.min() if len(away) else np.inf)
-
-        # the shortest push at which some direction keeps the group clear, else the roomiest placement there is
-        turns = np.linspace(0, 2 * np.pi, 144, endpoint=False)
-        best = max(
-            ((t, 0.0) for t in turns), key=lambda tp: clearance(*tp)
-        )
-        for push in np.arange(0.0, 3.01, 0.15):
-            angle = max(turns, key=lambda t: clearance(t, push))
-            if clearance(angle, push) >= CLEAR:
-                best = (angle, push)
-                break
-
-            if clearance(angle, push) > clearance(*best):
-                best = (angle, push)
-
-        for y, p in zip(group, placed_at(*best)):
-            # leaving groups are drawn detached, far enough out not to sit on what stays
-            pos[y] = p
-
-    return pos
-
-
-def draw_marking(r, atoms, pos, bonds, next_firing, tokens, size=(520, 400), scale=4):
-    """PNG of one marking, bonds as in `bonds`, the transition that fires next highlighted, free tokens as dots."""
-    a = r["a"]
-    mol, index = precursor_mol(a, bonds, atoms)
-    i, j, t = next_firing if next_firing is not None else (None, None, None)
-    forming = next_firing is not None and bonds[i, j] == 0
-
-    # a bond place without tokens, drawn dotted
-    if forming:
-        mol.AddBond(index[i], index[j], Chem.BondType.ZERO)
-
-    mol.UpdatePropertyCache(strict=False)
-    conf = Chem.Conformer(mol.GetNumAtoms())
-    for k, atom in enumerate(atoms):
-        conf.SetAtomPosition(
-            k, Point3D(float(pos[int(atom)][0]), float(pos[int(atom)][1]), 0.0)
-        )
-
-    mol.RemoveAllConformers()
-    mol.AddConformer(conf)
-    drawer = rdMolDraw2D.MolDraw2DCairo(size[0] * scale, size[1] * scale)
-    opts = drawer.drawOptions()
-    opts.bondLineWidth = 2 * scale
-    opts.padding, opts.fixedBondLength = 0.08, 34 * scale
-    opts.clearBackground, opts.highlightBondWidthMultiplier = True, 14
-    opts.useBWAtomPalette()
-    highlight_bonds, colours = [], {}
-
-    if next_firing is not None:
-        bond = mol.GetBondBetweenAtoms(index[i], index[j])
-        highlight_bonds, colours = [bond.GetIdx()], {
-            bond.GetIdx(): rgb(BLUE if forming else RED)
-        }
-
-    rdMolDraw2D.PrepareMolForDrawing(
-        mol, kekulize=False, addChiralHs=False, wedgeBonds=False
-    )
-    drawer.DrawMolecule(
-        mol,
-        highlightAtoms=[],
-        highlightBonds=highlight_bonds,
-        highlightBondColors=colours,
-    )
-    drawer.SetFillPolys(True)
-    drawer.SetColour(rgb(INK))
-    centre = np.mean([pos[int(k)] for k in atoms], 0)
-
-    # free valence tokens of the slack places
-    for atom, n in tokens.items():
-        p = np.array(pos[atom])
-        out = (p - centre) / max(np.linalg.norm(p - centre), 1e-6)
-        for m in range(int(round(n))):
-            q = p + 0.55 * out + 0.22 * (m - (n - 1) / 2) * np.array([-out[1], out[0]])
-            drawer.DrawEllipse(
-                Point2D(q[0] - 0.09, q[1] - 0.09),
-                Point2D(q[0] + 0.09, q[1] + 0.09),
-                rawCoords=False,
-            )
-
-    drawer.FinishDrawing()
-
-    return Image.open(io.BytesIO(drawer.GetDrawingText()))
-
-
 def name(a, before, firing):
     i, j, t = firing
     pair = "-".join(
@@ -289,18 +65,21 @@ def name(a, before, firing):
 
 
 @torch.no_grad()
-def tokengame(reaction_id, weights="results/chem/forward/npf-nettargets-0.pt"):
+def tokengame(reaction_id, weights="results/chem/forward/npf-nettargets-0.pt", out="results/chem/tokengame.json"):
+    """The numbers of the token game figure, whose drawing is paper_v2/figures/tokengame.tex. Every subset of the
+    firing vector is a marking, and for each the rate law gives the probability of every transition of the vector
+    that is enabled there, so the orders that the enabling rule excludes and the count-equivalent orders that merge
+    are read off the lattice of markings."""
     data = chem.load()
     _, _, test = splits(data, "forward")
     r = next(x for x in test if x["id"] == int(reaction_id))
-    a, before = r["a"], chem.dense_bonds(r["a"])
+    before = chem.dense_bonds(r["a"])
     game = chem.TokenGame()
     game.load_state_dict(torch.load(weights, map_location="cpu"))
     game.eval()
     b = chem.collate([r], "cpu")
     n, N = b["ba"].shape[1], chem.N_BOND
-    firings = [tuple(int(v) for v in e) for e in r["edits"]]
-    firings = [(min(i, j), max(i, j), t) for i, j, t in firings]
+    firings = [(min(int(i), int(j)), max(int(i), int(j)), int(t)) for i, j, t in r["edits"]]
 
     def step(done):
         cur, fired = b["ba"].clone(), torch.zeros_like(b["ba"], dtype=torch.bool)
@@ -309,29 +88,16 @@ def tokengame(reaction_id, weights="results/chem/forward/npf-nettargets-0.pt"):
             fired[0, i, j] = fired[0, j, i] = True
 
         logits, enabled, stop = game.rates(b, cur, fired)
-        p = torch.softmax(
-            torch.cat(
-                [logits.masked_fill(~enabled, -1e4).flatten(1), stop[:, None]], 1
-            ),
-            1,
-        )[0]
+        p = torch.softmax(torch.cat([logits.masked_fill(~enabled, -1e4).flatten(1), stop[:, None]], 1), 1)[0]
 
         return (
-            {
-                f: float(p[(f[0] * n + f[1]) * N + f[2]])
-                for f in firings
-                if f not in done
-            },
+            {f: float(p[(f[0] * n + f[1]) * N + f[2]]) for f in firings if f not in done},
             {f: bool(enabled[0, f[0], f[1], f[2]]) for f in firings},
             float(p[-1]),
         )
 
-    # lattice of markings, subsets of the firing vector
-    subsets = [
-        frozenset(c)
-        for k in range(len(firings) + 1)
-        for c in itertools.combinations(range(len(firings)), k)
-    ]
+    # lattice of markings, subsets of the firing vector, and the probability of reaching each by enabled firings
+    subsets = [frozenset(c) for k in range(len(firings) + 1) for c in itertools.combinations(range(len(firings)), k)]
     edge, stop_p, reach = {}, {}, {frozenset(): 1.0}
     for s in sorted(subsets, key=len):
         probs, enabled, stop_p[s] = step([firings[k] for k in s])
@@ -345,619 +111,209 @@ def tokengame(reaction_id, weights="results/chem/forward/npf-nettargets-0.pt"):
 
     full = frozenset(range(len(firings)))
 
-    # the most probable enabled order for the film strip
-    order, s = [], frozenset()
-    while s != full:
-        k = max(
-            (
-                k
-                for k in range(len(firings))
-                if k not in s and edge[s, s | {k}] is not None
-            ),
-            key=lambda k: edge[s, s | {k}],
-        )
-        order.append(k)
-        s = s | {k}
+    def orders(s):
+        if s == full:
+            yield [], 1.0
+            return
 
-    atoms = touched_atoms(r)
-    pos = layout(r, atoms)
+        for k in range(len(firings)):
+            if k not in s and edge[s, s | {k}] is not None:
+                for rest, p in orders(s | {k}):
+                    yield [k] + rest, edge[s, s | {k}] * p
 
-    fig = plt.figure(figsize=(7.1, 3.45))
-    grid = fig.add_gridspec(
-        3,
-        len(order) + 1,
-        height_ratios=[1.0, 0.2, 1.05],
-        hspace=0.0,
-        wspace=0.04,
-        left=0.005,
-        right=0.995,
-        top=0.945,
-        bottom=0.01,
-    )
-    bonds, done, slack = before.copy(), [], {}
-    for col in range(len(order) + 1):
-        ax = fig.add_subplot(grid[0, col])
-        ax.axis("off")
-        nxt = firings[order[col]] if col < len(order) else None
-        ax.imshow(
-            draw_marking(r, atoms, pos, bonds, nxt, slack), interpolation="antialiased"
-        )
-        probs, enabled, p_stop = step(done)
-
-        if nxt is not None:
-            text = f"{name(a, before, nxt)}  ({probs[nxt]:.2f})"
-            blocked = [
-                name(a, before, f) for f in firings if f not in done and not enabled[f]
-            ]
-            sub = (
-                ("not enabled: " + ", ".join(blocked))
-                if blocked
-                else "all remaining transitions enabled"
-            )
-        else:
-            text, sub = f"stop  ({p_stop:.2f})", "recorded product reached"
-
-        ax.set_title(f"$m_{col}$", fontsize=8, color=INK, pad=1)
-        tx = fig.add_subplot(grid[1, col])
-        tx.axis("off")
-        tx.text(
-            0.5,
-            0.95,
-            text,
-            transform=tx.transAxes,
-            ha="center",
-            va="top",
-            fontsize=7.5,
-            color=INK,
-        )
-        tx.text(
-            0.5,
-            0.35,
-            sub,
-            transform=tx.transAxes,
-            ha="center",
-            va="top",
-            fontsize=6.5,
-            color=MUTED,
-        )
-
-        if nxt is not None:
-            i, j, t = nxt
-            delta = chem.BOND_ORDER[t] - chem.BOND_ORDER[bonds[i, j]]
-            for k in (i, j):
-                slack[k] = slack.get(k, 0) - delta
-
-            slack = {k: v for k, v in slack.items() if v > 0}
-            bonds[i, j] = bonds[j, i] = t
-            done.append(nxt)
-
-    ax = fig.add_subplot(grid[2, :])
-    ax.axis("off")
-    ax.set_xlim(-1.9, len(firings) + 2.4)
-    ax.set_ylim(-1.3, 1.25)
-    ypos, letters = {}, "abcdef"
-    for size in range(len(firings) + 1):
-        level = sorted(
-            (s for s in subsets if len(s) == size),
-            key=lambda s: (s not in reach, sorted(s)),
-        )
-        for m, s in enumerate(level):
-            ypos[s] = (size, ((len(level) - 1) / 2 - m) * 0.85)
-
-    for (s, s2), p in edge.items():
-        (x1, y1), (x2, y2) = ypos[s], ypos[s2]
-        live = p is not None and s in reach
-        ax.plot(
-            [x1, x2],
-            [y1, y2],
-            color=BLUE if live else GRID,
-            lw=1.6 if live else 0.9,
-            ls="-" if live else (0, (2, 2)),
-            zorder=1,
-            solid_capstyle="round",
-        )
-
-        if live:
-            ax.text(
-                x1 + 0.42 * (x2 - x1),
-                y1 + 0.42 * (y2 - y1),
-                f"{p:.2f}",
-                fontsize=6.5,
-                color=INK,
-                ha="center",
-                va="center",
-                bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none"),
-                zorder=2,
-            )
-
-    labels = [name(a, before, f) for f in firings]
-
-    for s, (x, y) in ypos.items():
-        live = s in reach
-        ax.scatter(
-            [x],
-            [y],
-            s=46,
-            color=BLUE if live else "#ffffff",
-            edgecolor=BLUE if live else "#b9b8b0",
-            linewidth=1.1,
-            zorder=3,
-        )
-        what = (
-            "$m_A$" if not s else "{" + ", ".join(letters[k] for k in sorted(s)) + "}"
-        )
-        above = y > 0.2
-        ax.text(
-            x,
-            y + (0.17 if above else -0.17),
-            what + (f"  $P$ = {reach[s]:.2f}" if live and s else ""),
-            fontsize=6.5,
-            color=INK if live else MUTED,
-            ha="center",
-            va="bottom" if above else "top",
-        )
-
-    x, y = ypos[full]
-    ax.annotate(
-        "",
-        xy=(x + 0.5, y),
-        xytext=(x + 0.07, y),
-        arrowprops=dict(arrowstyle="-|>", color=BLUE, lw=1.4),
-    )
-    ax.text(
-        x + 0.27,
-        y + 0.07,
-        f"stop {stop_p[full]:.2f}",
-        fontsize=6.5,
-        color=INK,
-        ha="center",
-        va="bottom",
-    )
-    orders = [o for o in itertools.permutations(range(len(firings)))]
-    allowed = [
-        o
-        for o in orders
-        if all(
-            edge[frozenset(o[:k]), frozenset(o[: k + 1])] is not None
-            for k in range(len(o))
-        )
-    ]
-    best = max(
-        np.prod([edge[frozenset(o[:k]), frozenset(o[: k + 1])] for k in range(len(o))])
-        for o in allowed
-    )
-    ax.text(
-        x + 0.58,
-        y,
-        f"$P$(product) = {reach[full] * stop_p[full]:.2f}\nbest single sequence {best * stop_p[full]:.2f}\n"
-        f"{len(allowed)} of {len(orders)} orders enabled",
-        fontsize=6.8,
-        color=INK,
-        va="center",
-        linespacing=1.3,
-    )
-    ax.text(
-        -1.85,
-        1.15,
-        "lattice of markings",
-        fontsize=7.5,
-        color=INK,
-        va="top",
-        fontweight="bold",
-    )
-    ax.text(
-        -1.85,
-        0.85,
-        "\n".join(f"{letters[k]} = {labels[k]}" for k in range(len(firings))),
-        fontsize=6.8,
-        color=INK,
-        va="top",
-        linespacing=1.35,
-    )
-    ax.plot([-1.85, -1.55], [-0.62, -0.62], color=BLUE, lw=1.6)
-    ax.text(
-        -1.48,
-        -0.62,
-        "enabled, with probability",
-        fontsize=6.3,
-        color=MUTED,
-        va="center",
-    )
-    ax.plot([-1.85, -1.55], [-0.88, -0.88], color="#b9b8b0", lw=0.9, ls=(0, (2, 2)))
-    ax.text(
-        -1.48,
-        -0.88,
-        "not enabled (no free token)",
-        fontsize=6.3,
-        color=MUTED,
-        va="center",
-    )
-    OUT.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT / "tokengame.pdf")
-    fig.savefig(OUT / "tokengame.png", dpi=200)
-    print(
-        "reaction",
-        r["smiles"],
-        "\nfirings",
-        labels,
-        "\nP(product) merged",
-        reach[full] * stop_p[full],
-        "best single",
-        best * stop_p[full],
-        "enabled orders",
-        len(allowed),
-    )
+    enabled_orders = list(orders(frozenset()))
+    best, p_best = max(enabled_orders, key=lambda x: x[1])
+    letters = "abcdefgh"
+    word = lambda s: "".join(letters[k] for k in sorted(s)) or "0"
+    result = {
+        "reaction": int(reaction_id),
+        "smiles": r["smiles"],
+        "transitions": {letters[k]: name(r["a"], before, f) for k, f in enumerate(firings)},
+        "edges": {f"{word(s)}-{word(t)}": p for (s, t), p in edge.items()},
+        "reached": {word(s): p for s, p in reach.items()},
+        "stop": stop_p[full],
+        "best_order": [letters[k] for k in best],
+        "best": p_best * stop_p[full],
+        "merged": reach[full] * stop_p[full],
+        "enabled_orders": len(enabled_orders),
+        "orders": len(list(itertools.permutations(firings))),
+    }
+    Path(out).write_text(json.dumps(result, indent=1))
+    print(json.dumps(result, indent=1))
 
 
 @torch.no_grad()
-def attribution(reaction_id=None, weights="results/chem/classify/npf-nogate-0.pt"):
-    """Exact decomposition of the state-equation readout into per-atom contributions psi_B(i) - psi_A(pi(i))."""
-    import json
+def molecule_tikz(product, level, changed, length):
+    """TikZ lines of one product, shaded discs for the atoms with a level, bonds of length cm with the second line of a
+    double bond inside its ring, the bonds in changed in magenta, heteroatoms labelled with their hydrogens on the side
+    with the fewest bonds, and the size of the drawing in cm."""
+    Chem.Kekulize(product, clearAromaticFlags=True)
+    xy = product.GetConformer().GetPositions()[:, :2]
+    bonds = list(product.GetBonds())
+    xy = xy / np.mean([np.linalg.norm(xy[bd.GetBeginAtomIdx()] - xy[bd.GetEndAtomIdx()]) for bd in bonds]) * length
+    xy = xy - xy.min(0)
+    rings = [np.array(ring) for ring in product.GetRingInfo().AtomRings()]
+    label, hydrogen = {}, {}
+    for atom in product.GetAtoms():
+        if atom.GetSymbol() != "C":
+            k, h = atom.GetIdx(), atom.GetTotalNumHs()
+            label[k] = atom.GetSymbol()
+            if h:
+                out = [xy[n.GetIdx()] - xy[k] for n in atom.GetNeighbors()]
+                sides = [np.array(d) for d in ((1, 0), (-1, 0), (0, -1), (0, 1))]
+                side = max(sides, key=lambda d: min((-np.dot(d, v) / np.linalg.norm(v) for v in out), default=1))
+                hydrogen[k] = (xy[k] + side * 0.2, "H" if h == 1 else f"H$_{h}$")
+
+    point = lambda v: f"({v[0]:.3f}, {v[1]:.3f})"
+    lines = [f"\\fill[attrbase!{20 * (lv + 1)}!white] {point(xy[k])} circle (0.16);" for k, lv in sorted(level.items())]
+
+    # a bond ends short of a labelled atom
+    gap, offset = 0.13, 0.065
+    for bd in bonds:
+        i, j = bd.GetBeginAtomIdx(), bd.GetEndAtomIdx()
+        a, e = xy[i].copy(), xy[j].copy()
+        u = (e - a) / np.linalg.norm(e - a)
+        a = a + u * gap if i in label else a
+        e = e - u * gap if j in label else e
+        style = "draw=magenta!75!black, line width=1.1pt" if bd.GetIdx() in changed else "draw=black"
+
+        # a changed bond runs between the darkest discs, a white casing keeps it visible on them
+        if bd.GetIdx() in changed:
+            lines.append(f"\\draw[white, line width=2.6pt] {point(a)} -- {point(e)};")
+        lines.append(f"\\draw[{style}] {point(a)} -- {point(e)};")
+        if bd.GetBondType() in (Chem.BondType.DOUBLE, Chem.BondType.TRIPLE):
+            n = np.array([-u[1], u[0]])
+            ring = next((ring for ring in rings if i in ring and j in ring), None)
+            if ring is not None:
+                n = n if np.dot(xy[ring].mean(0) - (xy[i] + xy[j]) / 2, n) > 0 else -n
+                pairs = [(a + n * offset + u * 0.07, e + n * offset - u * 0.07)]
+            elif bd.GetBondType() == Chem.BondType.TRIPLE:
+                pairs = [(a + n * offset, e + n * offset), (a - n * offset, e - n * offset)]
+            else:
+                pairs = [(a + n * offset, e + n * offset)]
+            lines += [f"\\draw[{style}] {point(a2)} -- {point(e2)};" for a2, e2 in pairs]
+
+    lines += [f"\\node[font=\\scriptsize, inner sep=0pt] at {point(xy[k])} {{{t}}};" for k, t in sorted(label.items())]
+    lines += [f"\\node[font=\\scriptsize, inner sep=0pt] at {point(at)} {{{t}}};" for k, (at, t) in sorted(hydrogen.items())]
+
+    return lines, (float(xy[:, 0].max()), float(xy[:, 1].max()))
+
+
+def attribution(reaction_ids="956,2284,1091", weights="results/chem/classify/npf-nogate-0.pt",
+                figure="paper_v2/figures/attribution.tex", out="paper_v2/figures/attribution_mol", length=0.42):
+    """The molecules of the attribution figure of App E. For each test reaction the product, every atom shaded by its
+    contribution to the atom terms of the class readout, psi_B(i) - psi_A(pi(i)) along the map of the mapper, in five
+    steps of the magenta of the other figures on one log scale shared by all molecules, and the bonds that the firing
+    vector changes in magenta. The TikZ goes into the figure file between the lines '% >>> molecule ID' and
+    '% <<< molecule ID', and <out>.json holds the facts that paper_v2/tables.py reads."""
+    import re
+
+    from .experiment import use_predicted_firing
 
     data = chem.load()
     _, _, test = splits(data, "classify")
+    use_predicted_firing(test, blank_missing=True)
+    # the pure readout, w = 1, for which the atom terms decompose exactly, in float64 so that no rounding passes for a
+    # contribution
     clf = chem.Classifier(len(data["classes"]), gate=False)
     clf.load_state_dict(torch.load(weights, map_location="cpu"))
-    clf.eval()
+    clf.double().eval()
 
-    def contributions(r):
-        b = chem.collate([r], "cpu")
-        ha = clf.encoder(b["xa"], b["ba"], b["mask_a"], all_depths=True)
-        hb = clf.encoder(b["xb"], b["bb"], b["mask_b"], all_depths=True)
-        pa = torch.cat([f(h) for f, h in zip(clf.atom, ha)], -1)[0]
-        pb = torch.cat([f(h) for f, h in zip(clf.atom, hb)], -1)[0]
-        m = len(r["b"]["x"])
+    found = []
+    for rid in reaction_ids.split(","):
+        r = next(x for x in test if x["id"] == int(rid))
+        with torch.no_grad():
+            b = {k: v.double() if torch.is_tensor(v) and v.is_floating_point() else v
+                 for k, v in chem.collate([r], "cpu").items()}
+            ha = clf.encoder(b["xa"], b["ba"], b["mask_a"], all_depths=True)
+            hb = clf.encoder(b["xb"], b["bb"], b["mask_b"], all_depths=True)
+            pa = torch.cat([f(h) for f, h in zip(clf.atom, ha)], -1)[0]
+            pb = torch.cat([f(h) for f, h in zip(clf.atom, hb)], -1)[0]
+            seat = r["target"].astype(np.int64)
+            c = (pb[: len(seat)] - pa[torch.as_tensor(seat)]).norm(dim=-1).numpy()
+            correct = clf(b).argmax(-1).item() == r["label"]
 
-        return (
-            (pb[:m] - pa[torch.as_tensor(r["target"].astype(np.int64))])
-            .norm(dim=-1)
-            .numpy()
-        )
+        product, _ = precursor_mol(r["b"], chem.dense_bonds(r["b"]), np.arange(len(r["b"]["x"])))
+        Chem.SanitizeMol(product)
 
-    # a product with a long tail away from the reaction centre, correctly classified
-    if reaction_id is None:
-        best = None
-        for r in test[:4000]:
-            if (
-                r["target"] is None
-                or not len(r["edits"])
-                or not (24 <= len(r["b"]["x"]) <= 34)
-            ):
-                continue
+        # of the default layout and CoordGen, the one whose closest pair of atoms that share no bond is farthest apart,
+        # the default where both leave room, as it spreads chains horizontally
+        from rdkit.Chem import rdDepictor
 
-            c = contributions(r)
-            if clf(chem.collate([r], "cpu")).argmax(-1).item() == r["label"] and (
-                best is None or (c < 1e-6).mean() > best[0]
-            ):
-                best = ((c < 1e-6).mean(), r)
+        def spread(mol):
+            xy = mol.GetConformer().GetPositions()[:, :2]
+            bonded = {(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in mol.GetBonds()}
+            gaps = [np.linalg.norm(xy[i] - xy[j]) for i in range(len(xy)) for j in range(i + 1, len(xy))
+                    if (i, j) not in bonded and (j, i) not in bonded]
+            return min(gaps) / np.mean([np.linalg.norm(xy[i] - xy[j]) for i, j in bonded])
 
-        r = best[1]
-    else:
-        r = next(x for x in test if x["id"] == int(reaction_id))
+        layouts = []
+        for coordgen in (False, True):
+            rdDepictor.SetPreferCoordGen(coordgen)
+            rdDepictor.Compute2DCoords(product)
+            layouts.append((spread(product), Chem.Mol(product)))
+        rdDepictor.SetPreferCoordGen(False)
+        product = layouts[0][1] if layouts[0][0] >= 0.75 or layouts[0][0] >= layouts[1][0] else layouts[1][1]
 
-    c = contributions(r)
-    b = r["b"]
-    product, _ = precursor_mol(b, chem.dense_bonds(b), np.arange(len(b["x"])))
-    Chem.SanitizeMol(product)
-    AllChem.Compute2DCoords(product)
+        # the bonds of the product that the firing vector changes, from the precursor numbering of the edits
+        inv = {int(i): k for k, i in enumerate(seat)}
+        changed = set()
+        for e in r["edits"]:
+            i, j = inv.get(int(e[0])), inv.get(int(e[1]))
+            bond = None if i is None or j is None else product.GetBondBetweenAtoms(i, j)
+            if bond is not None:
+                changed.add(bond.GetIdx())
 
-    # one hue, light -> dark (magnitude)
-    ramp = ["#cfe0f7", "#9cc0ee", "#5f9be2", "#2a78d6", "#174f96"]
-    scale = np.log10(np.maximum(c, 1e-12))
-    lo, hi = np.log10(max(c[c > 1e-6].min(), 1e-3)), np.log10(c.max())
-    colours, radii = {}, {}
-    for k, v in enumerate(c):
-        if v > 1e-6:
-            level = int(
-                np.clip(
-                    (scale[k] - lo) / max(hi - lo, 1e-9) * (len(ramp) - 1) + 0.5,
-                    0,
-                    len(ramp) - 1,
-                )
-            )
-            colours[k], radii[k] = rgb(ramp[level]), 0.42
+        # the distance of every product atom from the nearest re-typed bond, to count the atoms beyond the K = 3 rounds
+        from scipy.sparse.csgraph import shortest_path
 
-    drawer = rdMolDraw2D.MolDraw2DCairo(900, 520)
-    opts = drawer.drawOptions()
-    opts.bondLineWidth, opts.padding, opts.clearBackground = 2, 0.06, True
-    opts.useBWAtomPalette()
-    opts.fillHighlights = True
-    drawer.DrawMolecule(
-        product,
-        highlightAtoms=list(colours),
-        highlightAtomColors=colours,
-        highlightAtomRadii=radii,
-        highlightBonds=[],
-    )
-    drawer.FinishDrawing()
-    image = Image.open(io.BytesIO(drawer.GetDrawingText()))
+        touched = sorted({inv[int(x)] for e in r["edits"] for x in e[:2] if int(x) in inv})
+        distance = shortest_path(chem.dense_bonds(r["b"]) > 0, unweighted=True)[:, touched].min(1)
+        far = distance > 3
+        found.append((r, c, correct, product, changed, far, distance))
 
-    stats = json.loads(Path("results/chem/insights_attribution.json").read_text())[
-        "attribution_norm_by_distance_to_reaction_centre"
-    ]
-    dist = sorted(int(k) for k in stats)
-    fig = plt.figure(figsize=(7.1, 2.35))
-    grid = fig.add_gridspec(
-        1,
-        2,
-        width_ratios=[1.55, 1.0],
-        wspace=0.12,
-        left=0.005,
-        right=0.985,
-        top=0.9,
-        bottom=0.2,
-    )
-    ax = fig.add_subplot(grid[0, 0])
-    ax.axis("off")
-    ax.imshow(image)
-    ax.set_title(
-        f"contribution of each product atom to the class readout: {(c < 1e-6).sum()} of {len(c)} exactly 0",
-        fontsize=7.2,
-        color=INK,
-        pad=2,
-    )
+    # five steps on one log scale over every molecule, step k is attrbase!(20k)!white in TikZ as in the legend of the
+    # figure, the base magenta!75!black as it renders, RGB (190, 50, 129)
+    base, steps = np.array([190, 50, 129]) / 255, 5
+    ramp = [tuple(1 - (1 - base) * (k + 1) / steps) for k in range(steps)]
+    every = np.concatenate([c[c > 1e-5] for _, c, _, _, _, _, _ in found])
+    lo, hi = np.log10(every.min()), np.log10(every.max())
 
-    for k, colour in enumerate(ramp):
-        ax.add_patch(
-            plt.Rectangle(
-                (0.02 + 0.045 * k, -0.06),
-                0.043,
-                0.045,
-                transform=ax.transAxes,
-                color=colour,
-                clip_on=False,
-            )
-        )
+    text = Path(figure).read_text()
+    molecules = []
+    for r, c, correct, product, changed, far, distance in found:
+        nonzero = c > 1e-5
+        level = {int(k): int(np.clip((np.log10(c[k]) - lo) / max(hi - lo, 1e-9) * (steps - 1) + 0.5, 0, steps - 1))
+                 for k in np.nonzero(nonzero)[0]}
+        lines, (width, height) = molecule_tikz(product, level, changed, length)
+        rid = int(r["id"])
+        block = [f"% >>> molecule {rid}, written by benchmarks.chemistry.figures attribution, "
+                 f"{width:.2f} by {height:.2f} cm"] + lines + [f"% <<< molecule {rid}"]
+        pattern = re.compile(rf"^[ \t]*% >>> molecule {rid}\b.*?^[ \t]*% <<< molecule {rid}[^\n]*$", re.S | re.M)
+        if not pattern.search(text):
+            raise SystemExit(f"{figure} has no block for molecule {rid}")
+        indent = re.search(rf"^([ \t]*)% >>> molecule {rid}", text, re.M).group(1)
+        text = pattern.sub(lambda _: "\n".join(indent + line for line in block), text)
+        molecules.append({
+            "id": rid,
+            "class": data["classes"][r["label"]],
+            "smiles": r["smiles"],
+            "correct": bool(correct),
+            "atoms": len(c),
+            "zero": int((~nonzero).sum()),
+            "edits": len(r["edits"]),
+            "far_contributing": int((far & nonzero).sum()),
+            "far_zero": int((far & ~nonzero).sum()),
+            "farthest_contributing": int(distance[nonzero & np.isfinite(distance)].max()),
+            "width_cm": width,
+            "height_cm": height,
+        })
 
-    ax.text(
-        0.02,
-        -0.075,
-        f"{10 ** lo:.2f}",
-        transform=ax.transAxes,
-        fontsize=6.3,
-        color=MUTED,
-        va="top",
-        ha="left",
-    )
-    ax.text(
-        0.02 + 0.045 * len(ramp),
-        -0.075,
-        f"{10 ** hi:.0f}",
-        transform=ax.transAxes,
-        fontsize=6.3,
-        color=MUTED,
-        va="top",
-        ha="right",
-    )
-    ax.text(
-        0.03 + 0.045 * len(ramp),
-        -0.037,
-        r"$\|\psi_B(i)-\psi_A(\pi(i))\|$, log scale; no colour: exactly zero",
-        transform=ax.transAxes,
-        fontsize=6.5,
-        color=MUTED,
-        va="center",
-    )
-
-    ax = fig.add_subplot(grid[0, 1])
-    share = [100 * stats[str(d)]["share_exactly_zero"] for d in dist]
-    ax.plot(
-        dist,
-        share,
-        color=BLUE,
-        lw=2,
-        marker="o",
-        ms=4.5,
-        mfc=BLUE,
-        mec="white",
-        mew=1.0,
-        clip_on=False,
-        zorder=3,
-    )
-    ax.axvline(3.5, color=MUTED, lw=0.8, ls=(0, (3, 3)))
-    ax.text(
-        3.6,
-        50,
-        "receptive field\n($K=3$ rounds)",
-        fontsize=6.5,
-        color=MUTED,
-        va="center",
-    )
-
-    for d, v in zip(dist, share):
-        if d in (0, 3, 4, 8):
-            ax.text(
-                d - (0.25 if d == 3 else 0),
-                v + 5,
-                f"{v:.1f}",
-                fontsize=6.5,
-                color=INK,
-                ha="right" if d == 3 else "center",
-                va="bottom",
-            )
-
-    ax.set_ylim(0, 112)
-    ax.set_xlim(-0.4, 8.4)
-    ax.set_xticks(dist)
-    ax.set_xticklabels([str(d) if d < 8 else "8+" for d in dist])
-    ax.set_yticks([0, 50, 100])
-    ax.tick_params(labelsize=6.5, colors=MUTED, length=0)
-    ax.set_xlabel("bonds from the nearest re-typed bond", fontsize=7, color=INK)
-    ax.set_title(
-        "atoms with contribution exactly 0 (%)", fontsize=7.2, color=INK, pad=2
-    )
-
-    for side in ("top", "right", "left"):
-        ax.spines[side].set_visible(False)
-
-    ax.spines["bottom"].set_color(GRID)
-    ax.grid(axis="y", color=GRID, lw=0.6)
-    ax.set_axisbelow(True)
-    fig.savefig(OUT / "attribution.pdf")
-    fig.savefig(OUT / "attribution.png", dpi=200)
-    print(
-        "reaction",
-        r["id"],
-        r["smiles"],
-        data["classes"][r["label"]],
-        "zeros",
-        int((c < 1e-6).sum()),
-        "of",
-        len(c),
-    )
-
-
-def loadbearing():
-    """Two synthetic load-bearing tests, chain nets (projection) and equilibria of reversible nets (equilibrium layer)."""
-    import json
-
-    YELLOW = "#eda100"
-    loc = json.loads(Path("results/locality.json").read_text())
-    eq = json.loads(Path("results/equilibrium.json").read_text())
-    lengths = [k for k in loc["npf"][0] if k.isdigit()]
-    fig = plt.figure(figsize=(7.1, 2.05))
-    grid = fig.add_gridspec(
-        1,
-        2,
-        width_ratios=[1.0, 1.1],
-        wspace=0.95,
-        left=0.05,
-        right=0.875,
-        top=0.87,
-        bottom=0.2,
-    )
-
-    ax = fig.add_subplot(grid[0, 0])
-    series = [
-        ("gnn", "GNN", AQUA),
-        ("pgnn", "PGNN", ORANGE),
-        ("pgnn+", "PGNN+", YELLOW),
-        ("npf", "NPF, PGNN+SE", BLUE),
-    ]
-    x = np.arange(len(lengths))
-    for key, label, colour in series:
-        y = [np.mean([run[k]["rmse"] for run in loc[key]]) for k in lengths]
-        ax.plot(
-            x,
-            y,
-            color=colour,
-            lw=2,
-            marker="o",
-            ms=4.5,
-            mec="white",
-            mew=1.0,
-            clip_on=False,
-            zorder=3,
-        )
-
-    ends = {"gnn": -0.045, "pgnn": 0.0, "pgnn+": 0.045, "npf": 0.0}
-    for key, label, colour in series:
-        y = np.mean([run[lengths[-1]]["rmse"] for run in loc[key]])
-        ax.text(
-            x[-1] + 0.18, y + ends[key], label, fontsize=6.8, color=INK, va="center"
-        )
-        ax.plot(
-            [x[-1] + 0.08, x[-1] + 0.15],
-            [y, y + ends[key]],
-            color=colour,
-            lw=1.0,
-            clip_on=False,
-        )
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(lengths)
-    ax.set_ylim(-0.02, 0.5)
-    ax.set_yticks([0, 0.2, 0.4])
-    ax.set_xlabel("length $L$ of the chain net", fontsize=7, color=INK)
-    ax.set_title(
-        "RMSE of the inferred firing counts", fontsize=7.5, color=INK, pad=3, loc="left"
-    )
-
-    ax2 = fig.add_subplot(grid[0, 1])
-    models = [
-        ("gnn", "GNN"),
-        ("pgnn", "PGNN"),
-        ("pgnn+", "PGNN+"),
-        ("pgnn+se", "PGNN+SE"),
-        ("npf@16", "NPF token game"),
-        ("npf-thermo", "NPF equilibrium layer"),
-    ]
-    splits_ = [
-        ("test", "unseen nets", BLUE, "o"),
-        ("test-large", "larger nets", ORANGE, "s"),
-        ("test-tokens", "3$\\times$ tokens", AQUA, "D"),
-    ]
-    rows = np.arange(len(models))[::-1]
-    for (key, label), row in zip(models, rows):
-        values = [np.mean([run[sp]["nrmse"] for run in eq[key]]) for sp, *_ in splits_]
-        ax2.plot([min(values), max(values)], [row, row], color=GRID, lw=1.2, zorder=1)
-
-        for (sp, name_, colour, marker), v in zip(splits_, values):
-            ax2.scatter(
-                [v],
-                [row],
-                s=26,
-                color=colour,
-                marker=marker,
-                edgecolor="white",
-                linewidth=0.8,
-                zorder=3,
-                clip_on=False,
-            )
-
-    ax2.set_xscale("log")
-    ax2.set_xlim(0.003, 1.2)
-    ax2.set_yticks(rows)
-    ax2.set_yticklabels([m[1] for m in models])
-    ax2.set_xlabel(
-        "nRMSE of the predicted equilibrium (log scale)", fontsize=7, color=INK
-    )
-    ax2.set_title(
-        "equilibria of reversible nets", fontsize=7.5, color=INK, pad=3, loc="left"
-    )
-
-    for k, (sp, name_, colour, marker) in enumerate(splits_):
-        ax2.scatter(
-            [1.06],
-            [0.95 - 0.13 * k],
-            s=22,
-            color=colour,
-            marker=marker,
-            edgecolor="white",
-            linewidth=0.8,
-            transform=ax2.transAxes,
-            clip_on=False,
-        )
-        ax2.text(
-            1.10,
-            0.95 - 0.13 * k,
-            name_,
-            fontsize=6.8,
-            color=INK,
-            va="center",
-            transform=ax2.transAxes,
-        )
-
-    for a_ in (ax, ax2):
-        a_.tick_params(labelsize=6.8, colors=MUTED, length=0)
-
-        for side in ("top", "right", "left"):
-            a_.spines[side].set_visible(False)
-
-        a_.spines["bottom"].set_color(GRID)
-        a_.set_axisbelow(True)
-
-    ax.grid(axis="y", color=GRID, lw=0.6)
-    ax2.grid(axis="x", color=GRID, lw=0.6)
-
-    for tick in ax2.get_yticklabels():
-        tick.set_color(INK)
-
-    fig.savefig(OUT / "loadbearing.pdf")
-    fig.savefig(OUT / "loadbearing.png", dpi=200)
+    Path(figure).write_text(text)
+    facts = {"molecules": molecules, "lo": float(10**lo), "hi": float(10**hi), "ramp": ramp}
+    Path(out).with_suffix(".json").write_text(json.dumps(facts, indent=1))
+    print(json.dumps({k: v for k, v in facts.items() if k != "ramp"}))
 
 
 if __name__ == "__main__":
-    {"tokengame": tokengame, "attribution": attribution, "loadbearing": loadbearing}[
-        sys.argv[1]
-    ](*sys.argv[2:])
+    {"tokengame": tokengame, "attribution": attribution}[sys.argv[1]](*sys.argv[2:])

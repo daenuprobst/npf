@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from ..layers import (
     N_PLACE_FEAT,
     N_TRANS_FEAT,
-    apply_incidence,
+    kl_project_state_equation,
     mlp,
     place_features,
     project_state_equation,
@@ -17,15 +17,22 @@ from ..layers import (
 
 
 class PGNN(nn.Module):
-    """aggregate is incidence, the paper with the signed aggregation of Eq. 13, incoming, Eq. 10 read literally, or
+    """Firing counts between two markings. aggregate is incidence, the paper with the signed aggregation of Eq. 13, or
     learned, the strengthened PGNN+. state_equation adds our projection as an ablation.
     """
 
     def __init__(
-        self, task, hidden=64, rounds=4, aggregate="incidence", state_equation=False
+        self,
+        hidden=64,
+        rounds=4,
+        aggregate="incidence",
+        state_equation=False,
+        n_ids=0,
+        n_env=0,
+        kl_options=None,
     ):
         super().__init__()
-        self.task, self.aggregate, self.state_equation = task, aggregate, state_equation
+        self.aggregate, self.state_equation = aggregate, state_equation
         self.enc = mlp(N_PLACE_FEAT, hidden, hidden)
         n_msg = 2 * hidden if aggregate == "learned" else hidden
         self.layers = nn.ModuleList()
@@ -51,6 +58,24 @@ class PGNN(nn.Module):
 
         self.out = mlp(hidden, hidden, 1)
 
+        # the same identities and environment as NPF, an additive term per transition on the readout
+        self.n_ids, self.n_env, self.kl_options = n_ids, n_env, kl_options
+
+        if n_ids:
+            self.const = nn.Embedding(n_ids, 1)
+            nn.init.zeros_(self.const.weight)
+
+        if n_ids and n_env:
+            self.orders = nn.Embedding(n_ids, n_env)
+            nn.init.zeros_(self.orders.weight)
+
+    def project(self, sigma, b):
+        """Our projection on the state equation, the I projection when kl_options are given."""
+        if self.kl_options is None:
+            return project_state_equation(sigma, b)
+
+        return kl_project_state_equation(sigma, b, **self.kl_options)
+
     def message(self, layer, h, b):
         z_in = scatter_sum(
             layer["phi_in"](torch.cat([h[b.pre_p], b.pre_w[:, None]], -1)),
@@ -75,8 +100,6 @@ class PGNN(nn.Module):
                 m_p = scatter_sum(
                     b.pos_w[:, None] * m_t[b.pos_t], b.pos_p, b.n_places
                 ) - scatter_sum(b.pre_w[:, None] * m_t[b.pre_t], b.pre_p, b.n_places)
-            elif self.aggregate == "incoming":
-                m_p = scatter_sum(b.pos_w[:, None] * m_t[b.pos_t], b.pos_p, b.n_places)
             else:
                 m_p = torch.cat(
                     [
@@ -100,17 +123,16 @@ class PGNN(nn.Module):
 
             h = h + layer["upd"](torch.cat([h, m_p], -1))
 
-        # a free readout of place embeddings conserves P-invariants only on a null set of weights
-        if self.task == "next" and not self.state_equation:
-            return m + self.out(h).squeeze(-1)
-
         flow = self.out(self.message(self.layers[-1], h, b)).squeeze(-1)
 
-        if self.task == "next":
-            return m + apply_incidence(flow, b)
+        if self.n_ids:
+            flow = flow + 10.0 * self.const(b.t_id).squeeze(-1)
+
+        if self.n_ids and self.n_env:
+            flow = flow + (self.orders(b.t_id) * b.env_t).sum(-1)
 
         return (
-            project_state_equation(F.softplus(flow), b)
+            self.project(F.softplus(flow), b)
             if self.state_equation
             else F.softplus(flow)
         )

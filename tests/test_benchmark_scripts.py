@@ -89,8 +89,9 @@ def test_imports_and_module_attributes(path):
 
 @pytest.mark.parametrize("path", [p for p in SCRIPTS if p.name not in RUN_ON_IMPORT], ids=lambda p: str(p.relative_to(ROOT)))
 def test_script_imports(path):
-    """Import in a fresh interpreter from a neutral directory, the way python -m resolves the modules."""
-    code = f"import sys; sys.path[:0] = [{str(ROOT / 'src')!r}, {str(ROOT)!r}]; import matplotlib; matplotlib.use('Agg'); import {module_name(path)}"
+    """Import in a fresh interpreter from a neutral directory, the way python -m resolves the modules. The folder of the
+    script comes last, as python path/to/script.py adds it, for the mappers that run in environments of their own."""
+    code = f"import sys; sys.path[:0] = [{str(ROOT / 'src')!r}, {str(ROOT)!r}]; sys.path.append({str(path.parent)!r}); import matplotlib; matplotlib.use('Agg'); import {module_name(path)}"
     env = {"CUDA_VISIBLE_DEVICES": "", "OMP_NUM_THREADS": "2", "PATH": "/usr/bin:/bin"}
     done = subprocess.run([sys.executable, "-B", "-c", code], capture_output=True, text=True, cwd="/", env=env)
     assert done.returncode == 0, done.stderr[-1500:]
@@ -99,7 +100,7 @@ def test_script_imports(path):
 def test_no_reference_to_old_module_paths():
     """python -m npf.<script> and the flat module names are gone, so no code, docstring or message may mention them."""
     import re
-    flat = "chem_[a-z]+|experiment|sweep|report|paper_[a-z]+|theory_checks|thermo|sheaf|coloured|locality|data"
+    flat = "chem_[a-z]+|experiment|report|paper_[a-z]+|theory_checks|data"
     old_name = re.compile(rf"\bnpf[./]({flat})\b|\bnpf/models\.py")
     hits = []
     for path in sorted((ROOT / "benchmarks").rglob("*.py")) + sorted((ROOT / "src").rglob("*.py")):
