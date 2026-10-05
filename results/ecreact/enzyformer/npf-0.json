@@ -1,0 +1,29 @@
+{
+ "benchmark": "ECREACT, Enzyformer split",
+ "model": "npf",
+ "seed": 0,
+ "params": 4775497,
+ "n_train": 44293,
+ "n_test": 4907,
+ "n_test_official": 4907,
+ "n_classes": 5192,
+ "train_seconds": 8659.94161081314,
+ "metrics": {
+  "level4": 0.7574893009985735,
+  "level4_official": 0.7574893009985735,
+  "level3": 0.9021805583859792,
+  "level3_official": 0.9021805583859792,
+  "level2": 0.924597513755859,
+  "level2_official": 0.924597513755859,
+  "level1": 0.953128184226615,
+  "level1_official": 0.953128184226615,
+  "level4_marginal": 0.7581006725086611,
+  "level4_official_marginal": 0.7581006725086612,
+  "level3_marginal": 0.9034033014061544,
+  "level3_official_marginal": 0.9034033014061544,
+  "level2_marginal": 0.9256164662726717,
+  "level2_official_marginal": 0.9256164662726717,
+  "level1_marginal": 0.9543509272467903,
+  "level1_official_marginal": 0.9543509272467903
+ }
+}

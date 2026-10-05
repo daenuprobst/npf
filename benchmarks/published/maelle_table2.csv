@@ -1,0 +1,7 @@
+model,modality,top1,top3,top5,top10,source
+Molecular Transformer,SMILES,88.6,93.5,94.2,,"Nguyen et al., arXiv:2608.27429, Table 2, from Schwaller et al. 2019"
+Graph2SMILES,SMILES,90.3,94.0,94.8,95.3,"Nguyen et al., arXiv:2608.27429, Table 2, from Tu and Coley 2022"
+MEGAN,graph edits,86.3,92.4,94.0,95.4,"Nguyen et al., arXiv:2608.27429, Table 2, from Sacha et al. 2021"
+GTPN,graph edits,83.2,86.0,86.5,,"Nguyen et al., arXiv:2608.27429, Table 2, from Do et al. 2019"
+NERF,electron edits,90.7,93.3,93.7,,"Nguyen et al., arXiv:2608.27429, Table 2, from Bi et al. 2021"
+MAELLE,electron flow,87.2,93.0,93.9,94.6,"Nguyen et al., arXiv:2608.27429, Table 2"

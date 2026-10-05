@@ -144,7 +144,9 @@ def _stats(lines):
 
         # the tables are per element octet capacities in pairs and whole charge windows, the same for both nets
         for m in (m_a, m_b):
-            pairs = np.ceil(net().shell(m) / 2).astype(np.int64)
+            # the shell of the arrow net counts pairs already, that of the electron net counts electrons
+            shell = net().shell(m)
+            pairs = shell if "q" in m else np.ceil(shell / 2).astype(np.int64)
             whole = m["q"] if "q" in m else m["q2"] // 2
             for z, s, q in zip(m["z"].tolist(), pairs.tolist(), whole.tolist()):
                 shells[z][s] += 1

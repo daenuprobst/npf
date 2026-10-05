@@ -5,8 +5,14 @@ EC numbers, so every test label is seen in training and the task is classificati
 of four training reactions each. We report k=1 accuracy at EC level 4, 3, 2 and 1 as the benchmark does, by
 truncating the predicted EC number.
 
+The same classifier runs on ECREACT in the split of Enzyformer (Liu et al. 2026), which benchmarks.chemistry.enzymes
+prepares. With --maps it also reads the explicit firing vector of every reaction under the atom maps of a file in the
+format of exact_map --write, and a reaction the file does not cover is read without one.
+
     uv run python -m benchmarks.chemistry.care prepare <path to CARE_datasets>   # data/care_easy.pkl
     uv run python -m benchmarks.chemistry.care train --seed 0                    # results/care/easy/<model>-<seed>.json
+    uv run python -m benchmarks.chemistry.care train --maps data/enzyme_maps/mapper_maps_care_easy.pkl --tag=-mapper
+    uv run python -m benchmarks.chemistry.care train --dataset ecreact_enzyformer # results/ecreact/enzyformer/
 """
 
 import argparse
@@ -23,7 +29,7 @@ import torch.nn.functional as F
 
 from npf import chem
 
-from .experiment import batches, epoch_loader
+from .experiment import batches, epoch_loader, use_predicted_firing
 
 DATA = Path("data/care_easy.pkl")
 EPOCHS = 40
@@ -33,6 +39,17 @@ OWNERS = None
 
 # the published numbers are over every test reaction of the split, so the ones RDKit cannot read count as wrong
 CARE_EASY_TEST = 393
+
+# data file, name of the benchmark, size of its official test set and where the results go
+DATASETS = {
+    "care_easy": (DATA, "CARE task 2, easy split", CARE_EASY_TEST, Path("results/care/easy")),
+    "ecreact_enzyformer": (
+        Path("data/ecreact_enzyformer.pkl"),
+        "ECREACT, Enzyformer split",
+        4907,
+        Path("results/ecreact/enzyformer"),
+    ),
+}
 
 
 def prepare(root, out=DATA):
@@ -195,6 +212,12 @@ def main():
         default="npf",
         help="npf, the state-equation readout, or pgnn, the generic readout",
     )
+    ap.add_argument("--dataset", choices=list(DATASETS), default="care_easy")
+    ap.add_argument(
+        "--maps",
+        help="read the explicit firing vector under the atom maps of this file, written by exact_map --write",
+    )
+    ap.add_argument("--tag", default="", help="appended to the name of the result files")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--epochs", type=int, default=EPOCHS)
     ap.add_argument("--batch", type=int, default=16)
@@ -211,7 +234,11 @@ def main():
         return
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    data = pickle.loads(DATA.read_bytes())
+    path, benchmark, n_official, out = DATASETS[args.dataset]
+    data = pickle.loads(path.read_bytes())
+    if args.maps:
+        use_predicted_firing(data["reactions"], path=args.maps, blank_missing=True)
+
     classes = data["classes"]
     train = [r for r in data["reactions"] if r["split"] == "train"]
     test = [r for r in data["reactions"] if r["split"] == "test"]
@@ -224,14 +251,18 @@ def main():
         for depth in (1, 2, 3)
     ]
 
-    # the gate is left unsupervised, no atom map of any kind is read
-    kwargs = dict(petri=args.model.startswith("npf"), gate=args.model == "npf")
+    # the gate is left unsupervised, an atom map is read only with --maps, as the explicit firing vector
+    kwargs = dict(
+        petri=args.model.startswith("npf"),
+        gate=args.model == "npf",
+        explicit_firing=bool(args.maps),
+    )
     model = (
         Hierarchy(classes, **kwargs)
         if args.hierarchy
         else chem.Classifier(len(classes), **kwargs)
     ).to(device)
-    tag = f"-hier{args.hierarchy:g}" if args.hierarchy else ""
+    tag = args.tag + (f"-hier{args.hierarchy:g}" if args.hierarchy else "")
     params = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     steps = args.epochs * (len(train) // args.batch + 1)
@@ -271,7 +302,7 @@ def main():
                 flush=True,
             )
 
-    metrics = levels(*predict(model, test, device), classes, CARE_EASY_TEST)
+    metrics = levels(*predict(model, test, device), classes, n_official)
     rules = ["marginal"] + (["hierarchy"] if args.hierarchy else [])
 
     # the same model read with a decoding rule that respects the EC hierarchy
@@ -280,24 +311,23 @@ def main():
             {
                 f"{k}_{rule}": v
                 for k, v in levels(
-                    *predict(model, test, device, rule=rule), classes, CARE_EASY_TEST
+                    *predict(model, test, device, rule=rule), classes, n_official
                 ).items()
             }
         )
 
     result = {
-        "benchmark": "CARE task 2, easy split",
+        "benchmark": benchmark,
         "model": args.model,
         "seed": args.seed,
         "params": params,
         "n_train": len(train),
         "n_test": len(test),
-        "n_test_official": CARE_EASY_TEST,
+        "n_test_official": n_official,
         "n_classes": len(classes),
         "train_seconds": time.time() - start,
         "metrics": metrics,
     }
-    out = Path("results/care/easy")
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{args.model}{tag}-{args.seed}.json").write_text(
         json.dumps(result, indent=1)

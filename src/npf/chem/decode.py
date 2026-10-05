@@ -17,6 +17,8 @@ NORMAL_VALENCE = {
     53: (1, 3, 5, 7),
 }
 ANION_PRIORITY = {53: 0, 35: 0, 17: 0, 9: 0, 8: 1, 16: 1, 7: 2}
+# fragments of the last marking_fragments call that RDKit could not sanitise, and so left out of its sets
+DROPPED = {"touched": 0, "spectator": 0}
 
 # single atom ions such as halides and hydroxide stay as they are
 NEUTRALISE_MIN_ATOMS = 2
@@ -324,6 +326,7 @@ def marking_fragments(a, edits, stereo=None):
         copy_stereo(mol, a, stereo, h, q, after, touched)
 
     out, spectators = set(), set()
+    DROPPED["touched"] = DROPPED["spectator"] = 0
     for atoms, frag in zip(
         Chem.GetMolFrags(mol), Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=False)
     ):
@@ -338,7 +341,7 @@ def marking_fragments(a, edits, stereo=None):
                 canonical_product(Chem.MolToSmiles(frag), stereo is not None)
             )
         except Exception:
-            pass
+            DROPPED["touched" if touched[list(atoms)].any() else "spectator"] += 1
 
     # the molecules that a firing touched, and everything the final marking contains
     return out, out | spectators

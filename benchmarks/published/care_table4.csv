@@ -1,0 +1,6 @@
+model,level4,level3,level2,level1,reads_text,source
+CREEP (w/ text),60.3,89.3,93.9,96.7,yes,"Yang et al., NeurIPS 2024 Datasets and Benchmarks, arXiv:2406.15669, Table 4"
+Similarity baseline (DRFP),59.3,77.1,85.2,90.6,no,"Yang et al., NeurIPS 2024 Datasets and Benchmarks, arXiv:2406.15669, Table 4"
+CREEP,39.4,66.4,79.9,92.9,no,"Yang et al., NeurIPS 2024 Datasets and Benchmarks, arXiv:2406.15669, Table 4"
+ChatGPT (w/ text),13.7,56.7,81.4,98.5,yes,"Yang et al., NeurIPS 2024 Datasets and Benchmarks, arXiv:2406.15669, Table 4"
+CLIPZyme,12.2,39.9,61.8,79.9,no,"Yang et al., NeurIPS 2024 Datasets and Benchmarks, arXiv:2406.15669, Table 4"

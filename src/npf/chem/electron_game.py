@@ -110,9 +110,11 @@ class ElectronGame(nn.Module):
 
             out.append(ok & pairs & room)
 
-        # a step ends with every charge inside its window and whole again
+        # a step ends with every charge inside its window and whole again, and with whole pairs on every bond place, as
+        # no molecule holds a one-electron bond
         stop = (
             (((q2 >= s["lo"]) & (q2 <= s["hi"]) & (q2 % 2 == 0)) | ~mask).all(1)
+            & (cur % 2 == 0).flatten(1).all(1)
             if self.enabling
             else torch.ones_like(mask[:, 0])
         )

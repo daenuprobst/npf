@@ -69,11 +69,16 @@ Models and data live in the package, one model per file. Everything that produce
 | `benchmarks/synthetic/learned_incidence.py`, `coloured.py` | extensions |
 | `benchmarks/chemistry/build_data.py` | Schneider 50k and USPTO-MIT to `data/` |
 | `benchmarks/chemistry/experiment.py` | forward and classify, all datasets |
-| `benchmarks/chemistry/care.py` | EC number classification on CARE task 2 |
+| `benchmarks/chemistry/care.py` | EC number classification on CARE task 2 and on ECREACT in the Enzyformer split, `--maps` adds the firing vector of a map file |
+| `benchmarks/chemistry/enzymes.py` | the enzymatic data, EnzymeMap at EC level 3 and ECREACT in the Enzyformer split, and the atom maps of RXNMapper and of the record |
 | `benchmarks/chemistry/exact_map.py` | the mapper on a data set, and the maps the classifier reads |
 | `benchmarks/chemistry/exact_map_report.py` | comparison with RXNMapper, intervals, sign test |
 | `benchmarks/chemistry/synrxn_map.py` | the learning-free mapper on the five SynRXN sets, scored with SynKit like the published mappers |
+| `benchmarks/chemistry/synrxn_enzymemap.py` | the mapper and RXNMapper on EnzymeMap, scored against its curated maps with the validator of SynRXN |
 | `benchmarks/chemistry/mechanism.py` | elementary steps of the FlowER mechanism benchmark, `--net arrow` or `--net electron` |
+| `benchmarks/chemistry/mechanism_validity.py` | untrained arrow and electron nets, with and without the octet rule, end only in valid molecules |
+| `benchmarks/chemistry/mechanism_pathways.py` | top-k pathway accuracy on FlowER from the saved per-step ranks, FlowER's metric |
+| `benchmarks/published/` | the published numbers the paper compares with, each row with its source |
 | `benchmarks/chemistry/exact_ties.py` | the mappings the net cannot tell apart |
 | `benchmarks/chemistry/balance.py` | balanced equations from the open net |
 | `benchmarks/chemistry/golden.py` | the Golden atom mapping set |
@@ -89,6 +94,24 @@ Models and data live in the package, one model per file. Everything that produce
 | `tests/` | unit tests and end-to-end runs of the experiment scripts |
 
 ## Reproduce
+
+Where each benchmark of the paper comes from. The commands are in the paragraphs below, and `benchmarks.report` gathers
+the result files into the tables of the paper.
+
+| Benchmark | Script | Results |
+|---|---|---|
+| Atom mapping, Golden set | `exact_map`, `exact_map_report` | `results/chem/exact_map/` |
+| Atom mapping, SynRXN sets | `synrxn_map` | `results/chem/synrxn_map/` |
+| Atom mapping, EnzymeMap | `enzymes`, `exact_map`, `synrxn_enzymemap` | `results/enzymemap_ec/synrxn_map.json` |
+| Reaction classes, Schneider 50k | `experiment --task classify` | `results/chem/classify/` |
+| EC numbers, CARE task 2 | `care` | `results/care/easy/` |
+| EC numbers, ECREACT (Enzyformer split) | `enzymes`, `care --dataset ecreact_enzyformer` | `results/ecreact/enzyformer/` |
+| EC numbers, EnzymeMap by map source | `enzymes`, `experiment --dataset enzymemap_ec` | `results/enzymemap_ec/classify/` |
+| Forward prediction, USPTO-480K, and its validity | `experiment --task forward --dataset uspto_mit` | `results/uspto_mit/forward/` |
+| Elementary steps, FlowER | `mechanism` | `results/mechanism/npf*-[0-2].json` |
+| Pathways, FlowER | `mechanism_pathways` | `results/mechanism/pathways.json` |
+| Validity for all weights, mechanism nets | `mechanism_validity` | `results/mechanism/validity.json` |
+| Published numbers compared with | | `benchmarks/published/` |
 
 Tests, the propositions checked numerically, and the facts about the data that the text quotes.
 
@@ -158,6 +181,40 @@ Classification on Schneider 50k. Seeds 0 to 4 for the three models of the main t
     uv run python -m benchmarks.chemistry.invariance
     uv run python -m benchmarks.chemistry.insights
 
+EC numbers of enzymatic reactions, seeds 0 to 2, with atom maps from three sources: the mapper of the paper, RXNMapper
+and, on EnzymeMap, its curated maps. The same classifier reads the firing vector of each, against the same classifier
+without maps. EnzymeMap at EC level 3 holds out 10 % of the reactions of every class and uses the state-equation readout
+of Schneider 50k. CARE task 2 (easy split) and ECREACT in the split of Enzyformer (zenodo 18083829, downloaded and
+checked by `prepare`) use the published CARE model, the readout with the participation gate. The model without maps on
+EnzymeMap reads no map, whichever file `--maps` names. A reaction the mapper cannot prove optimal within 60 s keeps the best map
+found so far, which depends on the machine: rebuilt on CARE, 5 of 55,081 maps differed, all of them unproved. The data,
+the unmapped reactions for RXNMapper and the maps:
+
+    uv run python -m benchmarks.chemistry.care prepare <path to CARE_datasets>
+    uv run python -m benchmarks.chemistry.enzymes prepare enzymemap
+    uv run python -m benchmarks.chemistry.enzymes prepare enzyformer
+    for data in enzymemap_ec care_easy; do
+      uv run python -m benchmarks.chemistry.exact_map --data $data --third-level --processes 16 --write data/enzyme_maps/mapper_maps_$data.pkl
+      uv run python -m benchmarks.chemistry.enzymes unmapped $data
+      uv run --no-project --python 3.11 --with rxnmapper --with rdkit --with "setuptools<81" --with "numpy<2" python benchmarks/chemistry/baselines/rxnmapper_golden.py data/enzyme_maps/${data}_unmapped.txt data/enzyme_maps/rxnmapper_$data.json
+      uv run python -m benchmarks.chemistry.enzymes convert $data                # rxnmapper_maps_$data.pkl, recorded_maps_$data.pkl
+    done
+
+Classification, `results/enzymemap_ec/classify`, `results/care/easy` and `results/ecreact/enzyformer`:
+
+    E="uv run python -m benchmarks.chemistry.experiment --task classify --dataset enzymemap_ec --batch 16"
+    $E --model npf-nogate --maps data/enzyme_maps/mapper_maps_enzymemap_ec.pkl --tag=-none --seed 0
+    $E --model npf-sigma --maps data/enzyme_maps/mapper_maps_enzymemap_ec.pkl --tag=-mapper --seed 0   # also rxnmapper, recorded
+    C="uv run python -m benchmarks.chemistry.care train"
+    $C --seed 0
+    $C --maps data/enzyme_maps/mapper_maps_care_easy.pkl --tag=-mapper --seed 0                         # also rxnmapper
+    $C --dataset ecreact_enzyformer --seed 0
+
+Atom mapping on EnzymeMap, the maps above against the curated maps of the 41,510 reactions that have one for every
+product atom, scored with the validator of SynRXN and an exact sign test between the mappers.
+
+    uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_enzymemap   # results/enzymemap_ec/synrxn_map.json
+
 Forward prediction on Schneider 50k, seeds 0 to 2.
 
     F="uv run python -m benchmarks.chemistry.experiment --task forward"
@@ -170,9 +227,19 @@ Forward prediction on Schneider 50k, seeds 0 to 2.
 
 Forward prediction on USPTO-MIT, seeds 0 to 2, and the Molecular Transformer baseline on the same subsets.
 
-    M="uv run python -m benchmarks.chemistry.experiment --task forward --model npf --dataset uspto_mit --amp"
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
-    $M --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --recorded-maps --seed 0
+The full split, USPTO-480K, is run once per arm: the mapper's firing vectors as targets with and without the enabling
+rule, and the recorded maps. The targets are `data/net_targets_uspto_mit.pkl`, built by the search, SHA-256
+`b22581ce23dc4f52f6a2980b40e2ce3364fe0a6029e44f0be76507e14d9c060b`, which both of their result files record. The paper
+reports `product_top{1,3,5}_beam_official`, over all 40,000 test lines, so the 6 that RDKit cannot parse count as wrong,
+and `valence_valid`, the share of predictions whose touched fragments RDKit sanitises. The recorded-maps run was trained
+before `valence_valid` was measured with RDKit and scored again with `--evaluate-only`, which leaves its accuracy and
+beams unchanged.
+
+    M="uv run python -m benchmarks.chemistry.experiment --task forward --dataset uspto_mit --amp"
+    $M --model npf --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
+    $M --model npf-noenabling --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --seed 0
+    $M --model npf --width 256 --rounds 8 --attention 8 --lr 4e-4 --tag=-deep --recorded-maps --seed 0
+    M="$M --model npf"
     $M --subset 40900 --seed 0                                            # also --single-target, --subset 4090, --recorded-maps
     uv run python -m benchmarks.chemistry.decoding_rules results/uspto_mit/forward/npf-deep-nettargets-0.pt --dataset uspto_mit --width 256 --rounds 8 --attention 8
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 40900    # then train 40900 --steps 30000 and score 40900; also 4090
@@ -183,16 +250,35 @@ Both models are token games. Given the reactants of one elementary step they fir
 reached is the predicted products. The arrow net moves an electron pair per firing, so its transitions are the curly
 arrows of arrow pushing and the octet rule is what enables them. The electron net moves one electron, so a fishhook is
 a transition of weight one, radical steps become expressible, and the arrow net is its sub-net of weight two.
+Molecules are Kekulé structures: tokens are electrons, and an aromatic bond of order 3/2 would hold three, half a pair.
+Products are compared after aromaticity is perceived again, so the Kekulé structure chosen does not change the score.
 
 The download stage fetches the published split from figshare and checks it, so a fresh machine needs nothing else.
-Each net keeps its own prepared data, weights and results.
+Each net keeps its own prepared data, weights and results. The results in `results/mechanism` are seeds 0 to 2 of both
+nets, seed 0 evaluated with a beam of 10 and seeds 1 and 2 with a beam of 5.
 
     uv run python -m benchmarks.chemistry.mechanism download
     uv run python -m benchmarks.chemistry.mechanism prepare --net electron --processes 20
-    uv run python -m benchmarks.chemistry.mechanism train --net electron --seed 0 --epochs 12 --budget 2000000
-    uv run python -m benchmarks.chemistry.mechanism evaluate --net electron --seed 0 --beam 10
+    for seed in 0 1 2; do
+      uv run python -m benchmarks.chemistry.mechanism train --net electron --seed $seed --epochs 12 --budget 2000000
+      uv run python -m benchmarks.chemistry.mechanism evaluate --net electron --seed $seed --beam 10
+    done
+    uv run python -m benchmarks.chemistry.mechanism prepare --processes 20          # the arrow net, the same stages
 
-The report and the tables of the paper.
+Validity for all weights, untrained games of both nets with and without the octet rule as enabling, on 1,000 test
+steps and 3 seeds.
+
+    uv run python -m benchmarks.chemistry.mechanism_validity                      # results/mechanism/validity.json
+
+Pathway accuracy, the metric of FlowER's `sequence_evaluation.py`: a test reaction counts at top k if some route from
+its reactants to a terminal product has every step within the top k. It reads the per-step ranks that `evaluate` saves
+next to each result, `results/mechanism/<name>-<seed>-ranks.npz`. FlowER's numbers, step and pathway accuracy and
+validity, are the Source Data of its Figure 2, in `benchmarks/published/flower_fig2.csv`.
+
+    uv run python -m benchmarks.chemistry.mechanism_pathways                      # results/mechanism/pathways.json
+
+The report and the tables of the paper. Its last section, the benchmarks of the paper, puts NPF next to the published
+numbers in `benchmarks/published`, each file with the paper and table it comes from.
 
     uv run python -m benchmarks.report > results/REPORT.md && uv run python -m benchmarks.paper_tables
 
@@ -233,6 +319,15 @@ folders.
 
 Since commit 9d3986f.
 
+- The benchmarks of the paper are reproducible from this repository: pathway accuracy on FlowER from the saved ranks,
+  the USPTO-480K runs on the full split, EC classification on CARE, ECREACT in the Enzyformer split and EnzymeMap
+  with atom maps from each source, atom mapping on EnzymeMap under the metric of SynRXN, and the published numbers
+  they are compared with. `valence_valid` of forward prediction is measured with RDKit; the old check, which is the
+  enabling rule itself, is kept as `enabling_rule_valid`.
+- The electron net ends a step only with whole pairs on every bond place, so an untrained game can no longer stop on a
+  one-electron bond. No recorded FlowER step ends on one. `mechanism_validity.py` checks validity for all weights.
+- The octet capacities of the arrow net are in pairs. The tables halved the shell, which the arrow net already counts in
+  pairs, so C, N and O had a capacity of 2 and 6.8 % of the test steps had no enabled order; now none has.
 - The mapper without a solver, `mapper.py`, `search.py`, `third_level.py`. A branch and bound, bounded by linear
   assignments on the places of the net, finds and proves the same minimum as the integer program on every Golden and
   SynRXN reaction, 20 to 60 times faster, and lists all ties completely. The listing of the integer program could stop

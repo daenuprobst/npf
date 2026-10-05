@@ -1,0 +1,7 @@
+model,level3,level2,level1,source
+Enzyformer (rxnfp+CLM),84.6,88.2,90.9,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"
+Synthcoder-DistilBERT,84.4,86.7,90.9,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"
+Theia,83.5,85.8,87.2,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"
+DRFP+CLM,81.7,85.6,88.3,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"
+DistilBERT+CLM,77.5,79.8,82.9,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"
+BEC-Pred,76.9,81.2,85.8,"Liu et al., J. Cheminform. 18:35 (2026), SI Table S5, mean of 3 runs"

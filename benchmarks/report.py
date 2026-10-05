@@ -4,6 +4,7 @@ seeds).
 uv run python -m benchmarks.report > results/REPORT.md
 """
 
+import csv
 import json
 import re
 import sys
@@ -496,7 +497,129 @@ def benchmarks_with_published_protocols(root="results"):
         )
 
 
+def runs(pattern, root="results"):
+    """The result files of one model, seeds in order."""
+    return [json.loads(q.read_text()) for q in sorted(Path(root).glob(pattern))]
+
+
+def published(name):
+    with open(Path(__file__).parent / "published" / name) as f:
+        return list(csv.DictReader(f))
+
+
+def welch(a, b):
+    from scipy.stats import ttest_ind
+
+    return f"{ttest_ind(a, b, equal_var=False).pvalue:.2g}"
+
+
+def paper_benchmarks(root="results"):
+    """The tables of the paper on USPTO-480K, the enzymatic benchmarks and FlowER, NPF next to the published numbers in
+    benchmarks/published. Percent, mean +- sample standard deviation over seeds."""
+    # a seed without a value, a random game that completed no step, is left out of the mean
+    pct = lambda values: cell([100 * v for v in values if v is not None], 2)
+    print("\n## Benchmarks of the paper\n")
+
+    # forward prediction, MAELLE's table 2 and the three runs on the full split
+    arms = (("NPF, recorded maps", "npf-deep-0"), ("NPF, targets of the net", "npf-deep-nettargets-0"),
+            ("NPF, targets of the net, no enabling rule", "npf-noenabling-deep-nettargets-0"))
+    forward = {label: runs(f"uspto_mit/forward/{name}.json", root) for label, name in arms}
+    print("### USPTO-480K, forward prediction, top-k accuracy (%), one seed, baselines from MAELLE's Table 2\n")
+    print("| model | modality | top-1 | top-3 | top-5 | top-10 |\n|---|---|---:|---:|---:|---:|")
+    for r in published("maelle_table2.csv"):
+        print(f"| {r['model']} | {r['modality']} | {r['top1']} | {r['top3']} | {r['top5']} | {r['top10'] or '-'} |")
+    for label, rs in forward.items():
+        m = [r["metrics"] for r in rs]
+        print(f"| {label} | token game | " + " | ".join(
+            pct([x[f"product_top{k}_beam_official"] for x in m]) for k in (1, 3, 5)) + " | - |")
+
+    print("\n### USPTO-480K, validity of the top-1 predictions\n")
+    print("| model | valence rule (%) | valid, RDKit (%) | invalid | dropped fragments per reaction (%) |")
+    print("|---|---:|---:|---:|---:|")
+    for label, rs in forward.items():
+        m, n = rs[0]["metrics"], rs[0]["n_test"]
+        print(f"| {label} | {100 * m['enabling_rule_valid']:.3f} | {100 * m['valence_valid']:.3f} | "
+              f"{round((1 - m['valence_valid']) * n)} | {100 * m['dropped_touched_fragments']:.3f} |")
+
+    # EC numbers
+    levels = ("level4", "level3", "level2", "level1")
+    care = {"NPF, no maps": "npf", "NPF, maps of the mapper": "npf-mapper", "NPF, maps of RXNMapper": "npf-rxnmapper"}
+    print("\n### CARE task 2, easy split, k=1 accuracy (%) at EC levels 4 to 1, 393 test reactions\n")
+    print("| model | reads text | EC4 | EC3 | EC2 | EC1 |\n|---|---|---:|---:|---:|---:|")
+    for r in published("care_table4.csv"):
+        print(f"| {r['model']} | {r['reads_text']} | " + " | ".join(r[k] for k in levels) + " |")
+    for label, name in care.items():
+        m = [r["metrics"] for r in runs(f"care/easy/{name}-[0-9].json", root)]
+        print(f"| {label} | no | " + " | ".join(pct([x[k] for x in m]) for k in levels) + " |")
+
+    print("\n### ECREACT, Enzyformer split, accuracy (%) at EC levels 4 to 1, 4,907 test reactions\n")
+    print("| model | EC4 | EC3 | EC2 | EC1 |\n|---|---:|---:|---:|---:|")
+    for r in published("enzyformer_table_s5.csv"):
+        print(f"| {r['model']} | - | {r['level3']} | {r['level2']} | {r['level1']} |")
+    m = [r["metrics"] for r in runs("ecreact/enzyformer/npf-[0-9].json", root)]
+    print("| NPF, no maps | " + " | ".join(pct([x[k] for x in m]) for k in levels) + " |")
+
+    print("\n### EnzymeMap, EC level 3 by the source of the atom maps, accuracy (%), 4,715 test reactions\n")
+    print("| maps | accuracy | p against no maps |\n|---|---:|---:|")
+    none = [r["metrics"]["accuracy"] for r in runs("enzymemap_ec/classify/npf-nogate-none-[0-9].json", root)]
+    print(f"| none | {pct(none)} | - |")
+    for label, name in (("mapper of the paper", "mapper"), ("RXNMapper", "rxnmapper"), ("curated", "recorded")):
+        acc = [r["metrics"]["accuracy"] for r in runs(f"enzymemap_ec/classify/npf-sigma-{name}-[0-9].json", root)]
+        print(f"| {label} | {pct(acc)} | {welch(acc, none)} |")
+
+    synrxn = Path(root) / "enzymemap_ec/synrxn_map.json"
+    if synrxn.exists():
+        d = json.loads(synrxn.read_text())
+        pair = d["npf_vs_rxnmapper"]
+        print(f"\n### EnzymeMap, atom mapping against the curated maps, SynRXN validator, {d['reactions']} reactions\n")
+        print("| mapper | correct (%) | correct only here |\n|---|---:|---:|")
+        print(f"| mapper of the paper | {d['npf']:.2f} | {pair['only_npf']} |")
+        print(f"| RXNMapper | {d['rxnmapper']:.2f} | {pair['only_rxnmapper']} |")
+        p = "< 1e-300" if pair["p"] == 0 else f"= {pair['p']:.1g}"
+        print(f"\nExact sign test, p {p}.")
+
+    # mechanisms, FlowER's Figure 2 and the two nets
+    flower = defaultdict(dict)
+    for r in published("flower_fig2.csv"):
+        flower[(r["panel"], r["k"] or r["metric"])][r["model"]] = r["percent"]
+    nets = {"NPF, arrow net": runs("mechanism/npf-[0-9].json", root),
+            "NPF, electron net": runs("mechanism/npf-electron-[0-9].json", root)}
+    models = ("MT", "G2S", "G2S+H", "FlowER", "FlowER-large")
+    ks = ("1", "2", "3", "5")
+    print("\n### FlowER, elementary steps, top-k accuracy (%), 162,002 test steps\n")
+    print("| model | top-1 | top-2 | top-3 | top-5 | top-10 | valid top-1 |\n|---|---:|---:|---:|---:|---:|---:|")
+    valid = flower[("a", "SMILES Validity")]
+    for model in models:
+        print(f"| {model} | " + " | ".join(flower[("b", k)][model] for k in ks + ("10",))
+              + f" | {valid.get(model, '-')} |")
+    for label, rs in nets.items():
+        m = [r["metrics"] for r in rs]
+        print(f"| {label} | " + " | ".join(pct([x.get(f"step_top{k}") for x in m]) for k in ks + ("10",))
+              + f" | {pct([x['valid_smiles_top1'] for x in m])} |")
+    print("\nValid top-1 of the published models is the SMILES validity of panel a of FlowER's Figure 2. Top-10 of NPF is "
+          "seed 0 alone, the only seed evaluated with a beam of 10.")
+
+    pathways = json.loads((Path(root) / "mechanism/pathways.json").read_text())
+    print("\n### FlowER, pathway accuracy (%), 28,049 test reactions\n")
+    print("| model | top-1 | top-2 | top-3 | top-5 |\n|---|---:|---:|---:|---:|")
+    for model in models:
+        print(f"| {model} | " + " | ".join(flower[("c", k)][model] for k in ks) + " |")
+    for label, name in (("NPF, arrow net", "npf"), ("NPF, electron net", "npf-electron")):
+        seeds = [v for key, v in pathways.items() if key.rsplit("-", 1)[0] == name]
+        print(f"| {label} | " + " | ".join(pct([v[f"pathway_top{k}"] for v in seeds]) for k in ks) + " |")
+
+    validity = json.loads((Path(root) / "mechanism/validity.json").read_text())
+    print("\n### Mechanism nets with random weights, share of completed steps that are valid (%), 1,000 test steps\n")
+    print("| net | enabling | STOP | completed | valid | n |\n|---|---|---|---:|---:|---:|")
+    for key, v in validity.items():
+        net, enabling, stop = key.split(", ")
+        n = sum(x is not None for x in v["valid"])
+        print(f"| {net} | {enabling} | {stop.split()[0]} | {pct(v['ended'])} | {pct(v['valid'])} | {n} |")
+    print("\nn is the number of seeds in which the net completed a step, the others have no product to check.")
+
+
 if __name__ == "__main__":
     chemistry(*sys.argv[1:])
     benchmarks_with_published_protocols(*sys.argv[1:])
     load_bearing(*sys.argv[1:])
+    paper_benchmarks(*sys.argv[1:])
