@@ -5,7 +5,7 @@ with OpenNMT-py in an isolated environment. The subsets are those of benchmarks.
 40,000 test reactions are in the denominator.
 
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer prepare 4090
-    uv run python -m benchmarks.chemistry.baselines.molecular_transformer train 4090 --steps 30000
+    uv run python -m benchmarks.chemistry.baselines.molecular_transformer train 4090 --steps 3000 --warmup 800
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer score 4090
     uv run python -m benchmarks.chemistry.baselines.molecular_transformer rescore 4090   # the test metrics again, no GPU
 
@@ -127,7 +127,7 @@ def prepare(n, augment=True):
     )
 
 
-def config(n, steps, dropout):
+def config(n, steps, dropout, warmup=8000):
     out = folder(n)
     every = max(steps // 12, 500)
     text = f"""save_data: {out}/run
@@ -148,7 +148,7 @@ keep_checkpoint: 20
 seed: 42
 train_steps: {steps}
 valid_steps: {every}
-warmup_steps: 8000
+warmup_steps: {warmup}
 report_every: 500
 encoder_type: transformer
 decoder_type: transformer
@@ -183,8 +183,8 @@ gpu_ranks: [0]
     return out / "config.yaml"
 
 
-def train(n, steps, dropout):
-    cfg = config(n, steps, dropout)
+def train(n, steps, dropout, warmup=8000):
+    cfg = config(n, steps, dropout, warmup)
     subprocess.run(
         ONMT + ["onmt_build_vocab", "-config", str(cfg), "-n_sample", "-1"], check=True
     )
@@ -370,11 +370,17 @@ def main():
     ap.add_argument("n", type=int, help="number of random lines of the training file")
     ap.add_argument("--steps", type=int, default=30000)
     ap.add_argument("--dropout", type=float, default=0.1)
+    ap.add_argument(
+        "--warmup",
+        type=int,
+        default=8000,
+        help="warmup steps of the Noam schedule, the published 8,000, scaled down with --steps for a short run",
+    )
     args = ap.parse_args()
     if args.step == "prepare":
         prepare(args.n)
     elif args.step == "train":
-        train(args.n, args.steps, args.dropout)
+        train(args.n, args.steps, args.dropout, args.warmup)
     elif args.step == "score":
         score(args.n)
     else:

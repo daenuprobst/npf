@@ -4,6 +4,7 @@ Reads the rows that benchmarks.chemistry.exact_map wrote and the output of RXNMa
 reactions and on the part that played no role in the choice of the cost, with a bootstrap interval and a paired test.
 
     uv run python -m benchmarks.chemistry.exact_map_report results/chem/exact_map/golden-1-1-1-nolabile-ch.pkl
+    uv run python -m benchmarks.chemistry.exact_map_report <rows.pkl> <other mapper.json> <report.json>
 """
 
 import json
@@ -29,7 +30,7 @@ def interval(hits, rng, draws=10000):
 BINS = ((1, 2), (3, 4), (5, 6), (7, None))
 
 
-def main(rows_file, rxnmapper_json="results/chem/rxnmapper_golden.json"):
+def main(rows_file, rxnmapper_json="results/chem/rxnmapper_golden.json", out=None):
     rows = pickle.loads(Path(rows_file).read_bytes())
     summary = json.loads(Path(rows_file).with_suffix(".json").read_text())
     options = dict(
@@ -146,7 +147,8 @@ def main(rows_file, rxnmapper_json="results/chem/rxnmapper_golden.json"):
             }
         )
 
-    Path(rows_file).with_suffix(".report.json").write_text(json.dumps(report, indent=1))
+    # one report per compared mapper when out names it, else next to the rows
+    Path(out or Path(rows_file).with_suffix(".report.json")).write_text(json.dumps(report, indent=1))
     print(json.dumps(report, indent=1))
 
 

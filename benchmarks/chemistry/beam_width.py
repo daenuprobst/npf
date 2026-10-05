@@ -21,6 +21,7 @@ def main():
     sample = [
         test[i] for i in np.random.default_rng(0).choice(len(test), 600, replace=False)
     ]
+    print(f"{len(sample)} test reactions", flush=True)
     model = chem.TokenGame()
     model.load_state_dict(
         torch.load("results/chem/forward/npf-nettargets-0.pt", map_location="cpu")

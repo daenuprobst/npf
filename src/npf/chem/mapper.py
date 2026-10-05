@@ -66,11 +66,25 @@ def expand_orbits(pr, mappings, rounds=4):
     return list(out.values())
 
 
-def solve(reaction, seconds=10.0, hint=None, secondary=(0, 0, 0), workers=1, all_orders=False, deterministic=None,
-          labile_h=True, ch_places=False, sources=()):
+def solve(
+    reaction,
+    seconds=10.0,
+    hint=None,
+    secondary=(0, 0, 0),
+    workers=1,
+    all_orders=False,
+    deterministic=None,
+    labile_h=True,
+    ch_places=False,
+    sources=(),
+):
     """Cheapest mapping, its cost in bond places, and whether optimality was proved, as exact.solve. workers is
     accepted and ignored."""
-    pr = Problem(reaction, sources=sources, **_options(secondary, labile_h, ch_places, all_orders))
+    pr = Problem(
+        reaction,
+        sources=sources,
+        **_options(secondary, labile_h, ch_places, all_orders),
+    )
     nodes, wall = _budget(seconds, deterministic)
     search = Search(pr, _hint(pr, hint), node_limit=nodes, seconds=wall).run()
     if search.best is None:
@@ -79,14 +93,33 @@ def solve(reaction, seconds=10.0, hint=None, secondary=(0, 0, 0), workers=1, all
     return search.best, int(search.best_levels[0]), bool(search.complete)
 
 
-def cheapest_mappings(reaction, limit=64, seconds=10.0, hint=None, deterministic=None, workers=1,
-                      secondary=(0, 0, 0), all_orders=False, labile_h=True, ch_places=False, expand=True):
+def cheapest_mappings(
+    reaction,
+    limit=64,
+    seconds=10.0,
+    hint=None,
+    deterministic=None,
+    workers=1,
+    secondary=(0, 0, 0),
+    all_orders=False,
+    labile_h=True,
+    ch_places=False,
+    expand=True,
+):
     """Every mapping of proved minimum cost up to limit and True, as exact.cheapest_mappings, else the cheapest mapping
     found and False. True also means that the listing finished. Mappings that differ by a symmetry of the product
-    are listed once, those that differ by a symmetry of the precursors are added back with expand."""
+    are listed once, those that differ by a symmetry of the precursors are added back with expand.
+    """
     pr = Problem(reaction, **_options(secondary, labile_h, ch_places, all_orders))
     nodes, wall = _budget(seconds, deterministic)
-    search = Search(pr, _hint(pr, hint), node_limit=nodes, seconds=wall, enumerate_ties=True, tie_limit=limit).run()
+    search = Search(
+        pr,
+        _hint(pr, hint),
+        node_limit=nodes,
+        seconds=wall,
+        enumerate_ties=True,
+        tie_limit=limit,
+    ).run()
     if search.best is None:
         return [], False
 
@@ -148,7 +181,14 @@ def best_mapping(reaction, seconds=60.0, tie_limit=512, nodes=10**6):
         return np.where((mapping >= 0) & (mapping < n), mapping, -1), None, proved
 
     pr = Problem(reaction, **cost.CHOSEN)
-    search = Search(pr, None, node_limit=nodes, seconds=seconds, enumerate_ties=True, tie_limit=tie_limit).run()
+    search = Search(
+        pr,
+        None,
+        node_limit=nodes,
+        seconds=seconds,
+        enumerate_ties=True,
+        tie_limit=tie_limit,
+    ).run()
     if search.best is None:
         return None, None, False
 
