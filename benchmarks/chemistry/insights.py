@@ -24,7 +24,7 @@ from scipy.sparse.csgraph import shortest_path
 from npf import chem
 from npf.chem import cost
 
-from .experiment import batches, splits
+from .experiment import batches, splits, use_predicted_firing
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ROOT = Path("results/chem")
@@ -154,15 +154,19 @@ def forward_insights(data, n=2000):
 
 @torch.no_grad()
 def attribution_insights(data, n=3000):
-    """Per-atom contribution to the state-equation readout, phi(atom in B) - phi(its partner in A), against the
-    graph distance of the atom from the nearest re-typed bond. Beyond rounds bonds it must be exactly zero.
+    """Per-atom contribution to the atom terms of the pure state-equation readout, w = 1, psi(atom in B) - psi(its
+    partner in A), against the graph distance of the atom from the nearest re-typed bond. Beyond rounds bonds it must be
+    exactly zero. In float64, so that no rounding of float32 passes for a contribution.
     """
+    # decomposed along the map of the mapper, as the classifier reads it, no recorded map
     _, _, test = splits(data, "classify")
-    test = [r for r in test if r["target"] is not None and len(r["edits"])][:n]
-    clf = load(chem.Classifier(len(data["classes"])), ROOT / "classify/npf-0.pt")
+    use_predicted_firing(test, blank_missing=True)
+    test = [r for r in test if (r["target"] >= 0).all() and len(r["edits"])][:n]
+    clf = load(chem.Classifier(len(data["classes"]), gate=False), ROOT / "classify/npf-nogate-0.pt").double()
     by_distance = defaultdict(list)
     for rs in batches(test, 64):
-        b = chem.collate(rs, DEVICE)
+        b = {k: v.double() if torch.is_tensor(v) and v.is_floating_point() else v
+             for k, v in chem.collate(rs, DEVICE).items()}
         ha = clf.encoder(b["xa"], b["ba"], b["mask_a"], all_depths=True)
         hb = clf.encoder(b["xb"], b["bb"], b["mask_b"], all_depths=True)
         pa = torch.cat([f(h) for f, h in zip(clf.atom, ha)], -1)
@@ -188,6 +192,7 @@ def attribution_insights(data, n=3000):
                 by_distance[int(min(d, 8))].append(float(x))
 
     return {
+        "reactions": len(test),
         "attribution_norm_by_distance_to_reaction_centre": {
             d: {
                 "mean": float(np.mean(v)),
@@ -238,7 +243,7 @@ def mapping_audit(data, maps="data/exact_maps_schneider50k.pkl"):
     }
 
 
-def main():
+def main(*only):
     data = chem.load()
     out = {}
     for name, fn in (
@@ -246,6 +251,10 @@ def main():
         ("attribution", attribution_insights),
         ("mapping_audit", mapping_audit),
     ):
+        # uv run python -m benchmarks.chemistry.insights attribution, one section only
+        if only and name not in only:
+            continue
+
         try:
             out[name] = fn(data)
         except FileNotFoundError as missing:
@@ -259,4 +268,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(*sys.argv[1:])
