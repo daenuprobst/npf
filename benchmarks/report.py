@@ -1,4 +1,5 @@
-"""Aggregate results/<task>/<regime>/<model>-<seed>.json into markdown tables (mean +- std over seeds).
+"""Aggregate the chemistry results under results/chem and results/uspto_mit into markdown tables (mean +- std over
+seeds).
 
 uv run python -m benchmarks.report > results/REPORT.md
 """
@@ -12,82 +13,6 @@ from pathlib import Path
 import numpy as np
 
 from npf.chem.cost import CHOSEN
-
-ORDER = [
-    "se-only",
-    "gnn",
-    "pgnn-eq10",
-    "pgnn",
-    "pgnn+",
-    "pgnn+se",
-    "npf-prior",
-    "npf-mlp",
-    "npf",
-    "npf-kl",
-    "npf@16",
-]
-LABEL = {
-    "se-only": "state equation only (no learning)",
-    "gnn": "GNN (PGNN paper, Eqs. 3-6)",
-    "pgnn-eq10": "PGNN, Eq. 10 of the PGNN paper, literal",
-    "pgnn": "**PGNN (PGNN paper, Eqs. 9-12)**",
-    "pgnn+": "PGNN+ (strengthened)",
-    "pgnn+se": "PGNN+ with state equation (ablation)",
-    "npf-prior": "NPF, rate law + Petri semantics only (ablation)",
-    "npf-mlp": "NPF, generic rate law (ablation)",
-    "npf": "**NPF (ours)**",
-    "npf-kl": "NPF with the I-projection in place of the weighted step",
-    "npf@16": "NPF, 16 time steps",
-}
-PROTOCOL_LABEL = {
-    "se-only": "state equation only (no learning)",
-    "gnn": "GNN (PGNN paper, Eqs. 3-6)",
-    "pgnn-linear": "**PGNN, linear special case (PGNN paper, Eq. 13)**",
-    "pgnn": "**PGNN (PGNN paper, Eqs. 9-12)**",
-    "pgnn+": "PGNN+ (strengthened)",
-    "npf-hard": "NPF, state equation forced (ablation)",
-    "npf": "**NPF (ours)**",
-}
-
-# captions of the synthetic tables, the task and the kind of net and kinetics
-TASK_TITLE = {
-    "transitions": "Firing counts between two markings",
-    "next": "Forward simulation",
-}
-REGIME_TITLE = {
-    "graph": "directed graphs, stochastic token game",
-    "petri": "Petri nets, stochastic token game",
-    "petri-ode": "Petri nets, deterministic flow",
-    "graph-sat": "directed graphs, saturating kinetics",
-    "petri-sat": "Petri nets, saturating kinetics",
-    "petri-min": "Petri nets, infinite-server kinetics set by the scarcest input",
-}
-
-# (split, metric, header, decimals), nrmse = RMSE / std of the target = sqrt(1 - R^2)
-TABLES = {
-    "transitions": [
-        ("test", "rmse", "RMSE", 3),
-        ("test", "mae", "MAE", 3),
-        ("test", "rmse_row", "RMSE in im C^T", 3),
-        ("test", "rmse_ker", "RMSE in ker C", 3),
-        ("test", "acc_sample", "all counts exact", 3),
-        ("test", "consistent", "takes A to B", 3),
-        ("test", "unexplained_tokens", "tokens unexplained", 2),
-        ("test-large", "nrmse", "larger nets: nRMSE", 3),
-        ("test-tokens", "nrmse", "3x tokens: nRMSE", 3),
-        ("test-gap", "nrmse", "longer gap: nRMSE", 3),
-    ],
-    "next": [
-        ("test", "nrmse@1", "1 step", 3),
-        ("test", "nrmse@8", "8 steps", 3),
-        ("test", "nrmse@40", "40 steps", 3),
-        ("test", "drift@40", "conservation drift @40", 4),
-        ("test", "negative_frac", "negative markings", 4),
-        ("test-large", "nrmse@40", "larger nets @40", 3),
-        ("test-tokens", "nrmse@40", "3x tokens @40", 3),
-        ("test", "firing_corr", "hidden firing vs truth (r)", 3),
-    ],
-}
 
 
 def cell(values, decimals):
@@ -103,79 +28,6 @@ def cell(values, decimals):
     return f"{mean:.{decimals}f}" + (
         f" +- {std:.{decimals}f}" if len(values) > 1 else ""
     )
-
-
-def main(root="results"):
-    runs = defaultdict(list)
-    for path in sorted(
-        q for task in TABLES for q in (Path(root) / task).glob("*/*.json")
-    ):
-        r = json.loads(path.read_text())
-        for m in r["metrics"].values():
-            if "r2" in m:
-                m["nrmse"] = float(np.sqrt(max(0.0, 1 - m["r2"])))
-
-        runs[r["task"], r["regime"], r["model"]].append(r)
-
-    for task, columns in TABLES.items():
-        for regime in sorted({k[1] for k in runs if k[0] == task}):
-            print(f"\n### {TASK_TITLE[task]}, {REGIME_TITLE[regime]}\n")
-            print("| model | params | " + " | ".join(c[2] for c in columns) + " |")
-            print("|---|---:|" + "---:|" * len(columns))
-
-            for model in ORDER:
-                rs = runs.get((task, regime, model))
-                if rs:
-                    cells = [
-                        cell([r["metrics"].get(s, {}).get(k) for r in rs], d)
-                        for s, k, _, d in columns
-                    ]
-                    print(
-                        f"| {LABEL[model]} | {rs[0]['params']:,} | "
-                        + " | ".join(cells)
-                        + " |"
-                    )
-
-    protocol = Path(root) / "paper_protocol.json"
-    if protocol.exists():
-        results = json.loads(protocol.read_text())
-        keys = [
-            ("rmse", "RMSE"),
-            ("mae", "MAE"),
-            ("rmse_row", "RMSE in im C^T"),
-            ("rmse_ker", "RMSE in ker C"),
-            ("consistent", "takes A to B"),
-            ("npf_wins", "NPF better in (paired runs)"),
-        ]
-        for noise, title in (
-            ("0.0", "exact states"),
-            ("1.0", "states observed with noise U(-1, 1)"),
-        ):
-            print(
-                f"\n### paper protocol (one fixed net, 70 training samples, 300 epochs) / {title}\n"
-            )
-            print("| model | params | " + " | ".join(h for _, h in keys) + " |")
-            print("|---|---:|" + "---:|" * len(keys))
-
-            for name, label in PROTOCOL_LABEL.items():
-                m = results.get(f"{name}|noise={noise}")
-                if m:
-                    print(
-                        f"| {label} | {m['params'][0]:,.0f} | "
-                        + " | ".join(
-                            (
-                                (
-                                    f"{m[k][0]:.0%}"
-                                    if k == "npf_wins"
-                                    else f"{m[k][0]:.3f} +- {m[k][1]:.3f}"
-                                )
-                                if k in m
-                                else "-"
-                            )
-                            for k, _ in keys
-                        )
-                        + " |"
-                    )
 
 
 CHEM_LABEL = {
@@ -381,143 +233,6 @@ def load_bearing(root="results"):
             if rs:
                 print(
                     f"| {label} | {mean_std([r['metrics']['product_top1'] for r in rs], 4)} | {mean_std([r['metrics']['valence_valid'] for r in rs], 4)} |"
-                )
-
-    loc = read("locality.json")
-    if loc:
-        lengths = [k for k in loc["npf"][0] if k.isdigit()]
-        print(
-            "\n### locality lower bound: RMSE on chain nets of length L after training on random graphs\n"
-        )
-        print(
-            "| model | "
-            + " | ".join(f"L = {k}" for k in lengths)
-            + " | random graphs |\n|---|"
-            + "---:|" * (len(lengths) + 1)
-        )
-
-        for name, label in (
-            ("gnn", "GNN"),
-            ("pgnn", "PGNN (paper)"),
-            ("pgnn+", "PGNN+"),
-            ("pgnn+se", "PGNN+ with state equation"),
-            ("npf", "NPF"),
-        ):
-            if name in loc:
-                print(
-                    f"| {label} | "
-                    + " | ".join(
-                        mean_std([r[k]["rmse"] for r in loc[name]])
-                        for k in lengths + ["random graphs (in distribution)"]
-                    )
-                    + " |"
-                )
-
-    eq = read("equilibrium.json")
-    if eq:
-        print(
-            "\n### thermodynamic equilibrium layer, equilibrium marking of a reversible net (nRMSE, 1 = no change)\n"
-        )
-        print(
-            "| model | params | test | larger nets | 3x tokens | conservation drift | negative markings |\n|---|---:|---:|---:|---:|---:|---:|"
-        )
-
-        for name, label in (
-            ("gnn", "GNN"),
-            ("pgnn", "PGNN (paper)"),
-            ("pgnn+", "PGNN+"),
-            ("pgnn+se", "PGNN+ with state equation"),
-            ("npf@16", "NPF token game, 16 rounds"),
-            ("npf-thermo", "**NPF equilibrium layer**"),
-        ):
-            if name in eq:
-                rs = eq[name]
-                print(
-                    f"| {label} | {rs[0]['params']:,} | "
-                    + " | ".join(
-                        mean_std([r[k]["nrmse"] for r in rs])
-                        for k in ("test", "test-large", "test-tokens")
-                    )
-                    + f" | {np.mean([r['test']['conservation_drift'] for r in rs]):.0e} | {np.mean([r['test']['negative'] for r in rs]):.4f} |"
-                )
-
-    sh = read("sheaf.json")
-    if sh:
-        print(
-            "\n### learned incidence, conversion ratios hidden, scored against the true net\n"
-        )
-        print(
-            "| model | RMSE | MAE | RMSE in im C^T | takes A to B | larger nets: RMSE |\n|---|---:|---:|---:|---:|---:|"
-        )
-
-        for name, label in (
-            ("pgnn", "PGNN (paper)"),
-            ("pgnn+", "PGNN+"),
-            ("npf-unit", "NPF assuming unit ratios"),
-            (
-                "npf-learned-projection-only",
-                "NPF, incidence learned through the projection only (ablation)",
-            ),
-            (
-                "npf-learned",
-                "**NPF, learned incidence (state-equation consistency loss)**",
-            ),
-            ("npf-oracle", "NPF with the true incidence (oracle)"),
-        ):
-            if name in sh:
-                rs = sh[name]
-                print(
-                    f"| {label} | "
-                    + " | ".join(
-                        mean_std([r["test"][k] for r in rs])
-                        for k in ("rmse", "mae", "rmse_row", "consistent")
-                    )
-                    + f" | {mean_std([r['test-large']['rmse'] for r in rs])} |"
-                )
-
-        for name, label in (
-            ("npf-learned", "with the consistency loss"),
-            ("npf-learned-projection-only", "through the projection only"),
-        ):
-            if name in sh:
-                print(
-                    f"\nLearned conversion ratios, {label}. Largest relative error {np.mean([r['ratio_relative_error'] for r in sh[name]]):.2%}, "
-                    f"largest violation of R[a,b]R[b,c] = R[a,c] (no arbitrage) {np.mean([r['arbitrage_gap'] for r in sh[name]]):.2%}, means over seeds."
-                )
-
-    col = read("coloured.json")
-    if col:
-        print(
-            "\n### coloured tokens (masses and colours one step and eight steps ahead)\n"
-        )
-        keys = (
-            "mass_nrmse@1",
-            "colour_rmse@1",
-            "mass_nrmse@8",
-            "colour_rmse@8",
-            "colour_change_without_inflow",
-        )
-        print(
-            "| model | params | "
-            + " | ".join(keys)
-            + " | larger nets: colour_rmse@8 |\n|---|---:|"
-            + "---:|" * (len(keys) + 1)
-        )
-
-        for name, label in (
-            ("pgnn+", "PGNN+ on [mass, colour]"),
-            ("npf-free", "NPF masses, free colour update (ablation)"),
-            ("npf-coloured", "**NPF, coloured tokens**"),
-        ):
-            if name in col:
-                rs = col[name]
-                print(
-                    f"| {label} | {rs[0]['params']:,} | "
-                    + " | ".join(
-                        mean_std([r["test"].get(k, float("nan")) for r in rs], 4)
-                        for k in keys
-                    )
-                    + f" | {mean_std([r['test-large']['colour_rmse@8'] for r in rs], 4)} |"
                 )
 
     inv = read("chem/insights_invariance.json")
@@ -782,7 +497,6 @@ def benchmarks_with_published_protocols(root="results"):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:])
     chemistry(*sys.argv[1:])
     benchmarks_with_published_protocols(*sys.argv[1:])
     load_bearing(*sys.argv[1:])
