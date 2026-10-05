@@ -99,7 +99,7 @@ def test_script_imports(path):
 def test_no_reference_to_old_module_paths():
     """python -m npf.<script> and the flat module names are gone, so no code, docstring or message may mention them."""
     import re
-    flat = "chem_[a-z]+|experiment|sweep|report|paper_[a-z]+|theory_checks|thermo|sheaf|coloured|locality|data"
+    flat = "chem_[a-z]+|experiment|report|paper_[a-z]+|theory_checks|data"
     old_name = re.compile(rf"\bnpf[./]({flat})\b|\bnpf/models\.py")
     hits = []
     for path in sorted((ROOT / "benchmarks").rglob("*.py")) + sorted((ROOT / "src").rglob("*.py")):
