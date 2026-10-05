@@ -13,8 +13,28 @@ from benchmarks.chemistry.experiment import product_found, splits
 from npf import chem
 from npf.chem import open_net
 from npf.chem.orders import slack
+from rdkit import Chem, RDLogger
+
+RDLogger.DisableLog("rdApp.*")
 
 SAMPLE = 5000
+
+
+def unmapped(smiles):
+    """A reaction as sorted canonical SMILES of each side without atom-map numbers, to compare two records."""
+    sides = []
+    for side in smiles.split(">>"):
+        parts = []
+        for part in side.split("."):
+            m = Chem.MolFromSmiles(part)
+            if m is not None:
+                for a in m.GetAtoms():
+                    a.SetAtomMapNum(0)
+                part = Chem.MolToSmiles(m)
+            parts.append(part)
+        sides.append(".".join(sorted(parts)))
+
+    return ">>".join(sides)
 
 
 def balance_facts(reactions):
@@ -82,6 +102,12 @@ def main(out="results/data_facts.json"):
             ),
         },
     }
+
+    # test reactions of the published classification split that repeat a training reaction
+    seen = {unmapped(r["smiles"]) for r in schneider["reactions"] if r["split"] == "train"}
+    test = [r for r in schneider["reactions"] if r["split"] == "test"]
+    facts["schneider50k"]["test_duplicating_train"] = sum(unmapped(r["smiles"]) in seen for r in test)
+    facts["schneider50k"]["test"] = len(test)
 
     # training states of the token game, from the targets of the net where they exist, else from the recorded vectors
     targets = Path("data/net_targets_schneider50k.pkl")
