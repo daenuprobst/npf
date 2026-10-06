@@ -1,7 +1,7 @@
 """The API on a few Schneider reactions written the way a user writes them, SMILES and a label per line, no maps."""
 import numpy as np
 
-from npf.chem import api
+from npflow.chem import api
 
 
 def files(schneider, tmp_path):

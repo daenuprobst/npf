@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from conftest import assert_same_arrays
 
-from npf import chem
+from npflow import chem
 
 
 def test_beam_search_batch_matches_one_at_a_time(schneider):

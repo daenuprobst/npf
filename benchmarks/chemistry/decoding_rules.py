@@ -1,5 +1,5 @@
 """Top-1 accuracy of one trained token game under the three generations of the decoding rules, RECONSTRUCTION in
-npf.chem.decode. The firings are the same, only the reading of slack tokens as hydrogens and charges differs. The rules
+npflow.chem.decode. The firings are the same, only the reading of slack tokens as hydrogens and charges differs. The rules
 are compared on the validation reactions of experiment.SCREEN that no run selects on. The ceiling, the share of
 reactions whose recorded firings decode to the recorded product, is also reported on the test set, where it decides
 nothing.
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import torch
 
-from npf import chem
-from npf.chem import decode
+from npflow import chem
+from npflow.chem import decode
 
 from .experiment import SCREEN, USPTO_MIT_TEST_LINES, batches, product_found, splits
 

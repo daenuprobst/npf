@@ -22,40 +22,40 @@ Models and data live in the package, one model per file. Everything that produce
 
 | File | What it does |
 |---|---|
-| `src/npf/nets.py` | attributed nets, incidence matrix, invariants, random and chain nets |
-| `src/npf/simulate.py` | stochastic token game and continuous flow |
-| `src/npf/datasets.py` | pairs of markings with firing counts, next-state samples |
-| `src/npf/batching.py` | many nets as one disjoint net |
-| `src/npf/layers.py` | enabling, conflict resolution, token game flow, state-equation projection |
-| `src/npf/models/npf.py` | rate law, token game, bridge, projection, occupancy refinement |
-| `src/npf/models/pgnn.py` | PGNN as published, and its variants |
-| `src/npf/models/linear_pgnn.py` | the linear special case of the PGNN paper |
-| `src/npf/models/gnn.py` | message passing on the place graph |
-| `src/npf/models/state_equation_only.py` | projection without learning |
-| `src/npf/models/equilibrium.py` | equilibrium layer, learned place energies, dual Newton |
-| `src/npf/models/learned_incidence.py` | learned arc weights |
-| `src/npf/models/coloured.py` | coloured tokens |
-| `src/npf/chem/featurisation.py` | reactions as markings of the valence net |
-| `src/npf/chem/encoder.py` | message passing on the valence net |
-| `src/npf/chem/decode.py` | products, by-products and atom maps read from a marking |
-| `src/npf/chem/token_game.py` | forward prediction as a firing sequence with enabling |
-| `src/npf/chem/one_shot.py` | one-shot counterpart of the token game |
-| `src/npf/chem/classifier.py` | state-equation readout, and the explicit firing vector |
-| `src/npf/chem/targets.py` | training targets from the net, and the scoring of a marking against the recorded product |
-| `src/npf/chem/mapper.py` | the atom mapper, the minimum firing vector without a solver, all its ties, and the third level that chooses among them |
-| `src/npf/chem/search.py` | the branch and bound behind the mapper, bounded by linear assignments on the places of the net |
-| `src/npf/chem/third_level.py` | the three counts that rank maps of equal cost, oxidation state of carbon, aromatic bonds, electron sinks |
-| `src/npf/chem/cost.py` | the two levels of the cost of a mapping |
-| `src/npf/chem/cgr.py` | the condensed graph of reaction, which merges maps into classes and scores a map against a reference |
-| `src/npf/chem/mapping.py` | the maps of the mapper as SMILES with map numbers |
-| `src/npf/chem/api.py` | train, validate, test and use the models on your own reactions, with PyTorch Lightning |
-| `src/npf/chem/exact.py` | the same minimum as an integer program with CP-SAT, the first version of the mapper, kept as the reference the search is checked against |
-| `src/npf/chem/open_net.py` | source transitions for reactions whose reactants the record omits |
-| `src/npf/chem/minimise.py` | a heuristic seating, the start of the integer program |
-| `src/npf/chem/orders.py` | enabled linearisations of a firing vector |
-| `src/npf/chem/verifier.py` | re-ranker for token game candidates, no gain, kept for the record |
-| `src/npf/chem/arrows.py` | a mechanistic step as a net of electron pairs, arrows as transitions, the octet rule as enabling |
-| `src/npf/chem/arrow_game.py` | elementary steps as firing sequences of that net |
+| `src/npflow/nets.py` | attributed nets, incidence matrix, invariants, random and chain nets |
+| `src/npflow/simulate.py` | stochastic token game and continuous flow |
+| `src/npflow/datasets.py` | pairs of markings with firing counts, next-state samples |
+| `src/npflow/batching.py` | many nets as one disjoint net |
+| `src/npflow/layers.py` | enabling, conflict resolution, token game flow, state-equation projection |
+| `src/npflow/models/npf.py` | rate law, token game, bridge, projection, occupancy refinement |
+| `src/npflow/models/pgnn.py` | PGNN as published, and its variants |
+| `src/npflow/models/linear_pgnn.py` | the linear special case of the PGNN paper |
+| `src/npflow/models/gnn.py` | message passing on the place graph |
+| `src/npflow/models/state_equation_only.py` | projection without learning |
+| `src/npflow/models/equilibrium.py` | equilibrium layer, learned place energies, dual Newton |
+| `src/npflow/models/learned_incidence.py` | learned arc weights |
+| `src/npflow/models/coloured.py` | coloured tokens |
+| `src/npflow/chem/featurisation.py` | reactions as markings of the valence net |
+| `src/npflow/chem/encoder.py` | message passing on the valence net |
+| `src/npflow/chem/decode.py` | products, by-products and atom maps read from a marking |
+| `src/npflow/chem/token_game.py` | forward prediction as a firing sequence with enabling |
+| `src/npflow/chem/one_shot.py` | one-shot counterpart of the token game |
+| `src/npflow/chem/classifier.py` | state-equation readout, and the explicit firing vector |
+| `src/npflow/chem/targets.py` | training targets from the net, and the scoring of a marking against the recorded product |
+| `src/npflow/chem/mapper.py` | the atom mapper, the minimum firing vector without a solver, all its ties, and the third level that chooses among them |
+| `src/npflow/chem/search.py` | the branch and bound behind the mapper, bounded by linear assignments on the places of the net |
+| `src/npflow/chem/third_level.py` | the three counts that rank maps of equal cost, oxidation state of carbon, aromatic bonds, electron sinks |
+| `src/npflow/chem/cost.py` | the two levels of the cost of a mapping |
+| `src/npflow/chem/cgr.py` | the condensed graph of reaction, which merges maps into classes and scores a map against a reference |
+| `src/npflow/chem/mapping.py` | the maps of the mapper as SMILES with map numbers |
+| `src/npflow/chem/api.py` | train, validate, test and use the models on your own reactions, with PyTorch Lightning |
+| `src/npflow/chem/exact.py` | the same minimum as an integer program with CP-SAT, the first version of the mapper, kept as the reference the search is checked against |
+| `src/npflow/chem/open_net.py` | source transitions for reactions whose reactants the record omits |
+| `src/npflow/chem/minimise.py` | a heuristic seating, the start of the integer program |
+| `src/npflow/chem/orders.py` | enabled linearisations of a firing vector |
+| `src/npflow/chem/verifier.py` | re-ranker for token game candidates, no gain, kept for the record |
+| `src/npflow/chem/arrows.py` | a mechanistic step as a net of electron pairs, arrows as transitions, the octet rule as enabling |
+| `src/npflow/chem/arrow_game.py` | elementary steps as firing sequences of that net |
 
 ### Benchmarks
 
@@ -288,7 +288,7 @@ The models train on reaction SMILES without atom maps. A file holds one reaction
 an optional tab separated class label. The mapper computes the targets once per file, milliseconds per reaction for
 most reactions, and caches them next to it.
 
-    from npf.chem import api
+    from npflow.chem import api
 
     data = api.ReactionData("train.txt", "val.txt", "test.txt")
     model = api.ForwardModel()                                 # width=256, rounds=8, attention=8 is the USPTO-MIT model
@@ -305,9 +305,9 @@ most reactions, and caches them next to it.
 `api.trainer` is a Lightning trainer with the settings of the paper, AdamW, a one-cycle schedule, gradient clipping and
 the best epoch kept. Any Lightning trainer works, and `ForwardModel.load_from_checkpoint` reloads a run. Without
 `sigma` the classifier is the state-equation readout, which needs no mapper at test time. `map_reaction` and the
-training targets use the mapper of the paper, `npf.chem.mapper`, the minimum firing vector of the chosen cost, found and
+training targets use the mapper of the paper, `npflow.chem.mapper`, the minimum firing vector of the chosen cost, found and
 proved by a branch and bound without a solver, with a third level that chooses among its ties. The integer program of
-`npf.chem.exact` gives the same minimum and stays as a reference, and the benchmark scripts run it with `--solver cp-sat`.
+`npflow.chem.exact` gives the same minimum and stays as a reference, and the benchmark scripts run it with `--solver cp-sat`.
 
 ## Conventions
 

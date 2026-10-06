@@ -2,7 +2,7 @@
 
 A mapping seats every product atom on a precursor atom of the same element. The first level counts the bond places a
 firing empties or fills, the bonds made and broken, the second the order tokens on kept bonds, hydrogen and charge. Both
-the solver-free search of npf.chem.search and the integer program of npf.chem.exact minimise these two levels.
+the solver-free search of npflow.chem.search and the integer program of npflow.chem.exact minimise these two levels.
 """
 
 import numpy as np

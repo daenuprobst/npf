@@ -33,7 +33,7 @@ from pathlib import Path
 import numpy as np
 from scipy.optimize import linprog
 
-from npf.nets import Net
+from npflow.nets import Net
 
 ROOT = Path("data/metabolism")
 CORE = ROOT / "raw/bigg/e_coli_core.json"

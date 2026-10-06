@@ -35,9 +35,9 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from npf.chem import arrows, electron
-from npf.chem.arrow_game import MAX_ARROWS, ArrowGame
-from npf.chem.electron_game import KINDS, ElectronGame
+from npflow.chem import arrows, electron
+from npflow.chem.arrow_game import MAX_ARROWS, ArrowGame
+from npflow.chem.electron_game import KINDS, ElectronGame
 
 SOURCE = Path("data/flower/2025/data/flower_dataset")
 RESULTS = Path("results/mechanism")

@@ -21,8 +21,8 @@ import numpy as np
 import torch
 from scipy.sparse.csgraph import shortest_path
 
-from npf import chem
-from npf.chem import cost
+from npflow import chem
+from npflow.chem import cost
 
 from .experiment import batches, splits, use_predicted_firing
 

@@ -7,8 +7,8 @@ import pytest
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-from npf import chem
-from npf.chem.decode import CHIRAL, _odd, stereo_source
+from npflow import chem
+from npflow.chem.decode import CHIRAL, _odd, stereo_source
 
 
 def firing(smiles):

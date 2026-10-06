@@ -7,8 +7,8 @@ import torch
 
 from benchmarks.chemistry import mechanism as M
 from benchmarks.chemistry.mechanism_pathways import pathway_rank
-from npf.chem import arrows
-from npf.chem.electron_game import ElectronGame
+from npflow.chem import arrows
+from npflow.chem.electron_game import ElectronGame
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOWER = ROOT / "data/flower/2025/data/flower_dataset/train.txt"

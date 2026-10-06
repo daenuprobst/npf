@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from npf import models
+from npflow import models
 
 from . import data, flux
 from .baselines import common

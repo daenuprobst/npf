@@ -15,9 +15,9 @@ import numpy as np
 import torch
 from scipy.linalg import null_space
 
-from npf import batching, chem, datasets, layers, models
-from npf.models.equilibrium import ThermoNPF
-from npf.nets import Net
+from npflow import batching, chem, datasets, layers, models
+from npflow.models.equilibrium import ThermoNPF
+from npflow.nets import Net
 from benchmarks.chemistry.experiment import splits
 from benchmarks.chemistry.invariance import RADIUS, add_methyl, remote_site
 

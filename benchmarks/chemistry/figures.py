@@ -21,7 +21,7 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 
-from npf import chem
+from npflow import chem
 
 from .experiment import splits
 

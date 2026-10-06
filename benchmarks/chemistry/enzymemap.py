@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
+from npflow import chem
 
 FOLDER = Path("data/enzymemap")
 

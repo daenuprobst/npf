@@ -10,9 +10,9 @@ canonical form of Somnath et al. 2021 (graphretro), 40,008 / 5,001 / 5,007 react
 for it are those of Table 2 of SynBridge (arXiv 2507.08475).
 
 Products are compared without stereo as in every other forward run, and summary rescores the beams of every run with
-stereo, which the decoded molecules take from the precursors where no firing touched them (npf.chem.decode.copy_stereo).
+stereo, which the decoded molecules take from the precursors where no firing touched them (npflow.chem.decode.copy_stereo).
 
-Every set is written like data/uspto_mit.pkl, precursors and reagents merged by npf.chem.reaction, with its number of
+Every set is written like data/uspto_mit.pkl, precursors and reagents merged by npflow.chem.reaction, with its number of
 test lines, so a test reaction that cannot be read counts as wrong and the denominator is the published one.
 
     uv run python -m benchmarks.chemistry.small_forward download    # data/small_forward/
@@ -37,8 +37,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem.decode import stereo_source
+from npflow import chem
+from npflow.chem.decode import stereo_source
 
 SOURCE = Path("data/small_forward")
 
@@ -156,7 +156,7 @@ def rows(name):
             out += [(split, line.split()[0]) for line in (SOURCE / "bv" / file).read_text().splitlines()]
     elif name == "uspto_50k":
         for split, (file, _) in USPTO_50K_FILES.items():
-            # reactants>reagents>product with atom maps, which npf.chem.reaction removes
+            # reactants>reagents>product with atom maps, which npflow.chem.reaction removes
             with open(SOURCE / "uspto_50k" / file) as f:
                 out += [(split, row["reactants>reagents>production"]) for row in csv.DictReader(f)]
     else:
@@ -312,7 +312,7 @@ def summary(args):
 
     out["scoring"] = (
         "ours, top-k of the beam of five over every test line, the recorded product among the molecules of the "
-        "marking (npf.chem.product_found), without stereo, and with stereo taken from the precursors where no firing "
+        "marking (npflow.chem.product_found), without stereo, and with stereo taken from the precursors where no firing "
         "touched them. Each published row says how its paper treats stereo."
     )
     root.mkdir(parents=True, exist_ok=True)

@@ -2,7 +2,7 @@
 
 Every model receives the same net and the same two markings, which carry the measured exchange rates, the growth rate,
 the ATP maintenance and the knockouts, and predicts the firing counts of all transitions over one hour, the fluxes in
-mmol/gDW/h. The learned models are those of npf.models. On this net the transitions are the same in every culture, so
+mmol/gDW/h. The learned models are those of npflow.models. On this net the transitions are the same in every culture, so
 the -k and -gma variants give NPF and PGNN alike a rate constant per transition and, for -gma, the boundary of the
 culture as read arcs. Every projection is the I projection, whose output is the positive firing count vector of a real
 run, sigma > 0 with C sigma = m_B - m_A, unless --gauss keeps the Gaussian projection, which meets the state equation
@@ -26,8 +26,8 @@ import numpy as np
 import torch
 from scipy.optimize import linprog
 
-from npf import batching, models
-from npf.datasets import Group
+from npflow import batching, models
+from npflow.datasets import Group
 
 from . import data
 

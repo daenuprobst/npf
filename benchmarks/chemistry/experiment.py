@@ -6,7 +6,7 @@
 Models. npf uses the Petri semantics, pgnn is the same message passing with a generic readout, drfp is DRFP with an
 MLP for classification, and the npf-no... variants remove one Petri component each.
 
-Maps. Every map and target comes from the mapper of npf.chem.mapper, no recorded map is read where avoidable.
+Maps. Every map and target comes from the mapper of npflow.chem.mapper, no recorded map is read where avoidable.
 Classification reads its maps with --maps. Forward prediction trains on the firing vectors of the mapper in
 data/net_targets_<dataset>[-sub<n>].pkl, which benchmarks.chemistry.net_targets builds when the file is missing, or in
 the file of --net-targets, and --recorded-maps trains on the recorded atom maps instead, the ablation of the paper.
@@ -33,9 +33,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from npf import chem
-from npf.chem import decode
-from npf.chem import (
+from npflow import chem
+from npflow.chem import decode
+from npflow.chem import (
     MAX_TOKENS,
     batch_indices,
     batches,

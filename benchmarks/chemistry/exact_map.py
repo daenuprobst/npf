@@ -1,11 +1,11 @@
 """Atom maps as exact minimum firing vectors of the valence net, with no learning and no recorded map.
 
 The cost is lexicographic, first the bond places a firing empties or fills, then the tokens that move on places that
-stay marked, on hydrogen and on charge, and the branch and bound of npf.chem.search finds and proves the minimum with
-no solver. With the chosen cost the classes of optimal mappings are then ranked by npf.chem.third_level, the mapper
+stay marked, on hydrogen and on charge, and the branch and bound of npflow.chem.search finds and proves the minimum with
+no solver. With the chosen cost the classes of optimal mappings are then ranked by npflow.chem.third_level, the mapper
 of the paper, and --no-third-level keeps the first optimum of the search. The second and third levels were chosen on 200 Golden reactions, the other 1,560 are held out and reported
 apart, since the recorded maps of Schneider 50k often swap the two oxygens of an acid. --solver cp-sat runs the
-integer program of npf.chem.exact instead, with a budget in deterministic time, and marks its files -cpsat.
+integer program of npflow.chem.exact instead, with a budget in deterministic time, and marks its files -cpsat.
 
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --secondary 0,0,0 --labile-h --no-ch-places
     uv run python -m benchmarks.chemistry.exact_map --data golden-dev --labile-h --no-ch-places
@@ -26,8 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem import cost, mapper
+from npflow import chem
+from npflow.chem import cost, mapper
 
 from .golden import same_cgr
 
@@ -104,7 +104,7 @@ def work(job):
 
             if solver == "cp-sat":
                 # the integer program, and with it OR-tools, is loaded only when asked for
-                from npf.chem import exact
+                from npflow.chem import exact
 
                 solve = exact.solve
 
@@ -166,13 +166,13 @@ if __name__ == "__main__":
         "--solver",
         choices=("search", "cp-sat"),
         default="search",
-        help="the branch and bound of npf.chem.search, or the integer program of npf.chem.exact",
+        help="the branch and bound of npflow.chem.search, or the integer program of npflow.chem.exact",
     )
     ap.add_argument(
         "--third-level",
         action=argparse.BooleanOptionalAction,
         default=None,
-        help="rank the optimal mappings by npf.chem.third_level, the mapper of the paper, on by default with the chosen "
+        help="rank the optimal mappings by npflow.chem.third_level, the mapper of the paper, on by default with the chosen "
         "cost and the search, --no-third-level keeps the first optimum",
     )
     ap.add_argument(

@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from npf import chem
+from npflow import chem
 
 from .experiment import evaluate
 

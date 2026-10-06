@@ -2,7 +2,7 @@
 import numpy as np
 import torch
 
-from npf import chem
+from npflow import chem
 from benchmarks.chemistry import experiment, verify
 
 

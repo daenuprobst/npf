@@ -2,8 +2,8 @@
 import numpy as np
 import pytest
 
-from npf import chem
-from npf.chem import exact, open_net
+from npflow import chem
+from npflow.chem import exact, open_net
 
 OPTIONS = dict(secondary=(1, 1, 1), labile_h=False, ch_places=True, seconds=30)
 

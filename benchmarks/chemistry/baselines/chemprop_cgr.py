@@ -11,7 +11,7 @@ Schneider 50k classification of the paper, on the same maps, splits and label dr
 Data. The reactions, the 500 validation reactions, the 39,994 test reactions, the stratified label draws of a seed and
 the size split come from benchmarks.chemistry.experiment, so every run sees exactly the reactions of the classifier
 run of the same seed. Every reaction carries the atom maps of the mapper (data/exact_maps_schneider50k.pkl) that the
-firing-vector classifier reads, written into its SMILES by npf.chem.mapping.mapped_smiles, and a reaction the mapper
+firing-vector classifier reads, written into its SMILES by npflow.chem.mapping.mapped_smiles, and a reaction the mapper
 leaves without a complete map enters unmapped, as it does for the classifier.
 
 Model. Chemprop's own command line with its defaults (hidden size 300, depth 3, norm aggregation, 50 epochs, batch
@@ -45,8 +45,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem.mapping import mapped_smiles
+from npflow import chem
+from npflow.chem.mapping import mapped_smiles
 
 from ..experiment import splits, stratified
 
