@@ -667,24 +667,29 @@ wheels = [
 ]
 
 [[package]]
-name = "npf"
+name = "npflow"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "lightning" },
+    { name = "networkx" },
     { name = "numpy" },
-    { name = "ortools" },
     { name = "rdkit" },
     { name = "scipy" },
     { name = "torch" },
+]
+
+[package.optional-dependencies]
+cpsat = [
+    { name = "ortools" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "drfp" },
     { name = "matplotlib" },
-    { name = "networkx" },
     { name = "ortools" },
+    { name = "pandas" },
     { name = "pillow" },
     { name = "pytest" },
 ]
@@ -692,19 +697,21 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "lightning", specifier = ">=2.6.6" },
-    { name = "numpy" },
-    { name = "ortools", specifier = ">=9.15.6755" },
+    { name = "networkx", specifier = ">=3.2" },
+    { name = "numpy", specifier = ">=2.0" },
+    { name = "ortools", marker = "extra == 'cpsat'", specifier = ">=9.15.6755" },
     { name = "rdkit", specifier = ">=2026.3.6" },
-    { name = "scipy" },
-    { name = "torch" },
+    { name = "scipy", specifier = ">=1.13" },
+    { name = "torch", specifier = ">=2.6" },
 ]
+provides-extras = ["cpsat"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "drfp", specifier = ">=0.3.7" },
     { name = "matplotlib" },
-    { name = "networkx" },
     { name = "ortools", specifier = ">=9.15.6755" },
+    { name = "pandas" },
     { name = "pillow" },
     { name = "pytest" },
 ]
