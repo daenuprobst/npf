@@ -26,6 +26,9 @@ dependencies = [
     "lightning>=2.6.6",
 ]
 
+[project.scripts]
+npflow = "npflow.cli:main"
+
 [project.optional-dependencies]
 # the integer program of npflow.chem.exact, the first version of the mapper, kept as its reference
 cpsat = ["ortools>=9.15.6755"]
