@@ -11,6 +11,20 @@ three questions about one firing vector.
 
 ## Install
 
+From PyPI, for Python 3.12 and 3.13:
+
+    pip install npflow                # or: uv add npflow
+    pip install "npflow[cpsat]"       # also the integer program of the first mapper, which needs OR-tools
+
+The atom mapper needs no training and runs from the terminal on one reaction or on a file with one per line, an
+optional identifier after a tab. A reaction that cannot be mapped gives an empty line, so the lines stay in order.
+
+    npflow map "CC(=O)Cl.CN>>CC(=O)NC"
+    npflow map reactions.smi -o mapped.smi --processes 8
+
+In Python, `from npflow.chem import map_reaction`, and the models are in `npflow.chem.api` (see Your own reactions). To
+work on the code or reproduce the paper, clone the repository, which holds the benchmarks, their results and the tests:
+
     uv sync
 
 ## Layout
