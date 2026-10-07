@@ -1,7 +1,7 @@
 """Training targets from the net alone, and the scoring of a marking against the recorded product.
 
 A reaction with a product but no atom map still has firing vectors, the minimum ones that the mapper of
-npf.chem.mapper finds. Every optimal mapping gives one. Those with an enabled order that move at most MAX_TOKENS tokens
+npflow.chem.mapper finds. Every optimal mapping gives one. Those with an enabled order that move at most MAX_TOKENS tokens
 and decode to the recorded product are the targets of the token game, and the mapping that the third level chooses
 serves the classifier.
 """

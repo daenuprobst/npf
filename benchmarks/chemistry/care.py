@@ -27,7 +27,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from npf import chem
+from npflow import chem
 
 from .experiment import batches, epoch_loader, use_predicted_firing
 

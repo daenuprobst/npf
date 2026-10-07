@@ -12,8 +12,8 @@ every number comes from one scorer.
     uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --seconds 60   # .../60s/scores.json
     uv run --with "synkit>=1.5,<1.6" python -m benchmarks.chemistry.synrxn_map score --single-product
 
-The mapper is npf.chem.mapper, the search without a solver and the third level of npf.chem.third_level, and its maps
-land in search-<seconds>s. --solver cp-sat maps with the integer program of npf.chem.exact instead, as the first
+The mapper is npflow.chem.mapper, the search without a solver and the third level of npflow.chem.third_level, and its maps
+land in search-<seconds>s. --solver cp-sat maps with the integer program of npflow.chem.exact instead, as the first
 version of the paper did, and with --retries its budget doubles until optimality is proved, in <seconds>s-proved.
 
     uv run python -m benchmarks.chemistry.synrxn_map map --seconds 60
@@ -33,9 +33,9 @@ from pathlib import Path
 import numpy as np
 from rdkit import Chem, RDLogger
 
-from npf import chem
-from npf.chem import cost, mapper, open_net
-from npf.chem.mapping import mapped_smiles
+from npflow import chem
+from npflow.chem import cost, mapper, open_net
+from npflow.chem.mapping import mapped_smiles
 
 from .golden import mapping_from_smiles, same_cgr
 
@@ -121,7 +121,7 @@ def work(job):
             mapping, places, proved, _ = open_net.solve_open(reaction, **options)
         else:
             # the integer program, and with it OR-tools, is loaded only when asked for
-            from npf.chem import exact
+            from npflow.chem import exact
 
             hint = chem.feasible_start(reaction)
             mapping, places, proved = exact.solve(
@@ -313,7 +313,7 @@ def main():
         "--solver",
         choices=("search", "cp-sat"),
         default="search",
-        help="the mapper of npf.chem.mapper, or the integer program of npf.chem.exact",
+        help="the mapper of npflow.chem.mapper, or the integer program of npflow.chem.exact",
     )
     ap.add_argument("--seconds", type=float, default=60.0)
     ap.add_argument("--processes", type=int, default=6)

@@ -20,7 +20,7 @@ import numpy as np
 import torch
 from scipy.sparse.csgraph import shortest_path
 
-from npf import chem
+from npflow import chem
 
 from .experiment import batches, splits
 

@@ -7,7 +7,7 @@ the product and the net. Vectors that differ by a symmetry are all kept and the 
 in time the cheapest vector found stands alone.
 
 benchmarks.chemistry.experiment trains forward models on these files by default and builds one that is missing. The
-files of the paper's forward runs were built with the integer program of npf.chem.exact, which lists the same minimum,
+files of the paper's forward runs were built with the integer program of npflow.chem.exact, which lists the same minimum,
 before the search replaced it, and are kept as data/net_targets_<name>-cpsat.pkl.
 
     uv run python -m benchmarks.chemistry.net_targets --dataset uspto_mit --subset 40900   # data/net_targets_uspto_mit-sub40900.pkl
@@ -24,8 +24,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem import cost
+from npflow import chem
+from npflow.chem import cost
 
 from .experiment import splits, subset_lines
 

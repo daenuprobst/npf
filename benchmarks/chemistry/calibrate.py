@@ -12,7 +12,7 @@ from pathlib import Path
 
 import torch
 
-from npf import chem
+from npflow import chem
 
 from .experiment import USPTO_MIT_TEST_LINES, batches, product_found, splits
 

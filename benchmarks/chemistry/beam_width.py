@@ -9,7 +9,7 @@ import time
 import numpy as np
 import torch
 
-from npf import chem
+from npflow import chem
 
 from .experiment import batches, product_found, splits
 

@@ -35,7 +35,7 @@ CHEM_RUNS = [
 @pytest.mark.parametrize("task,model,extra", CHEM_RUNS, ids=[f"{t}-{m}-{k}" for k, (t, m, _) in enumerate(CHEM_RUNS)])
 def test_chemistry_experiment(schneider_all, monkeypatch, tmp_path, task, model, extra):
     from benchmarks.chemistry import experiment, net_targets
-    from npf import chem
+    from npflow import chem
     reactions = schneider_all["reactions"]
 
     if task == "classify":

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-from npf.chem.cost import CHOSEN
+from npflow.chem.cost import CHOSEN
 
 
 def cell(values, decimals):

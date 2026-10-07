@@ -8,11 +8,11 @@ import itertools
 import numpy as np
 import pytest
 
-from npf import chem
-from npf.chem import exact, open_net
-from npf.chem.cgr import same_cgr
-from npf.chem.search import Problem, Search
-from npf.chem.targets import firing_vector
+from npflow import chem
+from npflow.chem import exact, open_net
+from npflow.chem.cgr import same_cgr
+from npflow.chem.search import Problem, Search
+from npflow.chem.targets import firing_vector
 
 
 def solve(r, options=None, use_start=False, enumerate_ties=False, tie_limit=64, sources=()):
@@ -120,7 +120,7 @@ def test_a_bad_incumbent_is_improved():
 
 @pytest.mark.parametrize("smiles", SMALL[:10])
 def test_api_matches_the_integer_program(smiles):
-    from npf.chem import mapper as api
+    from npflow.chem import mapper as api
 
     r = reaction(smiles)
     ref, cost, proved = exact.solve(r, seconds=30, **exact.CHOSEN)
@@ -137,8 +137,8 @@ def test_the_third_level_picks_acyl_cleavage_in_fischer_esterification():
     """Acid and alcohol tie on both levels between acyl C-O and alkyl C-O cleavage, the question isotope labelling
     settles for acyl cleavage. The sink term of the third level takes the carbonyl carbon, which can take the incoming
     pair on its oxygen."""
-    from npf.chem import mapper
-    from npf.chem.third_level import terms
+    from npflow.chem import mapper
+    from npflow.chem.third_level import terms
 
     r = reaction("CC(=O)O.OCC>>CC(=O)OCC")
     maps, proved = mapper.cheapest_mappings(r, limit=1000, **exact.CHOSEN)
@@ -151,8 +151,8 @@ def test_the_third_level_picks_acyl_cleavage_in_fischer_esterification():
 
 def test_best_mapping_does_not_depend_on_the_atom_order():
     """The class with the smallest graph hash is taken among those the third level cannot tell apart."""
-    from npf.chem import mapper
-    from npf.chem.cgr import same_cgr as same
+    from npflow.chem import mapper
+    from npflow.chem.cgr import same_cgr as same
 
     r = reaction("O=C(O)CCC(=O)O.OC>>COC(=O)CCC(=O)O")
     first, _, _ = mapper.best_mapping(r)
@@ -163,7 +163,7 @@ def test_best_mapping_does_not_depend_on_the_atom_order():
 @pytest.mark.parametrize("smiles", ["CC(=O)Cl.OC>>CC(=O)OC.CC(=O)OC", "CC(=O)O>>CC(=O)OC"])
 def test_best_mapping_seats_only_written_atoms(smiles):
     """On the open net, a product atom that no written precursor supplies has the seat -1, never a copy."""
-    from npf.chem import mapper
+    from npflow.chem import mapper
 
     r = reaction(smiles)
     mapping, _, proved = mapper.best_mapping(r)

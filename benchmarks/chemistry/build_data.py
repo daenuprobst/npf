@@ -5,7 +5,7 @@
 """
 import sys
 
-from npf import chem
+from npflow import chem
 
 if __name__ == "__main__":
     if "uspto-mit" in sys.argv:

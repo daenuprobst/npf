@@ -10,9 +10,9 @@ from pathlib import Path
 import numpy as np
 
 from benchmarks.chemistry.experiment import product_found, splits
-from npf import chem
-from npf.chem import open_net
-from npf.chem.orders import slack
+from npflow import chem
+from npflow.chem import open_net
+from npflow.chem.orders import slack
 from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.*")

@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem import cost, mapper, open_net
+from npflow import chem
+from npflow.chem import cost, mapper, open_net
 
 
 def work(job):

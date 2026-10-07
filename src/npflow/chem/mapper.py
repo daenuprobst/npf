@@ -1,10 +1,10 @@
 """The atom mapper, the minimum firing vector of the valence net found and proved without a solver.
 
-The search of npf.chem.search returns the lexicographic minimum of cost.CHOSEN with every optimal mapping, the classes
-of these mappings up to isomorphism of the condensed graph are ranked by the third level of npf.chem.third_level, and
+The search of npflow.chem.search returns the lexicographic minimum of cost.CHOSEN with every optimal mapping, the classes
+of these mappings up to isomorphism of the condensed graph are ranked by the third level of npflow.chem.third_level, and
 of the classes that remain the one with the smallest graph hash is taken, so the map does not depend on the order of
-the atoms. solve, cheapest_mappings and solve_open keep the signatures of their counterparts in npf.chem.exact and
-npf.chem.open_net, which remain as the integer program they were checked against.
+the atoms. solve, cheapest_mappings and solve_open keep the signatures of their counterparts in npflow.chem.exact and
+npflow.chem.open_net, which remain as the integer program they were checked against.
 
     mapping, levels, proved = best_mapping(reaction)
 """
@@ -17,7 +17,7 @@ from .open_net import deficit, with_equivalents
 from .search import Problem, Search
 from .third_level import terms
 
-# one unit of the deterministic budget of npf.chem.exact is read as this many nodes of the search
+# one unit of the deterministic budget of npflow.chem.exact is read as this many nodes of the search
 NODES_PER_UNIT = 10000
 
 

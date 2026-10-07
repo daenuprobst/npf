@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import binomtest
 
-from npf.chem import cost
+from npflow.chem import cost
 
 from .exact_map import golden_dev, load
 from .golden import mapping_from_smiles, same_cgr

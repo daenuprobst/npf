@@ -20,8 +20,8 @@ import numpy as np
 from rdkit import Chem, RDLogger
 from rdkit.Chem import AllChem
 
-from npf import chem
-from npf.chem.cgr import cgr, same_cgr  # noqa: F401
+from npflow import chem
+from npflow.chem.cgr import cgr, same_cgr  # noqa: F401
 
 RDLogger.DisableLog("rdApp.*")
 

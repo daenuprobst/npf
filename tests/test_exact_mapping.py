@@ -4,9 +4,9 @@ import itertools
 import numpy as np
 import pytest
 
-from npf import chem
-from npf.chem import exact
-from npf.chem.featurisation import BOND_ORDER, dense_bonds
+from npflow import chem
+from npflow.chem import exact
+from npflow.chem.featurisation import BOND_ORDER, dense_bonds
 
 SMALL = ["CC(=O)O.OC>>CC(=O)OC", "CC(=O)Cl.NC>>CC(=O)NC", "C=C.BrBr>>BrCCBr", "CC(=O)OC.O>>CC(=O)O", "OCC=C.CC(=O)O>>CC(=O)OCC=C",
          "CC(C)=O.NO>>CC(C)=NO", "C=CC=C.C=CC#N>>N#CC1CC=CCC1"]

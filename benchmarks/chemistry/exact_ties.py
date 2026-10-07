@@ -14,8 +14,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf.chem import cost, mapper
-from npf.chem.cgr import key
+from npflow.chem import cost, mapper
+from npflow.chem.cgr import key
 
 from .exact_map import golden_dev, load
 from .golden import same_cgr

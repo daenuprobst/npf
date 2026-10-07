@@ -3,9 +3,9 @@ import numpy as np
 import pytest
 import torch
 
-from npf import batching, layers, models
-from npf.datasets import Group
-from npf.nets import Net
+from npflow import batching, layers, models
+from npflow.datasets import Group
+from npflow.nets import Net
 
 NAMES = ("npf", "pgnn", "pgnn+", "pgnn+se", "se-only", "npf-k", "npf-gma", "npf-gma-row", "pgnn-gma", "pgnn+se-gma")
 

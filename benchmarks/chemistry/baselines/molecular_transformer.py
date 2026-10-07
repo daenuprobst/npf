@@ -23,7 +23,7 @@ from pathlib import Path
 
 from rdkit import Chem, RDLogger
 
-from npf.chem import canonical_product
+from npflow.chem import canonical_product
 
 from ..experiment import subset_lines
 

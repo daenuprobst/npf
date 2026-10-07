@@ -34,8 +34,8 @@ from pathlib import Path
 
 import numpy as np
 
-from npf import chem
-from npf.chem import featurisation
+from npflow import chem
+from npflow.chem import featurisation
 
 MAPS = Path("data/enzyme_maps")
 ENZYMEMAP = Path("data/enzymemap/enzymemap_v2_brenda2023.csv.gz")

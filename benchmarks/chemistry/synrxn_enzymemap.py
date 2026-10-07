@@ -3,7 +3,7 @@ the curated maps of EnzymeMap with SynKit's AAMValidator and its defaults, as be
 the published mappers.
 
 Every reaction with a curated map of every product atom is scored. Each mapped reaction is written by
-npf.chem.mapping.mapped_smiles from a product -> precursor map in the atom order of the featurised reaction: the
+npflow.chem.mapping.mapped_smiles from a product -> precursor map in the atom order of the featurised reaction: the
 reference from the curated map, ours from the maps of exact_map --third-level, RXNMapper's from its maps read the same
 way. RXNMapper's raw output is scored as well, as a check that reading its maps back loses nothing. The paired
 comparison counts the reactions only one of two mappers gets right, with an exact sign test.
@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 from scipy.stats import binomtest
 
-from npf.chem.mapping import mapped_smiles
+from npflow.chem.mapping import mapped_smiles
 
 DATA = Path("data/enzymemap_ec.pkl")
 MAPS = Path("data/enzyme_maps")

@@ -1,22 +1,47 @@
 [project]
-name = "npf"
+name = "npflow"
 version = "0.2.0"
 description = "Neural Petri Flow. Neural networks that remain Petri nets for every value of their weights"
+readme = "README.md"
 requires-python = ">=3.12,<3.14"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Daniel Probst" }]
+keywords = ["petri-net", "chemistry", "reaction-prediction", "atom-mapping", "graph-neural-network", "rdkit"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
-    "numpy",
-    "scipy",
-    "torch",
+    "numpy>=2.0",
+    "scipy>=1.13",
+    "torch>=2.6",
     "rdkit>=2026.3.6",
-    "ortools>=9.15.6755",
+    "networkx>=3.2",
     "lightning>=2.6.6",
 ]
+
+[project.scripts]
+npflow = "npflow.cli:main"
+
+[project.optional-dependencies]
+# the integer program of npflow.chem.exact, the first version of the mapper, kept as its reference
+cpsat = ["ortools>=9.15.6755"]
+
+[project.urls]
+Homepage = "https://github.com/daenuprobst/npf"
+Repository = "https://github.com/daenuprobst/npf"
 
 [dependency-groups]
 dev = [
     "matplotlib",
-    "networkx",
     "pillow",
+    "pandas",
     "drfp>=0.3.7",
     "pytest",
     "ortools>=9.15.6755",
@@ -27,7 +52,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/npf"]
+packages = ["src/npflow"]
+
+# the source distribution holds the package alone, the benchmarks, their data and results stay in the repository
+[tool.hatch.build.targets.sdist]
+include = ["src/npflow", "README.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

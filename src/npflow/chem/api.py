@@ -1,11 +1,11 @@
 """Train, validate, test and use the models on reactions of your own, with PyTorch Lightning.
 
 A reaction file holds one reaction SMILES per line, precursors>>product, with an optional tab separated class label.
-No atom map is needed. The mapper of npf.chem.mapper, the minimum firing vector of the valence net found without a
+No atom map is needed. The mapper of npflow.chem.mapper, the minimum firing vector of the valence net found without a
 solver, computes the targets of every reaction once, milliseconds each for most reactions, and caches them next to the
 file. map_reaction writes its map as map numbers.
 
-    from npf.chem import api
+    from npflow.chem import api
     data = api.ReactionData("train.txt", "val.txt", "test.txt")
     model = api.ForwardModel()
     trainer = api.trainer(model, epochs=60)
